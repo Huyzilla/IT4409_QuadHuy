@@ -1,0 +1,138 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #081c3b;
+    color: #b0e60d;
+    font-size: 14px;
+}
+
+.app {
+    display: flex;
+    height: 100vh;
+}
+
+.slidebar {
+    width: 280px;
+    background-color: #161b22;
+    padding: 20px;
+    border-right: 3px solid #30363d;
+}
+
+.logo {
+    padding: 10px;
+    margin-bottom: 5px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.list li.active {
+    background-color: #30363d;
+}
+
+.main-content {
+    flex-grow: 1;
+    padding: 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+}
+
+.header h1 {
+    font-size: 24px;
+}
+
+.btn {
+    padding: 8px 15px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn.primary {
+    background-color: #df0d2c;
+    color: #fff;
+}
+
+.legend span {
+    padding-left: 12px;
+    position: relative;
+    color: #8b949e;
+    font-size: 13px;
+}
+
+.legend span:before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.legend .low::before {
+    background-color: #4CAF50;
+}
+
+.legend .heavy::before {
+    background-color: #F44336;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+}
+
+.card {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 15px;
+    height: 150px;
+    display: flex;
+    flex-direction: column;
+}
+
+.card h2 {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.progress-bar-container {
+    height: 10px;
+    background-color: #21262d;
+    border-radius: 5px;
+    overflow: hidden;
+    margin-top: auto;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 5px;
+}
+
+.progress-bar.low {
+    background-color: #4CAF50;
+}
+
+.progress-bar.heavy {
+    background-color: #F44336;
+}
+
+.density {
+    font-size: 12px;
+    color: #8b949e;
+    margin-top: 10px;
+    text-align: right;
+}

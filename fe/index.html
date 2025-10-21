@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Monitor Minimal</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app">
+        <aside class="sidebar">
+            <div class="logo">Traffic Monitor</div>
+            <ul class="list">
+                <li class="active">Ngã tư A</li>
+                <li>Ngã tư B</li>
+            </ul>
+        </aside>
+
+        <main class="main-content">
+            <header class="header">
+                <h1>Ngã tư A - Trạng thái hiện tại</h1>
+                <button class="btn primary">Trực tiếp</button>
+            </header>
+            <div class="legend">
+                <span class="low">Ít đông</span>
+                <span class="heavy">Ùn tắc</span>
+            </div>
+            <div class="grid">
+                <div class="card">
+                    <h2>Đoạn 1 - Bắc + Nam</h2>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar low" style="width: 45%"></div>
+                    </div>
+                    <p class="density">Mật độ: 0.45</p>
+                </div>
+                <div class="card">
+                    <h2>Đoạn 3 - Đông + Tây</h2>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar heavy" style="width: 80%"></div>
+                    </div>
+                    <p class="density">Mật độ: 0.8</p>
+                </div>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
