@@ -1,0 +1,753 @@
+/* ==================================================================== */
+/* 1. CSS VARIABLES (Biến CSS) - DARK MODE (Mặc định) */
+/* ==================================================================== */
+:root {
+    /* DARK THEME */
+    --color-bg-primary: #1A202C;
+    --color-bg-secondary: #2D3748;
+    --color-bg-tertiary: #4A5568;
+    --color-border: #4A5568;
+    --color-text-primary: #E2E8F0;
+    --color-text-secondary: #CBD5E0;
+    --color-accent-blue: #63B3ED;
+    --color-accent-blue-dark: #4299E1;
+    --color-success: #48BB78;
+    --color-traffic-low: #68D391;
+    --color-traffic-medium: #F6E05E;
+    --color-traffic-warning: #F6AD55;
+    --color-traffic-heavy: #FC8181;
+    --color-alert-badge: #E53E3E; /* Red for Alert Badge */
+    --shadow-sm: rgba(0, 0, 0, 0.1) 0px 1px 3px 0px, rgba(0, 0, 0, 0.06) 0px 1px 2px 0px;
+    --shadow-md: rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.06) 0px 2px 4px -1px;
+    --shadow-lg: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 0.75rem;
+    --transition-fast: all 0.2s ease-in-out;
+}
+
+/* ==================================================================== */
+/* LIGHT MODE THEME (Được kích hoạt khi body có class .theme-light) */
+/* ==================================================================== */
+.theme-light {
+    --color-bg-primary: #F7FAFC;
+    --color-bg-secondary: #FFFFFF;
+    --color-bg-tertiary: #E2E8F0;
+    --color-border: #CBD5E0;
+    --color-text-primary: #2D3748;
+    --color-text-secondary: #718096;
+    --shadow-sm: rgba(0, 0, 0, 0.05) 0px 1px 3px 0px, rgba(0, 0, 0, 0.02) 0px 1px 2px 0px;
+    --shadow-md: rgba(0, 0, 0, 0.1) 0px 4px 6px -1px, rgba(0, 0, 0, 0.05) 0px 2px 4px -1px;
+    --shadow-lg: rgba(0, 0, 0, 0.1) 0px 10px 15px -3px, rgba(0, 0, 0, 0.05) 0px 4px 6px -2px;
+}
+.theme-light .logo-text { color: var(--color-accent-blue); }
+.theme-light .icon-moon {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>');
+    background-color: var(--color-accent-blue); /* Sun icon */
+}
+
+
+/* ==================================================================== */
+/* 2. General Reset and Base Styles */
+/* ==================================================================== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: 16px;
+    line-height: 1.5;
+    transition: background-color 0.3s, color 0.3s; /* Transition cho theme change */
+}
+
+h1, h2, h3 {
+    font-family: 'Montserrat', sans-serif; /* Secondary font for headings */
+    color: var(--color-text-primary);
+}
+
+/* App Layout */
+.app {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    border-radius: var(--radius-lg); /* Rounded corners for the entire app */
+    box-shadow: var(--shadow-lg); /* Global shadow for depth */
+    margin: 15px; /* Margin from viewport edges */
+}
+
+/* ==================================================================== */
+/* 3. Sidebar Styles */
+/* ==================================================================== */
+.sidebar {
+    width: 280px;
+    background-color: var(--color-bg-secondary);
+    padding: 25px 20px; /* More padding */
+    border-right: 1px solid var(--color-border);
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-header {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px; /* More space */
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 20px;
+}
+
+/* Nút chuyển đổi Theme */
+.theme-toggle-btn {
+    position: absolute;
+    right: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    padding: 5px;
+    border-radius: var(--radius-md);
+    transition: var(--transition-fast);
+}
+.theme-toggle-btn:hover {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-accent-blue);
+}
+.theme-toggle-btn .icon {
+    width: 1.4em;
+    height: 1.4em;
+    background-color: currentColor;
+}
+
+
+.intersection-info {
+    flex-grow: 1;
+    margin-right: 10px;
+    min-width: 0;
+}
+
+.logo-text {
+    font-size: 22px; /* Larger logo text */
+    font-weight: 700;
+    margin-left: 10px;
+    color: var(--color-accent-blue);
+    letter-spacing: 0.5px;
+}
+
+.search-box {
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 12px 15px; /* More padding */
+    padding-left: 40px; /* Space for icon */
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); /* Rounded search input */
+    color: var(--color-text-primary);
+    font-size: 15px;
+    outline: none;
+    transition: var(--transition-fast);
+}
+
+.search-box input:focus {
+    border-color: var(--color-accent-blue);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Search icon positioning */
+.search-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-secondary);
+}
+
+.list-title {
+    font-size: 12px;
+    font-weight: 600; /* Bolder */
+    color: var(--color-text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 15px;
+    letter-spacing: 1px;
+    padding-left: 10px;
+}
+
+.intersection-list {
+    list-style: none;
+    padding: 0;
+    flex-grow: 1; /* Allow list to grow */
+    overflow-y: auto; /* Scrollable if many items */
+}
+
+.intersection-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px; /* More padding */
+    margin-bottom: 8px; /* More margin */
+    border-radius: var(--radius-md); /* Rounded corners */
+    cursor: pointer;
+    transition: var(--transition-fast);
+    box-shadow: var(--shadow-sm); /* Subtle shadow for items */
+}
+
+.intersection-info {
+    flex-grow: 1; /* Cho phép nó mở rộng tối đa */
+    margin-right: 10px; /* Thêm khoảng cách với nút SẴN SÀNG */
+    min-width: 0; /* Cho phép nội dung bên trong bị thu hẹp/cắt */
+}
+
+.intersection-item:hover {
+    background-color: var(--color-bg-tertiary);
+    transform: translateY(-2px); /* Lift effect on hover */
+    box-shadow: var(--shadow-md);
+}
+
+.intersection-item.active {
+    background-color: var(--color-accent-blue); /* Blue background for active */
+    color: #fff; /* White text for active */
+    border-left: 4px solid var(--color-accent-blue-dark); /* Darker blue border */
+    padding-left: 12px; /* Adjust padding due to border */
+    box-shadow: var(--shadow-md);
+}
+.intersection-item.active .intersection-label,
+.intersection-item.active .intersection-details {
+    color: #fff; /* Ensure text is white */
+}
+.intersection-item.active .status-button.active {
+    background-color: #fff;
+    color: var(--color-accent-blue); /* Blue text on white button */
+}
+.intersection-item.active .status-button.ready {
+    background-color: #fff;
+    color: var(--color-accent-blue-dark);
+    border-color: var(--color-accent-blue-dark);
+}
+
+
+.intersection-label {
+    font-weight: 700; /* Bolder label */
+    font-size: 16px;
+    display: block;
+    margin-bottom: 2px;
+}
+
+.intersection-details {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 12px;
+    color: var(--color-text-secondary);
+}
+
+/* Cải tiến: Bộ lọc cho danh sách ngã tư */
+.filter-controls {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.filter-controls select {
+    flex-grow: 1;
+    padding: 8px;
+    background-color: var(--color-bg-primary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    appearance: none; /* Ẩn mũi tên mặc định */
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23FFFFFF"><path d="M7 10l5 5 5-5z"/></svg>');
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 10px;
+    cursor: pointer;
+}
+.theme-light .filter-controls select {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23000000"><path d="M7 10l5 5 5-5z"/></svg>');
+}
+
+/* Nút Báo cáo / Phân tích (dưới cùng sidebar) */
+.report-btn {
+    width: 100%;
+    margin-top: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    background-color: var(--color-bg-primary) !important;
+    border-color: var(--color-border) !important;
+    color: var(--color-accent-blue) !important;
+}
+.report-btn:hover {
+    background-color: var(--color-bg-tertiary) !important;
+}
+
+/* Status Buttons (Sidebar) */
+.status-button {
+    font-size: 11px; /* Slightly larger */
+    font-weight: 700;
+    padding: 6px 10px; /* More padding */
+    border-radius: 16px; /* More rounded pill shape */
+    text-transform: uppercase;
+    flex-shrink: 0;
+    transition: var(--transition-fast);
+}
+
+.status-button.active {
+    background-color: var(--color-success);
+    color: #fff;
+}
+
+.status-button.ready {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-accent-blue);
+    border: 1px solid var(--color-accent-blue);
+}
+
+/* ==================================================================== */
+/* 4. Main Content Styles */
+/* ==================================================================== */
+.main-content {
+    flex-grow: 1;
+    padding: 30px; /* More padding */
+    overflow-y: auto;
+    background-color: var(--color-bg-primary); /* Ensure consistency */
+}
+
+/* Header/Title Bar */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+}
+
+/* Nút Cảnh báo */
+.alert-btn {
+    position: relative;
+    padding: 8px 10px !important;
+    margin-left: 0 !important;
+    color: var(--color-traffic-heavy) !important; /* Màu đỏ nổi bật */
+}
+.alert-btn .icon {
+    width: 1.4em;
+    height: 1.4em;
+    background-color: currentColor;
+}
+.alert-btn:hover {
+    background-color: var(--color-border);
+}
+
+/* Vòng tròn thông báo */
+.alert-badge {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 18px;
+    height: 18px;
+    background-color: var(--color-alert-badge);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid var(--color-bg-primary); /* Viền để nổi bật trên nền */
+}
+.theme-light .alert-badge {
+    border: 2px solid var(--color-bg-secondary);
+}
+
+
+/* ==================================================================== */
+/* 5. Dashboard Grid & Cards */
+/* ==================================================================== */
+.card-header {
+    position: relative; /* Cần thiết cho nút hành động nhanh */
+    display: flex;
+    /* Cải tiến: Dùng flex-basis để quản lý 3 phần: Title, Tag, Button */
+    gap: 10px;
+    align-items: center;
+}
+
+.segment-card h2 {
+    flex-grow: 1; /* Cho phép tiêu đề chiếm phần lớn không gian */
+    margin-right: auto; /* Đẩy các element khác sang phải */
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--color-accent-blue);
+}
+
+.status-tag {
+    /* ... (giữ nguyên styles) */
+    flex-shrink: 0;
+}
+
+/* Nút Hành động Nhanh (Quick Action Button) */
+.quick-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--color-text-secondary);
+    padding: 5px;
+    border-radius: var(--radius-sm);
+    transition: var(--transition-fast);
+    flex-shrink: 0;
+}
+.quick-action-btn:hover {
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-accent-blue);
+}
+.quick-action-btn .icon {
+    width: 1.2em;
+    height: 1.2em;
+    background-color: currentColor;
+}
+
+.page-title {
+    font-size: 28px; /* Larger title */
+    font-weight: 700;
+    color: var(--color-accent-blue);
+}
+
+.header-actions .action-btn {
+    padding: 10px 18px; /* More padding */
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+    cursor: pointer;
+    margin-left: 15px; /* More space */
+    transition: var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+}
+
+.header-actions .action-btn:hover {
+    background-color: var(--color-border);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+}
+
+.header-actions .action-btn.primary {
+    background-color: var(--color-accent-blue);
+    border-color: var(--color-accent-blue);
+    color: #fff;
+}
+
+.header-actions .action-btn.primary:hover {
+    background-color: var(--color-accent-blue-dark);
+    border-color: var(--color-accent-blue-dark);
+}
+
+/* Traffic Filters/Legend */
+.traffic-filters {
+    display: flex;
+    gap: 25px; /* More space */
+    margin-bottom: 40px; /* More margin */
+    padding: 15px 0; /* More padding */
+    border-bottom: 1px solid var(--color-border);
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.filter-item {
+    display: flex;
+    align-items: center;
+    font-size: 14px; /* Slightly larger */
+    color: var(--color-text-secondary);
+}
+
+.color-dot {
+    display: inline-block;
+    width: 10px; /* Larger dot */
+    height: 10px; /* Larger dot */
+    border-radius: 50%;
+    margin-right: 8px; /* More space */
+    box-shadow: var(--shadow-sm); /* Shadow on dot */
+}
+
+.low-traffic .color-dot { background-color: var(--color-traffic-low); }
+.medium-traffic .color-dot { background-color: var(--color-traffic-medium); }
+.heavy-traffic .color-dot { background-color: var(--color-traffic-heavy); }
+.no-connection .color-dot { background-color: var(--color-text-secondary); }
+
+/* ==================================================================== */
+/* 5. Dashboard Grid & Cards */
+/* ==================================================================== */
+/* Tối ưu hóa lại để đảm bảo bố cục 2x2 trên màn hình lớn */
+.dashboard-grid {
+    display: grid;
+    /* Đảm bảo 2 cột bằng nhau */
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-bottom: 30px;
+}
+
+/* Thêm Media Query để đảm bảo chuyển về 1 cột trên điện thoại */
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr; /* 1 cột trên màn hình nhỏ */
+    }
+}
+
+.segment-card {
+    background-color: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg); /* More rounded cards */
+    padding: 20px; /* More padding */
+    height: 280px; /* Taller cards */
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-md); /* Card shadow */
+    transition: var(--transition-fast);
+}
+
+.segment-card:hover {
+    transform: translateY(-3px); /* Lift effect on hover */
+    box-shadow: var(--shadow-lg);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px; /* More space */
+}
+
+/* Vùng chứa biểu đồ xu hướng (Sparkline) */
+.trend-chart {
+    height: 50px; /* Chiều cao cố định cho biểu đồ */
+    padding: 5px 0;
+    margin-bottom: 15px;
+    border-radius: var(--radius-sm);
+    background-color: var(--color-bg-primary); /* Nền tối hơn một chút */
+    display: flex;
+    justify-content: center; /* Tạm thời căn giữa text */
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    border: 1px solid var(--color-border);
+    position: relative;
+    overflow: hidden; /* Quan trọng để chứa biểu đồ SVG/Canvas */
+}
+
+/* Thêm các hiệu ứng trực quan cho Trend Chart (dùng trong JS để chỉ thị xu hướng) */
+.trend-chart[data-trend="up"] {
+    border-color: var(--color-traffic-heavy);
+}
+.trend-chart[data-trend="down"] {
+    border-color: var(--color-traffic-low);
+}
+.trend-chart[data-trend="stable"] {
+    border-color: var(--color-accent-blue);
+}
+
+.trend-chart p {
+    margin: 0;
+    padding: 0;
+    /* Tùy chỉnh màu chữ dựa trên xu hướng */
+}
+.trend-chart[data-trend="up"] p { color: var(--color-traffic-heavy); }
+.trend-chart[data-trend="down"] p { color: var(--color-traffic-low); }
+.trend-chart[data-trend="stable"] p { color: var(--color-accent-blue); }
+
+.segment-card h2 {
+    font-size: 18px; /* Larger heading */
+    font-weight: 600;
+    color: var(--color-accent-blue); /* Blue for card headings */
+}
+
+.status-tag {
+    font-size: 12px; /* Slightly larger */
+    font-weight: 600; /* Bolder */
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: var(--radius-md);
+    background-color: var(--color-bg-tertiary);
+}
+.status-tag .color-dot {
+    width: 8px;
+    height: 8px;
+    box-shadow: none; /* No shadow on tiny dots */
+}
+
+/* Progress Bar Styles */
+.progress-bar-container {
+    height: 12px; /* Taller progress bar */
+    background-color: var(--color-bg-tertiary);
+    border-radius: 6px; /* More rounded */
+    overflow: hidden;
+    margin-top: 20px; /* Push to the bottom */
+    box-shadow: inset var(--shadow-sm); /* Inner shadow for depth */
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 6px;
+    background-color: var(--color-accent-blue); /* Default fallback / Blue for low density */
+    transition: width 0.6s ease-out, background-color 0.6s ease-out; /* Smoother animation */
+}
+
+/* Gradient for progress bars based on traffic */
+.progress-bar.gradient-full {
+    background: linear-gradient(90deg,
+    var(--color-traffic-low) 0%,
+    var(--color-traffic-medium) 30%,
+    var(--color-traffic-warning) 60%,
+    var(--color-traffic-heavy) 100%
+    );
+}
+.progress-bar.low-gradient {
+    background: linear-gradient(90deg, var(--color-traffic-low) 0%, var(--color-traffic-medium) 100%);
+}
+.progress-bar.medium-gradient {
+    background: linear-gradient(90deg, var(--color-traffic-medium) 0%, var(--color-traffic-warning) 100%);
+}
+.progress-bar.heavy-gradient {
+    background: linear-gradient(90deg, var(--color-traffic-warning) 0%, var(--color-traffic-heavy) 100%);
+}
+
+
+.density-label {
+    font-size: 13px; /* Slightly larger */
+    color: var(--color-text-secondary);
+    margin-top: 15px; /* More space */
+    text-align: right;
+    font-weight: 500;
+}
+
+/* Footer Hint */
+.hint-text {
+    font-size: 12px; /* Slightly larger */
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin-top: 30px; /* More space */
+    padding-top: 20px;
+    border-top: 1px solid var(--color-border);
+    line-height: 1.8;
+}
+
+/* ==================================================================== */
+/* 6. Icon Styles (using SVG masks inline) */
+/* ==================================================================== */
+/* Placeholder for icons - ideally use Font Awesome or SVG sprite */
+.icon {
+    display: inline-block;
+    width: 1.2em; /* Slightly larger icons */
+    height: 1.2em;
+    background-color: currentColor; /* Inherit color from parent */
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-position: 50% 50%;
+    mask-position: 50% 50%;
+    -webkit-mask-size: contain; /* Ensure icon fits */
+    mask-size: contain;
+    vertical-align: middle;
+}
+
+.icon-traffic {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>');
+}
+/* This icon is for home/dashboard, matching the visual */
+.icon-dashboard {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zm0-8h14V7H7v2z"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zm0-8h14V7H7v2z"/></svg>');
+}
+.icon-search {
+    -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5a6.5 6.5 0 10-6.5 6.5c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>');
+    mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5a6.5 6.5 0 10-6.5 6.5c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>');
+}
+
+/* ==================================================================== */
+/* 7. Responsive Design (Cải tiến) */
+/* ==================================================================== */
+@media (max-width: 1024px) {
+    .app {
+        margin: 10px;
+    }
+    .sidebar {
+        width: 250px;
+        padding: 20px 15px;
+    }
+    .main-content {
+        padding: 25px;
+    }
+    .page-title {
+        font-size: 24px;
+    }
+    .dashboard-grid {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .app {
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        margin: 0;
+        border-radius: 0;
+    }
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--color-border);
+        padding-bottom: 15px;
+    }
+    .sidebar-header {
+        justify-content: center; /* Center logo on mobile */
+    }
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .page-title {
+        margin-bottom: 15px;
+        font-size: 22px;
+    }
+    .header-actions {
+        width: 100%;
+        display: flex;
+        justify-content: space-around;
+    }
+    .header-actions .action-btn {
+        margin-left: 0;
+        flex-grow: 1;
+        text-align: center;
+    }
+    .header-actions .action-btn:not(:last-child) {
+        margin-right: 10px;
+    }
+    .traffic-filters {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    .segment-card {
+        height: auto; /* Allow cards to grow */
+    }
+}

@@ -1,18 +1,233 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Huy's website</title>
-    <link rel="stylesheet" href="style.css" />
-  </head>
-  <body>
-    <h1 id="hello">Hello</h1>
-    <p id="hihihi">hihihi</p>
-    <label> username: </label>
-    <input id="text" /><br /><br />
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Traffic Monitor Pro - Bảng điều khiển lưu lượng giao thông</title>
+    <link rel="stylesheet" href="styles.css">
 
-    <button id="submit">Submit</button>
-    <script src="index.js"></script>
-  </body>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700&display=swap"
+          rel="stylesheet">
+
+    <style>
+        /* Icons using SVG masks inline (Dùng tạm thay Font Awesome) */
+        .icon {
+            display: inline-block;
+            width: 1.2em;
+            height: 1.2em;
+            background-color: currentColor;
+            -webkit-mask-repeat: no-repeat;
+            mask-repeat: no-repeat;
+            -webkit-mask-position: 50% 50%;
+            mask-position: 50% 50%;
+            -webkit-mask-size: contain;
+            mask-size: contain;
+            vertical-align: middle;
+        }
+
+        /* Nút Cài đặt (Quick Action) */
+        .icon-settings {
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 12.98c.04-.32.06-.65.06-1s-.02-.68-.06-1l2.12-1.64c.2-.15.25-.43.12-.66l-2-3.46c-.12-.22-.38-.31-.61-.22l-2.49 1c-.52-.38-1.09-.72-1.71-.97L14 3.46c-.05-.24-.27-.42-.5-.46l-4-1.39c-.23-.04-.46.1-.5.35L8.2 4.03c-.62.25-1.19.59-1.71.97l-2.49-1c-.23-.09-.48.0-.61.22l-2 3.46c-.12.23-.08.51.12.66l2.12 1.64c-.04.32-.06.65-.06 1s.02.68.06 1l-2.12 1.64c-.2.15-.25.43-.12.66l2 3.46c.12.22.38.31.61.22l2.49-1c.52.38 1.09.72 1.71.97l.31 2.51c.05.24.27.42.5.46l4 1.39c.23.04.46-.1.5-.35l.31-2.51c.62-.25 1.19-.59 1.71-.97l2.49 1c.23.09.48.0.61-.22l2-3.46c.12-.23.08-.51-.12-.66l-2.12-1.64zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M19.4 12.98c.04-.32.06-.65.06-1s-.02-.68-.06-1l2.12-1.64c.2-.15.25-.43.12-.66l-2-3.46c-.12-.22-.38-.31-.61-.22l-2.49 1c-.52-.38-1.09-.72-1.71-.97L14 3.46c-.05-.24-.27-.42-.5-.46l-4-1.39c-.23-.04-.46.1-.5.35L8.2 4.03c-.62.25-1.19.59-1.71.97l-2.49-1c-.23-.09-.48.0-.61.22l-2 3.46c-.12.23-.08.51.12.66l2.12 1.64c-.04.32-.06.65-.06 1s.02.68.06 1l-2.12 1.64c-.2.15-.25.43-.12.66l2 3.46c.12.22.38.31.61.22l2.49-1c.52.38 1.09.72 1.71.97l.31 2.51c.05.24.27.42.5.46l4 1.39c.23.04.46-.1.5-.35l.31-2.51c.62-.25 1.19-.59 1.71-.97l2.49 1c.23.09.48.0.61-.22l2-3.46c.12-.23.08-.51-.12-.66l-2.12-1.64zM12 15.5c-1.93 0-3.5-1.57-3.5-3.5s1.57-3.5 3.5-3.5 3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5z"/></svg>');
+        }
+
+        /* Nút Chuông (Alert) */
+        .icon-bell {
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.93 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.63 5.36 6 7.93 6 11v5l-2 2v1h16v-1l-2-2z"/></svg>');
+        }
+
+        /* Nút Chuyển chế độ (Moon) */
+        .icon-moon {
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 009 9c0 4.39-3.08 8.05-7.23 8.88C15.42 18.78 16 16.5 16 14.5c0-4.47-4-8.09-8.94-8.09-1.91 0-3.7.53-5.26 1.44C3.95 3.73 7.6 1 12 1s8.43 2.73 9.77 6.47C20.37 5.17 17.5 3 14.5 3c-4.66 0-8.52 3.73-8.87 8.36C7.3 9.4 9.4 8.5 11.5 8.5c4.75 0 8.5 3.75 8.5 8.5 0 2.65-1.2 5.01-3.06 6.57C19.7 21.61 22 18.52 22 15.5c0-4.66-3.73-8.52-8.36-8.87C13.6 5.3 11.5 3 9.5 3c-4.47 0-8.09 4-8.09 8.94C1.91 14.7 2.44 16.5 3.35 18.06z"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 3a9 9 0 009 9c0 4.39-3.08 8.05-7.23 8.88C15.42 18.78 16 16.5 16 14.5c0-4.47-4-8.09-8.94-8.09-1.91 0-3.7.53-5.26 1.44C3.95 3.73 7.6 1 12 1s8.43 2.73 9.77 6.47C20.37 5.17 17.5 3 14.5 3c-4.66 0-8.52 3.73-8.87 8.36C7.3 9.4 9.4 8.5 11.5 8.5c4.75 0 8.5 3.75 8.5 8.5 0 2.65-1.2 5.01-3.06 6.57C19.7 21.61 22 18.52 22 15.5c0-4.66-3.73-8.52-8.36-8.87C13.6 5.3 11.5 3 9.5 3c-4.47 0-8.09 4-8.09 8.94C1.91 14.7 2.44 16.5 3.35 18.06z"/></svg>');
+        }
+
+        /* Traffic cone icon */
+        .icon-traffic {
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1L9 7h6zm0 2.2L13.8 6H10.2zM7 8h10l-1 2H8zm-.83 3h11.66L18 13H6zm-1.17 3h14l-1 2H4zM3 17h18l-1 2H4zM2 20h20v1H2z"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M12 1L9 7h6zm0 2.2L13.8 6H10.2zM7 8h10l-1 2H8zm-.83 3h11.66L18 13H6zm-1.17 3h14l-1 2H4zM3 17h18l-1 2H4zM2 20h20v1H2z"/></svg>');
+        }
+        /* Dashboard icon (similar to original "info" icon) */
+        .icon-dashboard {
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zm0-8h14V7H7v2z"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zm0-8h14V7H7v2z"/></svg>');
+        }
+        /* Search icon */
+        .icon-search {
+            -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5a6.5 6.5 0 10-6.5 6.5c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>');
+            mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5a6.5 6.5 0 10-6.5 6.5c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>');
+        }
+    </style>
+</head>
+<body class="theme-dark">
+<div class="app">
+    <aside class="sidebar" role="navigation">
+        <div class="sidebar-header">
+            <span class="icon icon-traffic" style="color: var(--color-accent-blue);"></span>
+            <span class="logo-text">Traffic Monitor</span>
+
+            <button class="theme-toggle-btn" aria-label="Chuyển chế độ Sáng/Tối">
+                <span class="icon icon-moon"></span>
+            </button>
+        </div>
+
+        <div class="search-box">
+            <span class="icon icon-search search-icon"></span>
+            <input type="text" placeholder="Tìm ngã tư..." aria-label="Tìm kiếm ngã tư">
+        </div>
+
+        <div class="filter-controls">
+            <select aria-label="Lọc theo trạng thái">
+                <option value="all">Tất cả trạng thái</option>
+                <option value="heavy">Ùn tắc</option>
+                <option value="medium">Trung bình</option>
+                <option value="low">Ít đông</option>
+            </select>
+            <select aria-label="Lọc theo khu vực">
+                <option value="all">Tất cả khu vực</option>
+                <option value="quan1">Quận 1</option>
+                <option value="quan3">Quận 3</option>
+            </select>
+        </div>
+
+        <h3 class="list-title">DANH SÁCH NGÃ TƯ</h3>
+        <ul class="intersection-list">
+            <li class="intersection-item active" data-status="tracking">
+                <div class="intersection-info">
+                    <span class="intersection-label">Ngã tư A</span>
+                    <p class="intersection-details">Q.Lộ 1A x P.Quốc Dân</p>
+                </div>
+                <span class="status-button active">Đang theo dõi</span>
+            </li>
+            <li class="intersection-item" data-status="heavy">
+                <div class="intersection-info">
+                    <span class="intersection-label">Ngã tư B</span>
+                    <p class="intersection-details">Trần Hưng Đạo x Bạch Đằng</p>
+                </div>
+                <span class="status-button ready">Sẵn sàng</span>
+            </li>
+            <li class="intersection-item" data-status="medium">
+                <div class="intersection-info">
+                    <span class="intersection-label">Ngã tư C</span>
+                    <p class="intersection-details">Đoàn Sĩ Phú x Nguyễn Thái Học</p>
+                </div>
+                <span class="status-button ready">Sẵn sàng</span>
+            </li>
+            <li class="intersection-item" data-status="low">
+                <div class="intersection-info">
+                    <span class="intersection-label">Ngã tư D</span>
+                    <p class="intersection-details">Phạm Văn Đồng x Võng Đức Thông</p>
+                </div>
+                <span class="status-button ready">Sẵn sàng</span>
+            </li>
+        </ul>
+
+        <button class="report-btn action-btn">
+            <span class="icon icon-dashboard"></span> Lịch sử & Phân tích chuyên sâu
+        </button>
+    </aside>
+
+    <main class="main-content" role="main">
+        <header class="main-header">
+            <h1 class="page-title">Ngã tư A — Trạng thái hiện tại</h1>
+            <div class="header-actions">
+                <button class="alert-btn action-btn" aria-label="Xem cảnh báo">
+                    <span class="icon icon-bell"></span>
+                    <span class="alert-badge">3</span></button>
+                <button class="action-btn" aria-label="Tải lại dữ liệu">Tải lại</button>
+                <button class="action-btn primary" aria-label="Xem trực tiếp">Trực tiếp</button>
+            </div>
+        </header>
+
+        <div class="traffic-filters">
+            <span class="filter-item low-traffic"><span class="color-dot"></span> Ít đông</span>
+            <span class="filter-item medium-traffic"><span class="color-dot"></span> Trung bình</span>
+            <span class="filter-item heavy-traffic"><span class="color-dot"></span> Ùn tắc</span>
+            <span class="filter-item no-connection"><span class="color-dot"></span> Mất kết nối</span>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="segment-card">
+                <div class="card-header">
+                    <h2>Đoạn 1 — Hướng Bắc → Nam</h2>
+                    <span class="status-tag medium-traffic"><span class="color-dot"></span> Trung bình</span>
+                    <button class="quick-action-btn" aria-label="Tùy chọn nhanh">
+                        <span class="icon icon-settings"></span>
+                    </button>
+                </div>
+
+                <div class="trend-chart" data-trend="stable">
+                    <p>Xu hướng: Ổn định (60 phút)</p>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar gradient-full" style="width: 45%;"></div>
+                </div>
+                <p class="density-label">Mật độ: 0.45</p>
+            </div>
+
+            <div class="segment-card">
+                <div class="card-header">
+                    <h2>Đoạn 2 — Hướng Nam → Bắc</h2>
+                    <span class="status-tag no-connection"><span class="color-dot"></span> Mất kết nối</span>
+                    <button class="quick-action-btn" aria-label="Tùy chọn nhanh">
+                        <span class="icon icon-settings"></span>
+                    </button>
+                </div>
+
+                <div class="trend-chart" data-trend="down">
+                    <p>Xu hướng: Giảm (60 phút)</p>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: 20%; background-color: var(--color-traffic-low);"></div>
+                </div>
+                <p class="density-label">Mật độ: 0.20</p>
+            </div>
+
+            <div class="segment-card">
+                <div class="card-header">
+                    <h2>Đoạn 3 — Hướng Đông → Tây</h2>
+                    <span class="status-tag heavy-traffic"><span class="color-dot"></span> Ùn tắc</span>
+                    <button class="quick-action-btn" aria-label="Tùy chọn nhanh">
+                        <span class="icon icon-settings"></span>
+                    </button>
+                </div>
+
+                <div class="trend-chart" data-trend="up">
+                    <p>Xu hướng: Tăng (60 phút)</p>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar gradient-full" style="width: 80%;"></div>
+                </div>
+                <p class="density-label">Mật độ: 0.80</p>
+            </div>
+
+            <div class="segment-card">
+                <div class="card-header">
+                    <h2>Đoạn 4 — Hướng Tây → Đông</h2>
+                    <span class="status-tag no-connection"><span class="color-dot"></span> Mất kết nối</span>
+                    <button class="quick-action-btn" aria-label="Tùy chọn nhanh">
+                        <span class="icon icon-settings"></span>
+                    </button>
+                </div>
+
+                <div class="trend-chart" data-trend="unknown">
+                    <p>Xu hướng: Không rõ (60 phút)</p>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="width: 0%; background-color: var(--color-text-secondary);"></div>
+                </div>
+                <p class="density-label">Mật độ: —</p>
+            </div>
+        </div>
+
+        <p class="hint-text">Giá trị tích hợp cấp width của 'progress-bar' và 'Mật độ' được cập nhật bằng JavaScript
+            theo dõi dữ liệu khối thời gian thực. Giao diện được thiết kế để trực quan và phản hồi.</p>
+    </main>
+</div>
+</body>
 </html>
