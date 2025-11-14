@@ -119,9 +119,6 @@ def send_to_backend():
         except requests.exceptions.RequestException as e:
             print(f"Error connect to backend: {e}")
         data_queue.task_done()
-        # print(f"DỮ LIỆU TỪ AI (Camera: {data['camera_id']})")
-        # print(json.dumps(data, indent=2))
-        # print("--------------------------------------------------")
 
 if __name__ == "__main__":
     print("Load model ...")

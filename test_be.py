@@ -1,43 +1,56 @@
 import cv2
 import numpy as np
 from ultralytics import YOLO
-import threading, time, queue, copy
+import threading, time, queue, copy, requests,json
+
+BACKEND_API_URL = "http://localhost:8000/api/traffic-control" 
+backend_queue = queue.Queue(maxsize=100) 
+log_file = "log.json"
+
+def save_log(payload):
+    try:
+        with open(log_file, "a", encoding="utf-8") as f:
+            json_string = json.dumps(payload, ensure_ascii=False)
+            f.write(json_string + "\n")
+    except Exception as e:
+        print(f"Lỗi ghi log: {e}")
 
 cam_config = {
     1: {
         "name": "Road 1 (Bac)",
         "path": "videos/north.mp4",
-        "regions": {
-            "region-left": [(465, 350), (609, 350), (510, 630), (2, 630)],
-            "region-right": [(678, 350), (815, 350), (1203, 630), (743, 630)],
-        }
+        # "regions": {
+        #     "region-left": [(465, 350), (609, 350), (510, 630), (2, 630)],
+        #     "region-right": [(678, 350), (815, 350), (1203, 630), (743, 630)],
+        # }
     },
     2: {
         "name": "Road 2 (Dong)",
         "path": "videos/east.mp4",
-        "regions": {
-            "region-left": [(465, 350), (609, 350), (510, 630), (2, 630)],
-            "region-right": [(678, 350), (815, 350), (1203, 630), (743, 630)],
-        }
+        # "regions": {
+        #     "region-left": [(465, 350), (609, 350), (510, 630), (2, 630)],
+        #     "region-right": [(678, 350), (815, 350), (1203, 630), (743, 630)],
+        # }
     },
     3: {
         "name": "Road 3 (Nam)",
         "path": "videos/south.mp4",
-        "regions": {
-            "region-left": [(465, 350), (609, 350), (510, 630), (2, 630)],
-            "region-right": [(678, 350), (815, 350), (1203, 630), (743, 630)],
-        }
+        # "regions": {
+        #     "region-left": [(465, 350), (609, 350), (510, 630), (2, 630)],
+        #     "region-right": [(678, 350), (815, 350), (1203, 630), (743, 630)],
+        # }
     },
     4: {
         "name": "Road 4 (Tay)",
         "path": "videos/west.mp4",
-        "regions": {
-            "region-left": [(465, 350), (609, 350), (510, 630), (2, 630)],
-            "region-right": [(678, 350), (815, 350), (1203, 630), (743, 630)],
-        }
+        # "regions": {
+        #     "region-left": [(465, 350), (609, 350), (510, 630), (2, 630)],
+        #     "region-right": [(678, 350), (815, 350), (1203, 630), (743, 630)],
+        # }
     }
 }
 
+frame_buffer = { 1: None, 2: None, 3: None, 4: None }
 traffic_state = {
     1: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0},
     2: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0},
@@ -45,10 +58,6 @@ traffic_state = {
     4: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0}
 }
 state_lock = threading.Lock()
-
-frame_buffer = {
-    1: None, 2: None, 3: None, 4: None
-}
 
 def calculate_adjusted_time(num_vehicles, max_vehicles=30, default_time=42):
     if num_vehicles >= max_vehicles:
@@ -122,6 +131,16 @@ def process_camera(road_id, config, model):
 
         frame_buffer[road_id] = annotated_frame
 
+def backend_sender_worker():
+    while True:
+        try:
+            payload = backend_queue.get()
+            print(f"\nGửi dữ liệu đến Backend: {payload}")
+            
+            backend_queue.task_done()
+        except Exception as e:
+            print(f"Lỗi gửi Backend: {e}")
+
 def traffic_control_loop():
     time.sleep(2)
     roads_cycle = [1, 2, 3, 4]
@@ -137,6 +156,7 @@ def traffic_control_loop():
         
         selected_road = None
 
+        # Logic chọn đường 
         if selected_road is None:
             if not roads_cycle: roads_cycle = [1, 2, 3, 4]
             for r_id, info in sorted_roads:
@@ -147,7 +167,44 @@ def traffic_control_loop():
         
         if selected_road is not None:
             road_info = current_data[selected_road]
+            # Tính toán thời gian
             green_time = calculate_adjusted_time(road_info["vehicles"]) if road_info["emergency"] == 0 else 80
+
+            status_snapshot = {}
+            for rid, rdata in current_data.items():
+                light_status = "RED"
+                time_status = 0
+
+                if rid == selected_road:
+                    light_status = "GREEN"
+                    time_status = green_time
+
+                status_snapshot[rid] = {
+                    "vehicles": rdata["vehicles"],
+                    "is_emergency": bool(rdata["emergency"]),
+                    "light": light_status,
+                    "time_left": time_status
+                }
+
+            payload = {
+                "timestamp": time.time(),
+                "readable_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+                "event": "signal_change",
+                "decision": {
+                    "green_road_id": selected_road,
+                    "duration": green_time,
+                    "reason": "EMERGENCY" if road_info["emergency"] > 0 else "NORMAL_ADAPTIVE"
+                },
+                "traffic_status": status_snapshot,
+                "cycle_queue": roads_cycle
+            }
+
+            save_log(payload)
+
+            try:
+                backend_queue.put_nowait(payload)
+            except queue.Full:
+                pass 
 
             with state_lock:
                 traffic_state[selected_road]["light"] = "GREEN"
@@ -156,7 +213,7 @@ def traffic_control_loop():
             for t in range(green_time, 0, -1):
                 with state_lock:
                     traffic_state[selected_road]["time_left"] = t
-
+            
                 time.sleep(1) 
             
             with state_lock:
@@ -180,6 +237,8 @@ if __name__ == "__main__":
         t.daemon = True
         t.start()
 
+    sender_t = threading.Thread(target=backend_sender_worker, daemon=True)
+    sender_t.start()
     threading.Thread(target=traffic_control_loop, daemon=True).start()
     
     print("Hệ thống đang chạy. Nhấn 'q' trên cửa sổ hình ảnh để thoát.")
