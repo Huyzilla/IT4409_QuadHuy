@@ -1,0 +1,305 @@
+{
+  "intersections": [
+    {
+      "id": "A",
+      "label": "Ngã tư A",
+      "details": "Ngã Tư Sở",
+      "area": "Đống Đa",
+      "status": "tracking",
+      "location": {
+        "lat": 10.7769,
+        "lng": 106.7009
+      },
+      "segments": [
+        {
+          "id": "A1",
+          "title": "Hướng Bắc → Nam",
+          "density": 0.45,
+          "status": "medium",
+          "camera": {
+            "id": "cam-A1",
+            "name": "Camera Bắc → Nam",
+            "streamUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+            "thumbnail": "https://picsum.photos/seed/A1/400/300",
+            "fps": 30,
+            "resolution": "1080p"
+          }
+        },
+        {
+          "id": "A2",
+          "title": "Hướng Nam → Bắc",
+          "density": 0.20,
+          "status": "low",
+          "camera": {
+            "id": "cam-A2",
+            "name": "Camera Nam → Bắc",
+            "streamUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+            "thumbnail": "https://picsum.photos/seed/A2/400/300"
+          }
+        },
+        {
+          "id": "A3",
+          "title": "Hướng Đông → Tây",
+          "density": 0.80,
+          "status": "heavy",
+          "camera": {
+            "id": "cam-A3",
+            "name": "Camera Đông → Tây",
+            "streamUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+            "thumbnail": "https://picsum.photos/seed/A3/400/300"
+          }
+        },
+        {
+          "id": "A4",
+          "title": "Hướng Tây → Đông",
+          "density": 0.0,
+          "status": "no-connection",
+          "camera": {
+            "id": "cam-A4",
+            "name": "Camera Tây → Đông",
+            "streamUrl": null,
+            "thumbnail": null,
+            "offline": true
+          }
+        }
+      ]
+    },
+    {
+      "id": "B",
+      "label": "Ngã tư B",
+      "details": "Ngã tư Vọng",
+      "area": "Phương Mai, Đống Đa",
+      "status": "heavy",
+      "location": {
+        "lat": 10.7790,
+        "lng": 106.7021
+      },
+      "segments": [
+        {
+          "id": "B1",
+          "title": "Hướng Bắc → Nam",
+          "density": 0.92,
+          "status": "heavy",
+          "camera": {
+            "id": "cam-B1",
+            "name": "Camera Bắc → Nam (Ùn tắc)",
+            "streamUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4",
+            "thumbnail": "https://picsum.photos/seed/B1/400/300"
+          }
+        },
+        {
+          "id": "B2",
+          "title": "Hướng Nam → Bắc",
+          "density": 0.87,
+          "status": "heavy",
+          "camera": {
+            "id": "cam-B2",
+            "name": "Camera Nam → Bắc",
+            "streamUrl": "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4",
+            "thumbnail": "https://picsum.photos/seed/B2/400/300"
+          }
+        },
+        {
+          "id": "B3",
+          "title": "Hướng Đông → Tây",
+          "density": 0.50,
+          "status": "medium",
+          "camera": {
+            "id": "cam-B3",
+            "name": "Camera Đông → Tây",
+            "streamUrl": null,
+            "thumbnail": "https://picsum.photos/seed/B3/400/300"
+          }
+        },
+        {
+          "id": "B4",
+          "title": "Hướng Tây → Đông",
+          "density": 0.35,
+          "status": "low",
+          "camera": {
+            "id": "cam-B4",
+            "name": "Camera Tây → Đông",
+            "streamUrl": null,
+            "thumbnail": "https://picsum.photos/seed/B4/400/300"
+          }
+        }
+      ]
+    },
+    {
+      "id": "C",
+      "label": "Ngã tư C",
+      "details": "Ngã tư Xuân Thủy",
+      "area": "Xuân Thủy",
+      "status": "medium",
+      "location": {
+        "lat": 10.7626,
+        "lng": 106.6822
+      },
+      "segments": [
+        {
+          "id": "C1",
+          "title": "Hướng Bắc → Nam",
+          "density": 0.65,
+          "status": "medium",
+          "camera": {
+            "id": "cam-C1",
+            "name": "Camera Bắc → Nam",
+            "streamUrl": "https://www.w3schools.com/html/mov_bbb.mp4",
+            "thumbnail": "https://picsum.photos/seed/C1/400/300"
+          }
+        },
+        {
+          "id": "C2",
+          "title": "Hướng Nam → Bắc",
+          "density": 0.55,
+          "status": "medium",
+          "camera": {
+            "id": "cam-C2",
+            "name": "Camera Nam → Bắc",
+            "streamUrl": null,
+            "thumbnail": "https://picsum.photos/seed/C2/400/300"
+          }
+        },
+        {
+          "id": "C3",
+          "title": "Hướng Đông → Tây",
+          "density": 0.15,
+          "status": "low",
+          "camera": {
+            "id": "cam-C3",
+            "name": "Camera Đông → Tây",
+            "streamUrl": null,
+            "thumbnail": "https://picsum.photos/seed/C3/400/300"
+          }
+        },
+        {
+          "id": "C4",
+          "title": "Hướng Tây → Đông",
+          "density": 0.40,
+          "status": "medium",
+          "camera": {
+            "id": "cam-C4",
+            "name": "Camera Tây → Đông",
+            "streamUrl": null,
+            "thumbnail": "https://picsum.photos/seed/C4/400/300"
+          }
+        }
+      ]
+    },
+    {
+      "id": "D",
+      "label": "Ngã tư D",
+      "details": "Phạm Văn Đồng x Võng Đức Thông",
+      "area":
+
+      "quan3",
+      "status": "low",
+      "location": {
+        "lat": 10.8231,
+        "lng": 106.6297
+      },
+      "segments": [
+        {
+          "id": "D1",
+          "title": "Hướng Bắc → Nam",
+          "density": 0.10,
+          "status": "low",
+          "camera": {
+            "id": "cam-D1",
+            "name": "Camera Bắc → Nam",
+            "streamUrl": null,
+            "thumbnail": "https://picsum.photos/seed/D1/400/300"
+          }
+        },
+        {
+          "id": "D2",
+          "title": "Hướng Nam → Bắc",
+          "density": 0.12,
+          "status": "low",
+          "camera": {
+            "id": "cam-D2",
+            "name": "Camera Nam → Bắc",
+            "streamUrl": null,
+            "thumbnail": "https://picsum.photos/seed/D2/400/300"
+          }
+        },
+        {
+          "id": "D3",
+          "title": "Hướng Đông → Tây",
+          "density": 0.25,
+          "status": "low",
+          "camera": {
+            "id": "cam-D3",
+            "name": "Camera Đông → Tây",
+            "streamUrl": null,
+            "thumbnail": "https://picsum.photos/seed/D3/400/300"
+          }
+        },
+        {
+          "id": "D4",
+          "title": "Hướng Tây → Đông",
+          "density": 0.05,
+          "status": "low",
+          "camera": {
+            "id": "cam-D4",
+            "name": "Camera Tây → Đông",
+            "streamUrl": null,
+            "thumbnail": "https://picsum.photos/seed/D4/400/300"
+          }
+        }
+      ]
+    }
+  ],
+
+  "alerts": [
+    {
+      "id": 1,
+      "intersectionId": "B",
+      "intersectionLabel": "Ngã tư B",
+      "segmentId": "B1",
+      "segmentTitle": "Hướng Bắc → Nam",
+      "message": "Mật độ vượt ngưỡng 0.9. Cần điều chỉnh đèn giao thông.",
+      "level": "critical",
+      "timestamp": 1731769200000,
+      "read": false
+    },
+    {
+      "id": 2,
+      "intersectionId": "C",
+      "intersectionLabel": "Ngã tư C",
+      "segmentId": "C3",
+      "segmentTitle": "Hướng Đông → Tây",
+      "message": "Tốc độ trung bình giảm 20% trong 5 phút gần nhất.",
+      "level": "warning",
+      "timestamp": 1731768000000,
+      "read": true
+    },
+    {
+      "id": 3,
+      "intersectionId": "A",
+      "intersectionLabel": "Ngã tư A",
+      "segmentId": "A4",
+      "segmentTitle": "Hướng Tây → Đông",
+      "message": "Cảm biến camera mất kết nối trong 10 phút.",
+      "level": "error",
+      "timestamp": 1731766800000,
+      "read": false
+    }
+  ],
+
+  "user": {
+    "id": "usr_001",
+    "username": "admin_traffic",
+    "fullName": "Nguyễn Văn Admin",
+    "role": "admin",
+    "permissions": ["view_all", "edit_settings", "export_data", "manage_users"]
+  },
+
+  "system": {
+    "lastUpdated": "2025-11-16T18:40:00+07:00",
+    "version": "1.2.4",
+    "totalCameras": 16,
+    "onlineCameras": 11,
+    "totalIntersections": 4
+  }
+}
