@@ -668,6 +668,58 @@ h1, h2, h3 {
     mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5a6.5 6.5 0 10-6.5 6.5c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>');
 }
 
+.custom-select {
+    appearance: none;
+    background-color: var(--color-bg-secondary);
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 8px;
+    padding: 10px 36px 10px 14px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-primary);
+    width: 100%;
+    min-height: 44px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-sm);
+}
+
+.custom-select:hover {
+    border-color: var(--color-accent-blue);
+    background-color: rgba(99, 179, 237, 0.05);
+}
+
+.custom-select:focus {
+    outline: none;
+    border-color: var(--color-accent-blue);
+    box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
+    background-color: rgba(99, 179, 237, 0.08);
+}
+
+.custom-select option {
+    padding: 10px 14px;
+    white-space: normal !important;
+    word-wrap: break-word;
+    line-height: 1.4;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+}
+
+@media (max-width: 768px) {
+    .custom-select {
+        font-size: 13px;
+        padding: 8px 32px 8px 12px;
+        min-height: 40px;
+        background-position: right 10px center;
+    }
+}
+
 @media (max-width: 1024px) {
     .app {
         margin: 10px;
