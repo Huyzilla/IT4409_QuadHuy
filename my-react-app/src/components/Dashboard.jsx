@@ -1,4 +1,5 @@
 import React from "react";
+import { STATUS_MAP } from "../data/mockData";
 
 const DashboardSegmentCard = ({ segment, onLiveView }) => {
     const statusInfo = STATUS_MAP[segment.status] || STATUS_MAP["no-connection"];
@@ -170,7 +171,7 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
         ? `${activeIntersection.label} — Trạng thái hiện tại`
         : "Vui lòng chọn một Ngã tư để theo dõi";
 
-    const segments = activeIntersection?.segments || [];
+    const segments = activeIntersection?.segments || []; // mỗi segment = một camera tile
     const isDashboardEmpty = segments.length === 0;
 
     const handleFilterClick = (statusLabel) => {
@@ -179,7 +180,7 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
 
     const handleHeaderLive = () => {
         if (segments && segments.length > 0) {
-            onLiveView && onLiveView(segments[0].camera);
+            onLiveView && onLiveView(segments[0].camera);  // Truyền camera
         } else {
             alert("Không có camera để mở trực tiếp cho ngã tư này.");
         }
