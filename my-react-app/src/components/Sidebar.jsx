@@ -1,8 +1,14 @@
 import React, { useState } from 'react';
 import { useTraffic } from '../context/TrafficContext';
 
-const Sidebar = () => {
-    const { intersections, activeIntersection, handleIntersectionSelect, toggleTheme, alerts, unreadAlertCount } = useTraffic();
+const Sidebar = ({ currentUser, onLogout, onThemeToggle }) => {
+    const {
+        intersections,
+        activeIntersection,
+        handleIntersectionSelect,
+        alerts,
+        unreadAlertCount
+    } = useTraffic();
 
     const [searchText, setSearchText] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -12,7 +18,8 @@ const Sidebar = () => {
         const matchesStatus = statusFilter === 'all' || item.status === statusFilter;
         const matchesArea = areaFilter === 'all' || item.area === areaFilter;
         const lowerSearchText = searchText.toLowerCase();
-        const matchesSearch = item.label.toLowerCase().includes(lowerSearchText) || item.details.toLowerCase().includes(lowerSearchText);
+        const matchesSearch = item.label.toLowerCase().includes(lowerSearchText) ||
+            item.details.toLowerCase().includes(lowerSearchText);
         return matchesStatus && matchesArea && matchesSearch;
     });
 
@@ -21,7 +28,11 @@ const Sidebar = () => {
             <div className="sidebar-header">
                 <span className="icon icon-traffic" style={{ color: 'var(--color-accent-blue)' }}></span>
                 <span className="logo-text">Traffic Monitor</span>
-                <button className="theme-toggle-btn" aria-label="Chuyển chế độ Sáng/Tối" onClick={toggleTheme}>
+                <button
+                    className="theme-toggle-btn"
+                    aria-label="Chuyển chế độ Sáng/Tối"
+                    onClick={onThemeToggle}
+                >
                     <span className="icon icon-moon"></span>
                 </button>
             </div>
@@ -82,26 +93,44 @@ const Sidebar = () => {
                             >
                                 <div className="intersection-info">
                                     <span className="intersection-label">{item.label}</span>
-                                    {/* Thẻ trạng thái nhanh */}
-                                    <span className={`status-tag ${item.status}-traffic`} style={{marginLeft: '10px'}}>
-                                         <span className="color-dot"></span>
+                                    <span className={`status-tag ${item.status}-traffic`} style={{ marginLeft: '10px' }}>
+                                        <span className="color-dot"></span>
                                     </span>
                                     <p className="intersection-details">{item.details}</p>
                                 </div>
-                                <span className={`status-button ${statusClass}`}>{statusText}</span>
+                                <span className={`status-button ${statusClass}`}>
+                                    {statusText}
+                                </span>
                             </li>
                         );
                     })
                 ) : (
-                    <li style={{ padding: '15px', color: 'var(--color-text-secondary)', textAlign: 'center' }}>
+                    <li className="no-results">
                         Không tìm thấy ngã tư nào.
                     </li>
                 )}
             </ul>
 
-            <button className="report-btn action-btn" onClick={() => alert('Chuyển đến trang Lịch sử & Phân tích chuyên sâu...')}>
-                <span className="icon icon-dashboard"></span> Lịch sử & Phân tích chuyên sâu
+            <button className="report-btn action-btn">
+                <span className="icon icon-dashboard"></span>
+                Lịch sử & Phân tích
             </button>
+
+            <div className="sidebar-user-info">
+                <div className="sidebar-user-card">
+                    <div className="sidebar-user-details">
+                        <div className="sidebar-user-name">
+                            {currentUser?.fullName || "Người dùng"}
+                        </div>
+                        <div className="sidebar-user-role">
+                            {currentUser?.role === "admin" ? "Quản trị viên" : "Nhân viên giám sát"}
+                        </div>
+                    </div>
+                    <button onClick={onLogout} className="btn-logout">
+                        Đăng xuất
+                    </button>
+                </div>
+            </div>
         </aside>
     );
 };

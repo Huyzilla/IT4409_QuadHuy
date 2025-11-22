@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import "./CameraGridModal.css";
+// import "./CameraGridModal.css";
 
 export default function CameraGridWithModal({ cameras = [] }) {
   const [openCam, setOpenCam] = useState(null);
