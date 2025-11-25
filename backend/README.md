@@ -1,98 +1,214 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# AI-Based Adaptive Traffic Control System - Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+## 📋 Overview
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+Backend system for an AI-based adaptive traffic control system. Receives real-time traffic data from AI cameras via WebSocket, processes it using an intelligent traffic control algorithm, stores logs in PostgreSQL, caches state in Redis, and broadcasts updates to a dashboard.
 
-## Description
+## 🏗️ Architecture
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **Framework**: NestJS (TypeScript)
+- **Database**: PostgreSQL 16 (Prisma ORM)
+- **Cache/PubSub**: Redis 7
+- **Communication**: 
+  - WebSocket (Socket.IO) for AI cameras → Backend
+  - WebSocket (Socket.IO) for Backend → Frontend Dashboard
+  - REST API for historical data queries
+- **Infrastructure**: Docker & Docker Compose
 
-## Project setup
+## 📁 Project Structure
 
-```bash
-$ npm install
+```
+backend/
+├── src/
+│   ├── main.ts                      # Application entry point
+│   ├── app.module.ts                # Root module
+│   │
+│   └── modules/
+│       ├── camera/                  # Camera management
+│       ├── traffic/                 # Traffic control & monitoring
+│       │   ├── ingest.gateway.ts    # WebSocket: AI → Backend
+│       │   ├── traffic.gateway.ts   # WebSocket: Backend → Frontend
+│       │   ├── traffic.control.service.ts  # Traffic light algorithm
+│       ├── intersection/            # Intersection management
+│       ├── database/                # Prisma integration
+│       └── redis/                   # Redis integration
+│
+├── prisma/
+│   ├── schema.prisma               # Database schema
+│   └── migrations/                 # Database migrations
+│
+├── Dockerfile                      # Production Docker image
+└── docker-compose.yml              # Multi-service orchestration
 ```
 
-## Compile and run the project
+## 🚀 Getting Started
 
-```bash
-# development
-$ npm run start
+### Option 1: Run with Docker (Recommended for Production)
 
-# watch mode
-$ npm run start:dev
+```powershell
+# Start all services
+docker-compose up -d --build
 
-# production mode
-$ npm run start:prod
+# Run database migrations
+docker exec -it nest-backend npx prisma migrate deploy
 ```
 
-## Run tests
+Services will be available at:
+- REST API: `http://localhost:3000`
+- WebSocket (AI Cameras): `ws://localhost:3000/ingest`
+- WebSocket (Dashboard): `ws://localhost:3000/traffic`
+- PostgreSQL: `localhost:5433`
+- Redis: `localhost:6379`
 
-```bash
-# unit tests
-$ npm run test
+### Option 2: Run Locally (Development with Hot Reload)
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+1. **Start infrastructure only**:
+```powershell
+docker-compose up -d postgres redis
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+2. **Install dependencies**:
+```powershell
+npm install
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+3. **Set up environment** (create `.env`):
+```env
+DATABASE_URL="postgresql://admin:admin123@localhost:5433/traffic_ai?schema=public"
+REDIS_HOST=localhost
+REDIS_PORT=6379
+NODE_ENV=development
+```
 
-## Resources
+4. **Run migrations**:
+```powershell
+npx prisma migrate dev --name init
+npx prisma generate
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+5. **Start dev server** (with hot reload):
+```powershell
+npm run start:dev
+```
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## 📡 API Endpoints
 
-## Support
+### REST API
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/cameras` | Get all cameras |
+| POST | `/cameras` | Create a new camera |
+| GET | `/traffic/logs?limit=20` | Get traffic signal logs |
+| GET | `/traffic/snapshot` | Get current traffic state |
+| GET | `/traffic/stats?cameraId=1&from=...&to=...` | Get statistics |
 
-## Stay in touch
+### WebSocket Events
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+#### AI Camera → Backend (`ws://localhost:3000/ingest`)
 
-## License
+**Event**: `traffic_data`
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+```json
+{
+  "cameraId": 1,
+  "vehicles": 5,
+  "isEmergency": false,
+  "timestamp": 1763108805
+}
+```
+
+#### Backend → Dashboard (`ws://localhost:3000/traffic`)
+
+**Event**: `traffic_update` (auto-broadcast every 1 second)
+
+```json
+{
+  "north": { "vehicles": 3, "light": "RED", "remaining": 10 },
+  "east":  { "vehicles": 7, "light": "GREEN", "remaining": 10 },
+  "south": { "vehicles": 2, "light": "RED", "remaining": 10 },
+  "west":  { "vehicles": 6, "light": "RED", "remaining": 10 }
+}
+```
+
+## 🧠 Traffic Control Algorithm
+
+### Rules
+
+1. **Emergency Priority**: Immediate green light for emergency vehicles
+2. **Adaptive Selection**: Choose road with highest vehicle count
+3. **Fair Cycling**: Maintain cycle queue to ensure all roads get green
+4. **Adaptive Duration**: 8-15 seconds based on vehicle density
+5. **Full Logging**: All decisions logged with state and reasoning
+
+### Flow
+
+```
+1. Receive traffic data from camera
+2. Update current state (vehicles, emergency)
+3. Run control algorithm
+4. If light change needed:
+   - Update road states
+   - Save to database
+   - Publish to Redis
+   - Broadcast to dashboard
+```
+
+## 🔧 Development
+
+### Scripts
+
+```powershell
+npm run start:dev      # Development with hot reload
+npm run build          # Production build
+npm run start:prod     # Start production build
+npm run lint           # Lint code
+npm test               # Run tests
+```
+
+### Database
+
+```powershell
+npx prisma migrate dev --name <name>  # Create migration
+npx prisma migrate deploy              # Apply migrations
+npx prisma studio                      # Open GUI
+npx prisma generate                    # Regenerate client
+```
+
+### Docker
+
+```powershell
+docker-compose up -d --build           # Build and start
+docker-compose logs -f backend         # View logs
+docker-compose down                    # Stop all
+docker exec -it nest-backend sh        # Access shell
+```
+
+## 🗄️ Database Schema
+
+- **cameras** - Camera information
+- **traffic_frame_stats** - Raw traffic data from cameras
+- **traffic_signal_logs** - Traffic light change logs
+- **intersections** - Intersection metadata
+
+## 📊 Redis Usage
+
+- **Cache**: `traffic:state` (current state, TTL 60s)
+- **Pub/Sub**: 
+  - `traffic:update` - General updates
+  - `traffic:light-change` - Light changes
+
+## 🐛 Troubleshooting
+
+### Port Conflict
+Change postgres port in `docker-compose.yml` to `5433:5432`
+
+### Prisma Issues
+```powershell
+npx prisma generate
+npx prisma migrate reset  # Development only!
+```
+
+## 📝 License
+
+UNLICENSED - Private Project
