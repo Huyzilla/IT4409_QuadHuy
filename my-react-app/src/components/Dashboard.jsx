@@ -1,4 +1,3 @@
-// src/components/Dashboard.jsx
 import React, { useEffect, useState } from "react";
 import { trafficSocket } from "../socket";
 import { STATUS_MAP } from "../data/mockData";
@@ -177,10 +176,8 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
   );
 };
 
-/**
- * Dashboard chính: nhận activeIntersection từ Sidebar,
- * nối dữ liệu mock với realtime từ backend (traffic_update)
- */
+//nhận activeIntersection từ Sidebar,
+// nối dữ liệu mock với realtime từ backend (traffic_update)
 const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
   const title = activeIntersection
     ? `${activeIntersection.label} — Trạng thái hiện tại`
@@ -188,21 +185,13 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
 
   const [trafficState, setTrafficState] = useState(null);
 
-  // Lắng nghe traffic_update từ backend
   useEffect(() => {
     const handler = (payload) => {
       console.log("[WS FE] traffic_update payload =", payload);
-      // Giả sử backend gửi dạng:
-      // { north: {...}, east: {...}, south: {...}, west: {...} }
-      // Nếu là { intersectionId, state } thì đổi lại thành setTrafficState(payload.state)
       setTrafficState(payload);
     };
 
     trafficSocket.on("traffic_update", handler);
-
-    // Nếu backend cần chọn intersection:
-    // trafficSocket.emit("subscribe_intersection", { intersectionId: 1 });
-
     return () => {
       trafficSocket.off("traffic_update", handler);
     };
@@ -211,7 +200,6 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
   const segments = activeIntersection?.segments || [];
   const isDashboardEmpty = segments.length === 0;
 
-  // Helper: map 1 segment (mockData) với data realtime từ trafficState
   const enhanceSegmentWithRealtime = (segment) => {
     if (!trafficState) return segment;
 
@@ -239,7 +227,7 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
     if (lane.vehicles >= 7) status = "high";
     else if (lane.vehicles >= 3) status = "medium";
 
-    const density = Math.min(lane.vehicles / 10, 1); // 0–1, tuỳ chỉnh
+    const density = Math.min(lane.vehicles / 10, 1); 
 
     return {
       ...segment,
