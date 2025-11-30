@@ -1,6 +1,12 @@
-import React from "react";
+// src/components/Dashboard.jsx
+import React, { useEffect, useState } from "react";
+import { trafficSocket } from "../socket";
 import { STATUS_MAP } from "../data/mockData";
 
+/**
+ * Card hiển thị 1 hướng (1 camera / 1 lane)
+ * Nhận props.segment đã được "trộn" dữ liệu realtime bên ngoài
+ */
 const DashboardSegmentCard = ({ segment, onLiveView }) => {
   const statusInfo = STATUS_MAP[segment.status] || STATUS_MAP["no-connection"];
   const densityPercent = Math.round((segment.density ?? 0) * 100);
@@ -25,7 +31,7 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
       className="segment-card"
       style={{ display: "flex", flexDirection: "column" }}
     >
-      {/*Thumbnail / preview area*/}
+      {/* Thumbnail / preview area */}
       <div
         className="segment-thumb"
         style={{
@@ -47,7 +53,6 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
             }}
           />
         ) : segment.streamUrl ? (
-          // muted preview (optional) — can be heavy if many videos autoplay
           <video
             src={segment.streamUrl}
             muted
@@ -71,7 +76,7 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
         )}
       </div>
 
-      {/* --- Header: title + status + quick settings --- */}
+      {/* Header: title + status + quick settings */}
       <div
         className="card-header"
         style={{
@@ -101,7 +106,7 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
             <span className="icon icon-settings"></span>
           </button>
 
-          {/* Xem chi tiết button: gọi onLiveView với chính segment (camera) */}
+          {/* Xem chi tiết */}
           <button
             className="btn-view-detail"
             onClick={() => onLiveView && onLiveView(segment)}
@@ -120,6 +125,7 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
         </div>
       </div>
 
+      {/* Trend text */}
       <div
         className="trend-chart"
         data-trend={
@@ -130,6 +136,7 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
         <p style={{ margin: 0 }}>{trendText}</p>
       </div>
 
+      {/* Progress bar mật độ */}
       <div
         className="progress-bar-container"
         style={{
@@ -170,13 +177,80 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
   );
 };
 
+/**
+ * Dashboard chính: nhận activeIntersection từ Sidebar,
+ * nối dữ liệu mock với realtime từ backend (traffic_update)
+ */
 const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
   const title = activeIntersection
     ? `${activeIntersection.label} — Trạng thái hiện tại`
     : "Vui lòng chọn một Ngã tư để theo dõi";
 
-  const segments = activeIntersection?.segments || []; // mỗi segment = một camera tile
+  const [trafficState, setTrafficState] = useState(null);
+
+  // Lắng nghe traffic_update từ backend
+  useEffect(() => {
+    const handler = (payload) => {
+      console.log("[WS FE] traffic_update payload =", payload);
+      // Giả sử backend gửi dạng:
+      // { north: {...}, east: {...}, south: {...}, west: {...} }
+      // Nếu là { intersectionId, state } thì đổi lại thành setTrafficState(payload.state)
+      setTrafficState(payload);
+    };
+
+    trafficSocket.on("traffic_update", handler);
+
+    // Nếu backend cần chọn intersection:
+    // trafficSocket.emit("subscribe_intersection", { intersectionId: 1 });
+
+    return () => {
+      trafficSocket.off("traffic_update", handler);
+    };
+  }, []);
+
+  const segments = activeIntersection?.segments || [];
   const isDashboardEmpty = segments.length === 0;
+
+  // Helper: map 1 segment (mockData) với data realtime từ trafficState
+  const enhanceSegmentWithRealtime = (segment) => {
+    if (!trafficState) return segment;
+
+    // Ưu tiên dùng segment.laneKey nếu có ("north" | "south" | "east" | "west")
+    let laneKey = segment.laneKey;
+
+    // Nếu không có laneKey, thử map theo id 1–4
+    if (!laneKey && typeof segment.id === "number") {
+      const idToLane = {
+        1: "north",
+        2: "east",
+        3: "south",
+        4: "west",
+      };
+      laneKey = idToLane[segment.id];
+    }
+
+    if (!laneKey) return segment;
+
+    const lane = trafficState[laneKey];
+    if (!lane) return segment;
+
+    // Tính status & density từ số xe
+    let status = "low";
+    if (lane.vehicles >= 7) status = "high";
+    else if (lane.vehicles >= 3) status = "medium";
+
+    const density = Math.min(lane.vehicles / 10, 1); // 0–1, tuỳ chỉnh
+
+    return {
+      ...segment,
+      status,
+      density,
+      vehicles: lane.vehicles,
+      light: lane.light,
+      time_left: lane.time_left,
+      isEmergency: lane.isEmergency,
+    };
+  };
 
   const handleFilterClick = (statusLabel) => {
     alert(`Đã lọc/tập trung vào các đoạn đường có trạng thái: ${statusLabel}`);
@@ -222,6 +296,7 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
         </div>
       </header>
 
+      {/* Bộ filter trạng thái */}
       <div className="traffic-filters">
         <span
           className="filter-item low-traffic"
@@ -249,6 +324,7 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
         </span>
       </div>
 
+      {/* Lưới 4 card */}
       <div
         className="dashboard-grid"
         style={{
@@ -284,13 +360,16 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
                   <p className="density-label">Mật độ: —</p>
                 </div>
               ))
-          : segments.map((segment) => (
-              <DashboardSegmentCard
-                key={segment.id}
-                segment={segment}
-                onLiveView={onLiveView}
-              />
-            ))}
+          : segments.map((segment) => {
+              const segWithRealtime = enhanceSegmentWithRealtime(segment);
+              return (
+                <DashboardSegmentCard
+                  key={segment.id}
+                  segment={segWithRealtime}
+                  onLiveView={onLiveView}
+                />
+              );
+            })}
       </div>
     </main>
   );
