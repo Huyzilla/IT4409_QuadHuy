@@ -1,5 +1,5 @@
-// Kiểu màu đèn
 export type LightColor = 'RED' | 'GREEN' | 'YELLOW';
+export type Direction = 'north' | 'east' | 'south' | 'west';
 
 export interface RoadState {
   vehicles: number;
@@ -15,12 +15,36 @@ export interface TrafficState {
   west: RoadState;
 }
 
-// State mặc định ban đầu
 export function defaultTrafficState(): TrafficState {
+  const lane = (): RoadState => ({
+    vehicles: 0,
+    isEmergency: false,
+    light: 'RED',
+    timeLeft: 0,
+  });
+
   return {
-    north: { vehicles: 0, isEmergency: false, light: 'RED', timeLeft: 0 },
-    east:  { vehicles: 0, isEmergency: false, light: 'RED', timeLeft: 0 },
-    south: { vehicles: 0, isEmergency: false, light: 'RED', timeLeft: 0 },
-    west:  { vehicles: 0, isEmergency: false, light: 'RED', timeLeft: 0 },
+    north: lane(),
+    east: lane(),
+    south: lane(),
+    west: lane(),
   };
+}
+
+// Log 1 lần quyết định đèn
+export interface DecisionLogEntry {
+  timestamp: number;
+  intersectionId: number;
+  green: {
+    roadId: number;
+    direction: Direction;
+    vehicles: number;
+    duration: number;
+    reason?: string;
+  };
+  reds: Array<{
+    roadId: number;
+    direction: Direction;
+    vehicles: number;
+  }>;
 }

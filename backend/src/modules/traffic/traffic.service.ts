@@ -10,6 +10,32 @@ import { TrafficState, LightState, RoadTrafficStatus } from './entities/traffic.
  * TrafficService orchestrates traffic management logic.
  * Handles incoming data, runs control algorithm, caches state, and broadcasts updates.
  */
+// Payload quyết định đèn từ AI (Python)
+interface AiSignalDecisionPayload {
+  intersectionId: number;
+  timestamp: number;          
+  readableTime: string;       
+
+  decision: {
+    greenRoadId: number;      
+    duration: number;         
+    reason: string;           
+  };
+
+  trafficStatus: {
+    [roadId: number]: {
+      vehicles: number;
+      isEmergency?: boolean;
+      is_emergency?: boolean;
+      light?: string;
+      timeLeft?: number;
+      time_left?: number;
+    };
+  };
+
+  cycleQueue?: number[];
+}
+
 @Injectable()
 export class TrafficService {
   private readonly logger = new Logger(TrafficService.name);
