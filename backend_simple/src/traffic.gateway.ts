@@ -5,7 +5,7 @@ import { Server } from 'socket.io';
 import { TrafficStateService } from './traffic_state.service';
 
 @WebSocketGateway({
-  namespace: '/traffic',  // FE connect ws://localhost:3000/traffic
+  namespace: '/traffic', // ws://localhost:3000/traffic
   cors: { origin: '*' },
 })
 export class TrafficGateway {
@@ -16,7 +16,6 @@ export class TrafficGateway {
 
   constructor(private readonly stateService: TrafficStateService) {}
 
-  // Gửi state hiện tại cho tất cả dashboard
   broadcastState(): void {
     const state = this.stateService.getState();
     this.server.emit('traffic_update', state);

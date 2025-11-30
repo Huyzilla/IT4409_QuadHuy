@@ -6,18 +6,28 @@ import socketio
 import copy 
 
 sio = socketio.Client()
+NAMESPACE = "/ingest"
+
+@sio.event
+def connect():
+    print("[WS] Connected to backend (default namespace)")
+
+@sio.event
+def disconnect():
+    print("[WS] Disconnected from backend")
+
+@sio.event(namespace=NAMESPACE)
+def connect():
+    print("[WS] Connected to namespace /ingest")
 
 def connect_backend():
-    @sio.event
-    def connect():
-        print("[WS] Connected to backend /ingest")
-
-    @sio.event
-    def disconnect():
-        print("[WS] Disconnected from backend")
-
     try:
-        sio.connect("http://localhost:3000/ingest", transports=["websocket"])
+        sio.connect(
+            "http://localhost:3000",
+            transports=["websocket"],
+            namespaces=[NAMESPACE],
+        )
+        print("[WS] sio.connected =", sio.connected)
     except Exception as e:
         print(f"[WS] Cannot connect to backend: {e}")
 
@@ -29,7 +39,7 @@ def send_traffic(road_id, vehicles, emergency_count):
         "timestamp": int(time.time()),
     }
     try:
-        sio.emit("traffic_data", payload)
+        sio.emit("traffic_data", payload, namespace=NAMESPACE)
         print(f"[WS] Sent traffic_data: {payload}")
     except Exception as e:
         print(f"[WS] Error sending traffic_data: {e}")
@@ -224,7 +234,7 @@ def traffic_control_loop():
 
                 status_snapshot[rid] = {
                     "vehicles": rdata["vehicles"],
-                    "is_emergency": bool(rdata["emergency"]),
+                    "isEmergency": bool(rdata["emergency"]),
                     "light": light_status,
                     "time_left": time_status
                 }
@@ -245,7 +255,7 @@ def traffic_control_loop():
             save_log(payload)
 
             try:
-                sio.emit("signal_decision", payload)
+                sio.emit("signal_decision", payload, namespace=NAMESPACE)
                 print("[WS] Sent signal_decision:", payload["decision"])
             except Exception as e:
                 print("[WS] Error sending decision:", e)
