@@ -1,11 +1,10 @@
-// src/traffic.gateway.ts
 import { Logger } from '@nestjs/common';
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server } from 'socket.io';
 import { TrafficStateService } from './traffic_state.service';
 
 @WebSocketGateway({
-  namespace: '/traffic', // ws://localhost:3000/traffic
+  namespace: '/traffic', 
   cors: { origin: '*' },
 })
 export class TrafficGateway {

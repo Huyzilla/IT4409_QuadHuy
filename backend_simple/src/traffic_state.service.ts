@@ -40,10 +40,8 @@ export class TrafficStateService {
 
     this.state[dir].vehicles = vehicles;
     this.state[dir].isEmergency = isEmergency;
-    // Không đụng tới light/timeLeft ở đây
   }
 
-  // Python → signal_decision: { decision: { greenRoadId, duration, reason } }
   applyDecision(payload: any): void {
     if (!payload?.decision) return;
     const decision = payload.decision;

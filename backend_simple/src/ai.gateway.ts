@@ -8,7 +8,7 @@ import { TrafficStateService } from './traffic_state.service';
 import { TrafficGateway } from './traffic.gateway';
 
 @WebSocketGateway({
-  namespace: '/ingest', // ws://localhost:3000/ingest
+  namespace: '/ingest', 
   cors: { origin: '*' },
 })
 export class AiGateway {
@@ -25,7 +25,7 @@ export class AiGateway {
     return 'pong';
   }
 
-  // Python → traffic_data (realtime xe từng làn)
+  // AI => traffic_data (realtime xe từng làn)
   @SubscribeMessage('traffic_data')
   handleTrafficData(@MessageBody() raw: any) {
     let data = raw;
@@ -46,7 +46,7 @@ export class AiGateway {
     return { status: 'ok' };
   }
 
-  // Python → signal_decision (mỗi lần bắt đầu cycle mới)
+  // Ai => signal_decision (mỗi lần bắt đầu cycle mới)
   @SubscribeMessage('signal_decision')
   handleSignalDecision(@MessageBody() raw: any) {
     let data = raw;
