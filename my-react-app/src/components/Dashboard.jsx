@@ -7,6 +7,14 @@ import { STATUS_MAP } from "../data/mockData";
  * Nhận props.segment đã được "trộn" dữ liệu realtime bên ngoài
  */
 const DashboardSegmentCard = ({ segment, onLiveView }) => {
+  console.log(
+    "[CARD]",
+    segment.title,
+    "light=",
+    segment.light,
+    "time_left=",
+    segment.time_left
+  )
   const statusInfo = STATUS_MAP[segment.status] || STATUS_MAP["no-connection"];
   const densityPercent = Math.round((segment.density ?? 0) * 100);
 
@@ -176,12 +184,33 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
         }
         style={{ marginTop: 8 }}
       >
-        <p style={{ margin: 0 }}>{trendText}</p>
-        {segment.light === "GREEN" && segment.time_left > 0 && (
-          <p style={{ margin: "4px 0 0 0", fontWeight: 500 }}>
-            Đèn xanh còn: {segment.time_left}s
-          </p>
-        )}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            fontSize: 12,
+          }}
+        >
+          {/* Xu hướng bên trái */}
+          <span
+            style={{
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              marginRight: 8,
+            }}
+          >
+            {trendText}
+          </span>
+
+          {/* Countdown đèn xanh bên phải */}
+          {segment.light === "GREEN" && segment.time_left > 0 && (
+            <span style={{ whiteSpace: "nowrap", fontWeight: 500 }}>
+              Đèn xanh còn: {segment.time_left}s
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Progress bar mật độ */}
@@ -280,47 +309,56 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
   const isDashboardEmpty = segments.length === 0;
 
   // Map segment mock với dữ liệu realtime
-  const enhanceSegmentWithRealtime = (segment) => {
-  if (!trafficState) return segment;
+  const enhanceSegmentWithRealtime = (segment, laneKey) => {
+    if (!trafficState) return segment;
+    if (!laneKey) return segment;
 
-  const laneKey = segment.laneKey;
-  if (!laneKey) return segment;
+    const lane = trafficState[laneKey];
+    if (!lane) return segment;
 
-  const lane = trafficState[laneKey];
-  if (!lane) return segment;
+    // console.log(
+    //   "[SEG REALTIME]",
+    //   segment.title,
+    //   "laneKey=",
+    //   laneKey,
+    //   "light=",
+    //   lane.light,
+    //   "timeLeft=",
+    //   lane.timeLeft
+    // );
 
-  const v = lane.vehicles ?? 0;
+    const v = lane.vehicles ?? 0;
 
-  let status = "low";
-  let density = 0.1;
+    let status = "low";
+    let density = 0.1;
 
-  if (v === 0) {
-    status = "low";
-    density = 0.1;
-  } else if (v <= 3) {
-    status = "low";
-    density = 0.3;
-  } else if (v <= 7) {
-    status = "medium";
-    density = 0.6;
-  } else {
-    status = "high";
-    density = 0.9;
-  }
+    if (v === 0) {
+      status = "low";
+      density = 0.1;
+    } else if (v <= 3) {
+      status = "low";
+      density = 0.3;
+    } else if (v <= 7) {
+      status = "medium";
+      density = 0.6;
+    } else {
+      status = "high";
+      density = 0.9;
+    }
 
-  const timeLeft = lane.timeLeft ?? lane.time_left ?? 0;
-  const light = lane.light || "RED";
+    const timeLeft = lane.timeLeft ?? lane.time_left ?? 0;
+    const light = lane.light || "RED";
 
-  return {
-    ...segment,
-    status,
-    density,
-    vehicles: v,
-    light,
-    time_left: timeLeft,
-    isEmergency: lane.isEmergency,
+    return {
+      ...segment,
+      status,
+      density,
+      vehicles: v,
+      light,
+      time_left: timeLeft,
+      isEmergency: lane.isEmergency,
+    };
   };
-};
 
   const handleFilterClick = (statusLabel) => {
     alert(`Đã lọc/tập trung vào các đoạn đường có trạng thái: ${statusLabel}`);
@@ -430,8 +468,11 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
                   <p className="density-label">Mật độ: —</p>
                 </div>
               ))
-          : segments.map((segment) => {
-              const segWithRealtime = enhanceSegmentWithRealtime(segment);
+          : segments.map((segment, index) => {
+              const laneOrder = ["north", "south", "east", "west"];
+              const laneKey = laneOrder[index];
+              const segWithRealtime = enhanceSegmentWithRealtime(segment, laneKey);
+
               return (
                 <DashboardSegmentCard
                   key={segment.id}
