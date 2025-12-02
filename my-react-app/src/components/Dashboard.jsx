@@ -10,6 +10,22 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
   const statusInfo = STATUS_MAP[segment.status] || STATUS_MAP["no-connection"];
   const densityPercent = Math.round((segment.density ?? 0) * 100);
 
+  // Thông tin hiển thị đèn
+  const getLightInfo = (light) => {
+    switch (light) {
+      case "GREEN":
+        return { label: "Đèn xanh", bg: "#16a34a" };
+      case "YELLOW":
+        return { label: "Đèn vàng", bg: "#eab308" };
+      case "RED":
+        return { label: "Đèn đỏ", bg: "#ef4444" };
+      default:
+        return { label: "Không rõ", bg: "#64748b" };
+    }
+  };
+
+  const lightInfo = getLightInfo(segment.light);
+
   const trendOptions = ["up", "down", "stable"];
   const randomIndex = Math.floor(Math.random() * trendOptions.length);
   const randomTrend = trendOptions[randomIndex];
@@ -87,11 +103,39 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
       >
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           <h2 style={{ margin: 0, fontSize: 16 }}>{segment.title}</h2>
+
+          {/* Tag trạng thái mật độ */}
           <span
             className={`status-tag ${statusInfo.colorClass}`}
             style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
           >
             <span className="color-dot"></span> {statusInfo.label}
+          </span>
+
+          {/* Tag trạng thái đèn */}
+          <span
+            className="light-tag"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "2px 8px",
+              borderRadius: 999,
+              background: lightInfo.bg,
+              color: "#fff",
+              fontSize: 12,
+            }}
+          >
+            <span
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: "999px",
+                background: "#fff",
+                opacity: 0.8,
+              }}
+            />
+            {lightInfo.label}
           </span>
         </div>
 
@@ -124,7 +168,7 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
         </div>
       </div>
 
-      {/* Trend text */}
+      {/* Trend + countdown */}
       <div
         className="trend-chart"
         data-trend={
@@ -133,6 +177,11 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
         style={{ marginTop: 8 }}
       >
         <p style={{ margin: 0 }}>{trendText}</p>
+        {segment.light === "GREEN" && segment.time_left > 0 && (
+          <p style={{ margin: "4px 0 0 0", fontWeight: 500 }}>
+            Đèn xanh còn: {segment.time_left}s
+          </p>
+        )}
       </div>
 
       {/* Progress bar mật độ */}
@@ -176,8 +225,7 @@ const DashboardSegmentCard = ({ segment, onLiveView }) => {
   );
 };
 
-//nhận activeIntersection từ Sidebar,
-// nối dữ liệu mock với realtime từ backend (traffic_update)
+// Dashboard chính
 const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
   const title = activeIntersection
     ? `${activeIntersection.label} — Trạng thái hiện tại`
@@ -185,10 +233,11 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
 
   const [trafficState, setTrafficState] = useState(null);
 
+  // Nhận state từ backend
   useEffect(() => {
     const handler = (payload) => {
       console.log("[WS FE] traffic_update payload =", payload);
-      setTrafficState(payload);
+      setTrafficState(payload); // payload: { north, east, south, west, ... }
     };
 
     trafficSocket.on("traffic_update", handler);
@@ -197,48 +246,81 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
     };
   }, []);
 
+  // FE tự countdown time_left mỗi giây
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTrafficState((prev) => {
+        if (!prev) return prev;
+        const dirs = ["north", "east", "south", "west"];
+        let changed = false;
+        const next = { ...prev };
+
+        dirs.forEach((dir) => {
+          const lane = next[dir];
+          if(!lane) return;
+          const currentTime = lane.timeLeft ?? lane.time_left ?? 0;
+
+          if (lane.light === "GREEN" && currentTime > 0) {
+            const newTime = currentTime - 1;
+            next[dir] = {
+              ...lane,
+              timeLeft: newTime,
+              time_left: newTime,
+            };
+            changed = true;
+          }
+        });
+        return changed ? next : prev;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [])
+
   const segments = activeIntersection?.segments || [];
   const isDashboardEmpty = segments.length === 0;
 
+  // Map segment mock với dữ liệu realtime
   const enhanceSegmentWithRealtime = (segment) => {
-    if (!trafficState) return segment;
+  if (!trafficState) return segment;
 
-    // Ưu tiên dùng segment.laneKey nếu có ("north" | "south" | "east" | "west")
-    let laneKey = segment.laneKey;
+  const laneKey = segment.laneKey;
+  if (!laneKey) return segment;
 
-    // Nếu không có laneKey, thử map theo id 1–4
-    if (!laneKey && typeof segment.id === "number") {
-      const idToLane = {
-        1: "north",
-        2: "east",
-        3: "south",
-        4: "west",
-      };
-      laneKey = idToLane[segment.id];
-    }
+  const lane = trafficState[laneKey];
+  if (!lane) return segment;
 
-    if (!laneKey) return segment;
+  const v = lane.vehicles ?? 0;
 
-    const lane = trafficState[laneKey];
-    if (!lane) return segment;
+  let status = "low";
+  let density = 0.1;
 
-    // Tính status & density từ số xe
-    let status = "low";
-    if (lane.vehicles >= 7) status = "high";
-    else if (lane.vehicles >= 3) status = "medium";
+  if (v === 0) {
+    status = "low";
+    density = 0.1;
+  } else if (v <= 3) {
+    status = "low";
+    density = 0.3;
+  } else if (v <= 7) {
+    status = "medium";
+    density = 0.6;
+  } else {
+    status = "high";
+    density = 0.9;
+  }
 
-    const density = Math.min(lane.vehicles / 10, 1); 
+  const timeLeft = lane.timeLeft ?? lane.time_left ?? 0;
+  const light = lane.light || "RED";
 
-    return {
-      ...segment,
-      status,
-      density,
-      vehicles: lane.vehicles,
-      light: lane.light,
-      time_left: lane.time_left,
-      isEmergency: lane.isEmergency,
-    };
+  return {
+    ...segment,
+    status,
+    density,
+    vehicles: v,
+    light,
+    time_left: timeLeft,
+    isEmergency: lane.isEmergency,
   };
+};
 
   const handleFilterClick = (statusLabel) => {
     alert(`Đã lọc/tập trung vào các đoạn đường có trạng thái: ${statusLabel}`);

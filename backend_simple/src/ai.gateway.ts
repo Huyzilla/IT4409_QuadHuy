@@ -41,7 +41,7 @@ export class AiGateway {
     this.logger.log(`[AI] traffic_data: ${JSON.stringify(data)}`);
 
     this.stateService.updateFromTrafficData(data);
-    this.dashboardGateway.broadcastState();
+    // this.dashboardGateway.broadcastState();
 
     return { status: 'ok' };
   }
