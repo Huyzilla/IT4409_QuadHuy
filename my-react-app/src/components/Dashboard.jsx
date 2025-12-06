@@ -1,295 +1,206 @@
-import React from "react";
-import { STATUS_MAP } from "../data/mockData";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
 
-const DashboardSegmentCard = ({ segment, onLiveView }) => {
-    const statusInfo = STATUS_MAP[segment.status] || STATUS_MAP["no-connection"];
-    const densityPercent = Math.round((segment.density ?? 0) * 100);
+// Dựa trên file main.ts: app.setGlobalPrefix('api')
+const API_URL = "http://localhost:3000/api";
 
-    const trendOptions = ["up", "down", "stable"];
-    const randomIndex = Math.floor(Math.random() * trendOptions.length);
-    const randomTrend = trendOptions[randomIndex];
+const Dashboard = ({ onLiveView }) => {
+  // 1. State lưu danh sách Camera lấy từ DB
+  const [cameras, setCameras] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-    let trendText = "Không rõ (60 phút)";
-    if (segment.status !== "no-connection") {
-        if (randomTrend === "up") trendText = "Xu hướng: Tăng (60 phút)";
-        if (randomTrend === "down") trendText = "Xu hướng: Giảm (60 phút)";
-        if (randomTrend === "stable") trendText = "Xu hướng: Ổn định (60 phút)";
-    }
-
-    const handleQuickAction = () => {
-        alert(`Đã nhấn nút Tùy chọn Nhanh (Cài đặt) cho: ${segment.title}.`);
+  // 2. Gọi API lấy danh sách Camera khi mở trang
+  useEffect(() => {
+    const fetchCameras = async () => {
+      try {
+        // Gọi API: GET http://localhost:3000/api/cameras
+        const res = await axios.get(`${API_URL}/cameras`);
+        if (res.data) {
+          console.log("✅ Đã lấy được Camera từ DB:", res.data);
+          setCameras(res.data);
+        }
+      } catch (err) {
+        console.error("❌ Lỗi kết nối Backend:", err);
+        setError(
+          "Không thể kết nối đến Server (http://localhost:3000). Hãy kiểm tra lại Backend!"
+        );
+      } finally {
+        setLoading(false);
+      }
     };
 
+    fetchCameras();
+  }, []);
+
+  // 3. Hàm tạo dữ liệu giả định (Hardcode) để test giao diện trước
+  const getFakeTrafficData = (camId) => {
+    return {
+      vehicles: Math.floor(Math.random() * 30), // Giả định số xe từ 0-30
+      light: camId % 2 === 0 ? "RED" : "GREEN", // Giả định chẵn là Đỏ, lẻ là Xanh
+      remaining: 15,
+      statusLabel: "Ổn định (Giả định)",
+      statusClass: "medium-traffic",
+    };
+  };
+
+  // Hiển thị màn hình Loading hoặc Lỗi
+  if (loading)
     return (
+      <div style={{ padding: 20, color: "white" }}>
+        ⏳ Đang tải danh sách Camera từ Server...
+      </div>
+    );
+  if (error)
+    return <div style={{ padding: 20, color: "#FC8181" }}>⚠️ {error}</div>;
+
+  return (
+    <main className="main-content">
+      <header className="main-header">
+        <h1 className="page-title">
+          Giám sát Giao thông (Dữ liệu Camera từ DB)
+        </h1>
+      </header>
+
+      {cameras.length === 0 ? (
+        <div style={{ color: "white", textAlign: "center" }}>
+          Chưa có Camera nào trong Database. Hãy thêm dữ liệu bằng Prisma
+          Studio.
+        </div>
+      ) : (
         <div
-            className="segment-card"
-            style={{ display: "flex", flexDirection: "column" }}
+          className="dashboard-grid"
+          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}
         >
-            <div
-                className="segment-thumb"
+          {cameras.map((camera) => {
+            // Lấy thông số giả định để hiển thị cho đẹp
+            const fakeData = getFakeTrafficData(camera.id);
+
+            return (
+              <div
+                key={camera.id}
+                className="segment-card"
                 style={{
-                    height: 160,
-                    background: "#000",
+                  display: "flex",
+                  flexDirection: "column",
+                  padding: 15,
+                  background: "#2D3748",
+                  borderRadius: 10,
+                  color: "white",
+                }}
+              >
+                {/* --- PHẦN DỮ LIỆU THẬT TỪ DATABASE --- */}
+                <div
+                  className="segment-thumb"
+                  style={{
+                    height: 200,
+                    background: "black",
                     borderRadius: 8,
                     overflow: "hidden",
-                }}
-            >
-                {segment.camera?.thumbnail ? (
-                    <img
-                        src={segment.camera.thumbnail}
-                        alt={segment.title}
-                        style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "cover",
-                            display: "block",
-                        }}
-                    />
-                ) : segment.camera?.streamUrl ? (
+                    marginBottom: 10,
+                  }}
+                >
+                  {camera.videoSource ? (
                     <video
-                        src={segment.camera.streamUrl}
-                        muted
-                        playsInline
-                        loop
-                        preload="metadata"
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                ) : (
-                    <div
-                        style={{
-                            color: "#94a3b8",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            height: "100%",
-                        }}
-                    >
-                        Không có hình
-                    </div>
-                )}
-            </div>
-
-            <div
-                className="card-header"
-                style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    marginTop: 8,
-                }}
-            >
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <h2 style={{ margin: 0, fontSize: 16 }}>{segment.title}</h2>
-                    <span
-                        className={`status-tag ${statusInfo.colorClass}`}
-                        style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
-                    >
-            <span className="color-dot"></span> {statusInfo.label}
-          </span>
-                </div>
-
-                <div style={{ display: "flex", gap: 8 }}>
-                    <button
-                        className="quick-action-btn"
-                        aria-label="Tùy chọn nhanh"
-                        onClick={handleQuickAction}
-                        title="Cài đặt nhanh"
-                    >
-                        <span className="icon icon-settings"></span>
-                    </button>
-
-                    <button
-                        className="btn-view-detail"
-                        onClick={() => onLiveView && onLiveView(segment.camera)}
-                        title="Xem chi tiết"
-                        style={{
-                            padding: "6px 10px",
-                            borderRadius: 6,
-                            border: "none",
-                            cursor: "pointer",
-                            background: "#2563eb",
-                            color: "#fff",
-                        }}
-                    >
-                        Xem chi tiết
-                    </button>
-                </div>
-            </div>
-
-            <div
-                className="trend-chart"
-                data-trend={
-                    segment.status === "no-connection" ? "unknown" : randomTrend
-                }
-                style={{ marginTop: 8 }}
-            >
-                <p style={{ margin: 0 }}>{trendText}</p>
-            </div>
-
-            <div
-                className="progress-bar-container"
-                style={{
-                    marginTop: 8,
-                    background: "rgba(255,255,255,0.03)",
-                    height: 10,
-                    borderRadius: 6,
-                    overflow: "hidden",
-                }}
-            >
-                <div
-                    className={`progress-bar ${
-                        segment.status !== "no-connection" && segment.status !== "low"
-                            ? "gradient-full"
-                            : statusInfo.gradientClass
-                    }`}
-                    style={{
-                        width: `${Math.max(0, Math.min(100, densityPercent))}%`,
+                      src={camera.videoSource}
+                      muted
+                      playsInline
+                      autoPlay
+                      loop
+                      style={{
+                        width: "100%",
                         height: "100%",
-                        transition: "width 300ms ease",
-                        backgroundColor:
-                            segment.status === "no-connection"
-                                ? "var(--color-text-secondary)"
-                                : segment.status === "low"
-                                    ? "var(--color-traffic-low)"
-                                    : undefined,
-                    }}
-                />
-            </div>
-
-            <p className="density-label" style={{ marginTop: 8 }}>
-                Mật độ:{" "}
-                {segment.status === "no-connection"
-                    ? "—"
-                    : (segment.density ?? 0).toFixed(2)}
-            </p>
-        </div>
-    );
-};
-
-const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
-    const title = activeIntersection
-        ? `${activeIntersection.label} — Trạng thái hiện tại`
-        : "Vui lòng chọn một Ngã tư để theo dõi";
-
-    const segments = activeIntersection?.segments || []; // mỗi segment = một camera tile
-    const isDashboardEmpty = segments.length === 0;
-
-    const handleFilterClick = (statusLabel) => {
-        alert(`Đã lọc/tập trung vào các đoạn đường có trạng thái: ${statusLabel}`);
-    };
-
-    const handleHeaderLive = () => {
-        if (segments && segments.length > 0) {
-            onLiveView && onLiveView(segments[0].camera);  // Truyền camera
-        } else {
-            alert("Không có camera để mở trực tiếp cho ngã tư này.");
-        }
-    };
-
-    return (
-        <main className="main-content" role="main">
-            <header className="main-header">
-                <h1 className="page-title">{title}</h1>
-                <div className="header-actions">
-                    <button
-                        className="alert-btn action-btn"
-                        aria-label="Xem cảnh báo"
-                        onClick={() =>
-                            alert("Mở danh sách 3 cảnh báo giao thông nghiêm trọng...")
-                        }
+                        objectFit: "cover",
+                      }}
+                      onError={(e) => {
+                        e.target.style.display = "none"; // Ẩn video nếu link lỗi
+                        e.target.parentNode.innerHTML =
+                          '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:gray">Link Video hỏng</div>';
+                      }}
+                    />
+                  ) : (
+                    <div
+                      style={{
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        height: "100%",
+                        color: "gray",
+                      }}
                     >
-                        <span className="icon icon-bell"></span>
-                        <span className="alert-badge">3</span>
-                    </button>
-                    <button
-                        className="action-btn"
-                        aria-label="Tải lại dữ liệu"
-                        onClick={onReload}
-                    >
-                        Tải lại
-                    </button>
-                    <button
-                        className="action-btn primary"
-                        aria-label="Xem trực tiếp"
-                        onClick={handleHeaderLive}
-                    >
-                        Trực tiếp
-                    </button>
+                      Chưa có Video Source
+                    </div>
+                  )}
                 </div>
-            </header>
+                <h3 style={{ color: "#63B3ED", margin: "0 0 10px 0" }}>
+                  {camera.name}
+                </h3>
 
-            <div className="traffic-filters">
-        <span
-            className="filter-item low-traffic"
-            onClick={() => handleFilterClick("Ít đông")}
-        >
-          <span className="color-dot"></span> Ít đông
-        </span>
-                <span
-                    className="filter-item medium-traffic"
-                    onClick={() => handleFilterClick("Trung bình")}
+                {/* --- PHẦN DỮ LIỆU GIẢ ĐỊNH --- */}
+                <div
+                  style={{
+                    background: "rgba(255,255,255,0.1)",
+                    padding: 10,
+                    borderRadius: 5,
+                  }}
                 >
-          <span className="color-dot"></span> Trung bình
-        </span>
-                <span
-                    className="filter-item heavy-traffic"
-                    onClick={() => handleFilterClick("Ùn tắc")}
-                >
-          <span className="color-dot"></span> Ùn tắc
-        </span>
-                <span
-                    className="filter-item no-connection"
-                    onClick={() => handleFilterClick("Mất kết nối")}
-                >
-          <span className="color-dot"></span> Mất kết nối
-        </span>
-            </div>
-
-            <div
-                className="dashboard-grid"
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(2, 1fr)",
-                    gap: 12,
-                }}
-            >
-                {isDashboardEmpty
-                    ? Array(4)
-                        .fill(null)
-                        .map((_, index) => (
-                            <div className="segment-card" key={index}>
-                                <div className="card-header">
-                                    <h2>Đoạn đường — Dữ liệu trống</h2>
-                                    <span className="status-tag no-connection">
-                      Không có dữ liệu
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: 5,
+                    }}
+                  >
+                    <span>Trạng thái đèn:</span>
+                    <span
+                      style={{
+                        fontWeight: "bold",
+                        color:
+                          fakeData.light === "GREEN" ? "#48BB78" : "#FC8181",
+                      }}
+                    >
+                      {fakeData.light} ({fakeData.remaining}s)
                     </span>
-                                    <button
-                                        className="quick-action-btn"
-                                        aria-label="Tùy chọn nhanh"
-                                        disabled
-                                    >
-                                        <span className="icon icon-settings"></span>
-                                    </button>
-                                </div>
-                                <div className="trend-chart" data-trend="unknown">
-                                    <p>Xu hướng: Không rõ (60 phút)</p>
-                                </div>
-                                <div className="progress-bar-container">
-                                    <div className="progress-bar"></div>
-                                </div>
-                                <p className="density-label">Mật độ: —</p>
-                            </div>
-                        ))
-                    : segments.map((segment) => (
-                        <DashboardSegmentCard
-                            key={segment.id}
-                            segment={segment}
-                            onLiveView={onLiveView}
-                        />
-                    ))}
-            </div>
-        </main>
-    );
+                  </div>
+                  <div
+                    style={{ display: "flex", justifyContent: "space-between" }}
+                  >
+                    <span>Mật độ xe (Giả):</span>
+                    <span>{fakeData.vehicles} xe</span>
+                  </div>
+                  <div
+                    style={{
+                      marginTop: 5,
+                      fontSize: 12,
+                      fontStyle: "italic",
+                      color: "#A0AEC0",
+                    }}
+                  >
+                    *Dữ liệu AI đang giả lập
+                  </div>
+                </div>
+
+                <button
+                  style={{
+                    marginTop: 10,
+                    padding: "8px",
+                    cursor: "pointer",
+                    background: "#3182CE",
+                    color: "white",
+                    border: "none",
+                    borderRadius: 5,
+                  }}
+                  onClick={() => onLiveView(camera)}
+                >
+                  Xem chi tiết
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </main>
+  );
 };
 
 export default Dashboard;
