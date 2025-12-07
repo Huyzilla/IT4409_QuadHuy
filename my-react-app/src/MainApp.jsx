@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect} from "react";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import CameraGridWithModal from "./components/CameraGridWithModal";
-import { useTraffic } from "./context/TrafficContext";
-import { useAuth } from "./context/AuthContext";
+import {useTraffic} from "./context/TrafficContext";
+import {useAuth} from "./context/AuthContext";
 
 export default function MainApp() {
-    const { user, logout } = useAuth();
+    const {user, logout} = useAuth();
     const {
         intersections,
         activeIntersection,
@@ -82,13 +82,21 @@ export default function MainApp() {
                         </div>
 
                         <video
-                            src={liveCamera.streamUrl}
-                            poster={liveCamera.thumbnail}
+                            src={liveCamera.videoSource}
+                            poster={liveCamera.thumbnail || ""}
                             controls
                             autoPlay
                             playsInline
                             muted={false}
                             className="live-modal-video"
+                            onError={(e) => {
+                                e.target.innerHTML = `
+                                  <div style="padding:40px; text-align:center; color:#fca5a5; background:rgba(0,0,0,0.5); height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column;">
+                                    <div style="font-size:18px; margin-bottom:8px;">Không thể phát video</div>
+                                    <div style="font-size:12px; opacity:0.8;">URL: ${liveCamera.videoSource || 'Không có'}</div>
+                                  </div>
+                                `;
+                            }}
                         />
                     </div>
                 </div>
