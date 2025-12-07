@@ -93,9 +93,12 @@ const Sidebar = ({ currentUser, onLogout, onThemeToggle }) => {
                             >
                                 <div className="intersection-info">
                                     <span className="intersection-label">{item.label}</span>
-                                    <span className={`status-tag ${item.status}-traffic`} style={{ marginLeft: '10px' }}>
-                                        <span className="color-dot"></span>
-                                    </span>
+                                    <div className={`intersection-status-badge ${item.status}`}>
+                                        {item.status === 'heavy' && 'Xe kẹt'}
+                                        {item.status === 'medium' && 'Xe nhiều'}
+                                        {item.status === 'low' && 'Thông thoáng'}
+                                        {item.status === 'no-connection' && 'Mất kết nối'}
+                                    </div>
                                     <p className="intersection-details">{item.details}</p>
                                 </div>
                                 <span className={`status-button ${statusClass}`}>
