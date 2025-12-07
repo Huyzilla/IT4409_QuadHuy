@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import MainApp from "./MainApp";
+import HistoryAnalysis from "./pages/HistoryAnalysis.jsx";
 
 function ProtectedRoute({ children }) {
     const { isAuthenticated, loading } = useAuth();
@@ -33,6 +34,8 @@ export default function App() {
             />
 
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+            <Route path="/history" element={<HistoryAnalysis />} />
         </Routes>
     );
 }

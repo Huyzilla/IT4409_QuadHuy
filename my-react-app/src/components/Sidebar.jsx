@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useTraffic } from '../context/TrafficContext';
+import { NavLink } from 'react-router-dom';
 
 const Sidebar = ({ currentUser, onLogout, onThemeToggle }) => {
     const {
@@ -114,10 +115,14 @@ const Sidebar = ({ currentUser, onLogout, onThemeToggle }) => {
                 )}
             </ul>
 
-            <button className="report-btn action-btn">
+            <NavLink
+                to="/history"
+                className="report-btn action-btn"
+                style={{ textDecoration: 'none' }}
+            >
                 <span className="icon icon-dashboard"></span>
                 Lịch sử & Phân tích
-            </button>
+            </NavLink>
 
             <div className="sidebar-user-info">
                 <div className="sidebar-user-card">
