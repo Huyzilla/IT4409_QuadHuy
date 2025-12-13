@@ -1,133 +1,86 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
-import { api } from '../data/mockApi';
+import React, { createContext, useState, useEffect, useContext } from "react";
+import axios from "axios";
 
 const TrafficContext = createContext();
-
-const getInitialTheme = () => {
-    const savedTheme = localStorage.getItem('traffic-monitor-theme');
-    if (savedTheme) return savedTheme;
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-        return 'theme-light';
-    }
-    return 'theme-dark';
-};
+const API_URL = "http://localhost:3000/api";
 
 export const TrafficProvider = ({ children }) => {
-    const [theme, setTheme] = useState(getInitialTheme);
-    const [intersections, setIntersections] = useState([]);
-    const [alerts, setAlerts] = useState([]);
-    const [activeIntersection, setActiveIntersection] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [intersections, setIntersections] = useState([]);
+  const [activeIntersection, setActiveIntersection] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        const loadInitialData = async () => {
-            try {
-                setLoading(true);
-                const [intRes, alertRes] = await Promise.all([
-                    api.fetchIntersections(),
-                    api.fetchAlerts()
-                ]);
+  useEffect(() => {
+    const fetchIntersections = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/intersections`);
 
-                if (intRes.success) {
-                    const data = intRes.data;
-                    setIntersections(data);
-                    const defaultIntersection = data.find(i => i.id === 'A') || data[0];
-                    setActiveIntersection(defaultIntersection);
-                }
+        if (res.data && res.data.length > 0) {
+          console.log("✅ Raw Data from DB:", res.data);
 
-                if (alertRes.success) {
-                    setAlerts(alertRes.data);
-                }
-            } catch (err) {
-                console.error('Lỗi tải dữ liệu ban đầu:', err);
-                alert('Không thể tải dữ liệu. Vui lòng thử lại.');
-            } finally {
-                setLoading(false);
-            }
-        };
+          //  Map dữ liệu DB sang UI cũ --- chắc phải sửa sidebar
+          const formattedData = res.data.map((item) => ({
+            ...item, // Giữ lại id, latitude, longitude, cameras...
 
-        loadInitialData();
-    }, []);
+            // Map các trường DB sang trường UI cũ
+            label: item.name,
+            details: item.description || "Chưa có mô tả",
 
-    useEffect(() => {
-        document.body.className = theme;
-        localStorage.setItem('traffic-monitor-theme', theme);
-    }, [theme]);
+            // Thêm các trường giả định để Sidebar không bị lỗi
+            status: "tracking",
+            area: "Khu vực chính",
+          }));
+          // ------
 
-    const toggleTheme = () => {
-        setTheme(prev => (prev === 'theme-dark' ? 'theme-light' : 'theme-dark'));
-    };
-
-    const handleIntersectionSelect = (id) => {
-        if (activeIntersection && activeIntersection.id === id) {
-            setActiveIntersection(null);
-            console.log(`Đã hủy theo dõi ngã tư: ${id}`);
-        } else {
-            const newActive = intersections.find(i => i.id === id);
-            if (newActive) {
-                setActiveIntersection(newActive);
-                console.log(`Đã chọn ngã tư: ${newActive.label}`);
-            }
+          setIntersections(formattedData);
+          setActiveIntersection(formattedData[0]);
         }
+      } catch (err) {
+        console.error("❌ Lỗi tải ngã tư:", err);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const refreshActiveDashboard = async () => {
-        if (!activeIntersection) {
-            alert('Vui lòng chọn một ngã tư để tải lại dữ liệu.');
-            return false;
-        }
+    fetchIntersections();
+  }, []);
 
-        const result = await api.fetchRealtimeData(activeIntersection.id);
-        if (result.success) {
-            const updated = result.data;
-            setIntersections(prev =>
-                prev.map(i => (i.id === updated.id ? updated : i))
-            );
-            setActiveIntersection(updated);
-            console.log(`Dữ liệu của ${updated.label} đã được làm mới.`);
-            return true;
-        } else {
-            alert('Lỗi tải lại dữ liệu!');
-            return false;
-        }
-    };
+  const [theme, setTheme] = useState("theme-dark");
 
-    const markAlertsAsRead = () => {
-        setAlerts(prev => prev.map(a => ({ ...a, read: true })));
-        alert('Đã xem tất cả các cảnh báo.');
-    };
+  const handleIntersectionSelect = (id) => {
+    const found = intersections.find((i) => i.id === id);
+    if (found) {
+      setActiveIntersection(found);
+    }
+  };
 
-    const unreadAlertCount = alerts.filter(a => !a.read).length;
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "theme-dark" ? "theme-light" : "theme-dark"));
+  };
 
-    const contextValue = {
-        theme,
-        toggleTheme,
-        intersections,
-        activeIntersection,
-        handleIntersectionSelect,
-        refreshActiveDashboard,
-        alerts,
-        unreadAlertCount,
-        markAlertsAsRead,
-        loading,
-        user: {
-            role: 'admin',
-            username: 'admin_traffic',
-            fullName: 'Quản trị viên giao thông'
-        }
-    };
+  const contextValue = {
+    theme,
+    toggleTheme,
+    intersections,
+    activeIntersection,
+    handleIntersectionSelect,
+    refreshActiveDashboard: async () => {},
+    loading,
+    alerts: [],
+    unreadAlertCount: 0,
+    markAlertsAsRead: () => {},
+    user: { role: "admin", username: "admin", fullName: "Quản trị viên" },
+  };
 
-    return (
-        <TrafficContext.Provider value={contextValue}>
-            {children}
-        </TrafficContext.Provider>
-    );
+  return (
+    <TrafficContext.Provider value={contextValue}>
+      {children}
+    </TrafficContext.Provider>
+  );
 };
 
 export const useTraffic = () => {
-    const context = useContext(TrafficContext);
-    if (!context) {
-        throw new Error('useTraffic must be used within TrafficProvider');
-    }
-    return context;
+  const context = useContext(TrafficContext);
+  if (!context)
+    throw new Error("useTraffic must be used within TrafficProvider");
+  return context;
 };
