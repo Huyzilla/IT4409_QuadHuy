@@ -1,10 +1,7 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
+import React from "react";
+import { useTraffic } from "../context/TrafficContext";
 
-// --- CẤU HÌNH API ---
-const API_URL = "http://localhost:3000/api";
-
-// --- CẤU HÌNH GIAO DIỆN (STATUS MAP CŨ) ---
+// ------
 const STATUS_MAP = {
   low: {
     label: "Ít đông",
@@ -34,15 +31,11 @@ const STATUS_MAP = {
 
 // Hàm giả lập thông số AI (Để giao diện hiển thị đẹp như cũ)
 const generateFakeStats = (camId) => {
-  // Random mật độ từ 0.0 đến 1.0
   const density = Math.random();
-
-  // Xác định trạng thái dựa trên mật độ
   let status = "low";
   if (density > 0.6) status = "heavy";
   else if (density > 0.3) status = "medium";
 
-  // Random xu hướng
   const trends = ["up", "down", "stable"];
   const trend = trends[Math.floor(Math.random() * trends.length)];
   let trendText = "Xu hướng: Ổn định (60 phút)";
@@ -52,10 +45,9 @@ const generateFakeStats = (camId) => {
   return { density, status, trend, trendText };
 };
 
-// --- COMPONENT CARD (GIỮ NGUYÊN GIAO DIỆN CŨ) ---
+// --- component card (cấy ni dự nguyên ui cũ) ---
 const DashboardSegmentCard = ({ camera, onLiveView }) => {
-  // 1. Lấy dữ liệu giả lập cho các chỉ số
-  // Lưu ý: camera.id, camera.name, camera.videoSource là THẬT từ DB
+  // camera.id, camera.name, camera.videoSource là dữ liệu THẬT từ DB
   const { density, status, trend, trendText } = generateFakeStats(camera.id);
 
   const statusInfo = STATUS_MAP[status] || STATUS_MAP["no-connection"];
@@ -66,7 +58,6 @@ const DashboardSegmentCard = ({ camera, onLiveView }) => {
       className="segment-card"
       style={{ display: "flex", flexDirection: "column" }}
     >
-      {/* Phần Video/Thumbnail */}
       <div
         className="segment-thumb"
         style={{
@@ -77,6 +68,7 @@ const DashboardSegmentCard = ({ camera, onLiveView }) => {
           position: "relative",
         }}
       >
+        {/*hiển thị camera*/}
         {camera.videoSource ? (
           <video
             src={camera.videoSource}
@@ -92,6 +84,7 @@ const DashboardSegmentCard = ({ camera, onLiveView }) => {
             }}
           />
         ) : (
+          /* ------ */
           <div
             style={{
               color: "#94a3b8",
@@ -106,7 +99,6 @@ const DashboardSegmentCard = ({ camera, onLiveView }) => {
         )}
       </div>
 
-      {/* Header: Tên và Trạng thái */}
       <div
         className="card-header"
         style={{
@@ -175,12 +167,10 @@ const DashboardSegmentCard = ({ camera, onLiveView }) => {
         </div>
       </div>
 
-      {/* Biểu đồ Xu hướng (UI Cũ) */}
       <div className="trend-chart" data-trend={trend} style={{ marginTop: 8 }}>
         <p style={{ margin: 0 }}>{trendText}</p>
       </div>
 
-      {/* Thanh Mật độ (Progress Bar Gradient) */}
       <div
         className="progress-bar-container"
         style={{
@@ -221,45 +211,23 @@ const DashboardSegmentCard = ({ camera, onLiveView }) => {
 };
 
 // --- MAIN DASHBOARD ---
-const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
-  const [cameras, setCameras] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // 1. Gọi API lấy Camera thật từ DB
-  useEffect(() => {
-    const fetchCameras = async () => {
-      try {
-        // Gọi API NestJS
-        const res = await axios.get(`${API_URL}/cameras`);
-        if (res.data) {
-          console.log("📸 Dữ liệu Camera từ Backend:", res.data);
-          setCameras(res.data);
-        }
-      } catch (err) {
-        console.error("❌ Lỗi Backend:", err);
-        setError("Không kết nối được Server.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCameras();
-  }, []); // Chạy 1 lần khi mount
-
-  // --- RENDER ---
-  const title = activeIntersection
-    ? `${activeIntersection.label || "Ngã tư"} — Trạng thái hiện tại`
-    : "Giám sát Giao thông (Camera từ DB)";
+const Dashboard = ({ onReload, onLiveView }) => {
+  // ---Lấy activeIntersection từ Context ---
+  const { activeIntersection, loading } = useTraffic();
 
   if (loading)
     return (
       <div style={{ padding: 30, color: "white" }}>
-        ⏳ Đang tải dữ liệu Camera...
+        ⏳ Đang tải dữ liệu hệ thống...
       </div>
     );
-  if (error)
-    return <div style={{ padding: 30, color: "#FC8181" }}>⚠️ {error}</div>;
+
+  // Lấy danh sách camera từ ngã tư đang chọn (nếu có)
+  const cameras = activeIntersection?.cameras || [];
+  const title = activeIntersection
+    ? `${activeIntersection.name} — Trạng thái hiện tại`
+    : "Vui lòng chọn một Ngã tư";
+  // ------
 
   return (
     <main className="main-content" role="main">
@@ -282,7 +250,6 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
         </div>
       </header>
 
-      {/* Bộ lọc trạng thái (Chỉ để hiển thị cho đẹp, chưa có logic filter thật) */}
       <div className="traffic-filters">
         <span className="filter-item low-traffic">
           <span className="color-dot"></span> Ít đông
@@ -298,11 +265,11 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
         </span>
       </div>
 
-      {/* Grid hiển thị Camera */}
       <div
         className="dashboard-grid"
         style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}
       >
+        {/* --- Render danh sách camera của Ngã tư --- */}
         {cameras.length === 0 ? (
           <div
             style={{
@@ -312,17 +279,20 @@ const Dashboard = ({ activeIntersection, onReload, onLiveView }) => {
               marginTop: 50,
             }}
           >
-            Chưa có camera nào trong Database.
+            {activeIntersection
+              ? "Ngã tư này chưa được gắn Camera nào trong Database."
+              : "Chưa chọn ngã tư nào."}
           </div>
         ) : (
           cameras.map((cam) => (
             <DashboardSegmentCard
               key={cam.id}
-              camera={cam} // Truyền object camera thật vào
+              camera={cam}
               onLiveView={onLiveView}
             />
           ))
         )}
+        {/* ------ */}
       </div>
     </main>
   );
