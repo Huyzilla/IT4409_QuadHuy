@@ -13,6 +13,8 @@ model Camera {
   videoSource  String   @map("video_source") @db.VarChar(500)
   latitude     Float
   longitude    Float
+  intersectionId Int?          // Có thể null (nếu camera chưa gán vào đâu)
+  intersection   Intersection? @relation(fields: [intersectionId], references: [id])
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -57,6 +59,7 @@ model Intersection {
   latitude    Float
   longitude   Float
   description String?  @db.Text
+  cameras     Camera[]
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
