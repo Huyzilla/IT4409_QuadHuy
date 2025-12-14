@@ -10,15 +10,15 @@ NAMESPACE = "/ingest"
 
 @sio.event
 def connect():
-    print("[WS] Connected to backend (default namespace)")
+    print("[WS] Connected to backend")
 
 @sio.event
 def disconnect():
     print("[WS] Disconnected from backend")
 
-@sio.event(namespace=NAMESPACE)
-def connect():
-    print("[WS] Connected to namespace /ingest")
+# @sio.event(namespace=NAMESPACE)
+# def connect_ingest():
+#     print("[WS] Connected to namespace /ingest")
 
 def connect_backend():
     try:
@@ -44,45 +44,19 @@ def send_traffic(road_id, vehicles, emergency_count):
     except Exception as e:
         print(f"[WS] Error sending traffic_data: {e}")
 
-log_file = "log.json"
-
-def save_log(payload):
-    try:
-        with open(log_file, "a", encoding="utf-8") as f:
-            json_string = json.dumps(payload, ensure_ascii=False)
-            f.write(json_string + "\n")
+def send_minute_summary(road_id, summary):
+    payload = {"cameraId": int(road_id), **summary}
+    try: 
+        sio.emit("traffic_minute_summary", payload, namespace=NAMESPACE)
+        print(f"[WS] Sent traffic_minute_summary: cam {road_id} {summary}")
     except Exception as e:
-        print(f"Lỗi ghi log: {e}")
+        print(f"[WS] Error sending traffic_minute_summary: {e}")
 
 cam_config = {
-    1: {
-        "name": "Road 1 (Bac)",
-        "path": "videos/north.mp4",
-        "max_vehicles": 5,
-        "default_green": 42,  # Thời gian đèn xanh mặc định
-        "emergency_green": 80,
-    },
-    2: {
-        "name": "Road 2 (Dong)",
-        "path": "videos/east.mp4",
-        "max_vehicles": 5,
-        "default_green": 42,
-        "emergency_green": 80,
-    },
-    3: {
-        "name": "Road 3 (Nam)",
-        "path": "videos/south.mp4",
-        "max_vehicles": 5,
-        "default_green": 42,
-        "emergency_green": 80,
-    },
-    4: {
-        "name": "Road 4 (Tay)",
-        "path": "videos/west.mp4",
-        "max_vehicles": 5,
-        "default_green": 42,
-        "emergency_green": 80,
-    }
+    1: {"name": "Road 1 (Bac)",  "path": "rtsp://localhost:8554/north", "max_vehicles": 5, "default_green": 42, "emergency_green": 80},
+    2: {"name": "Road 2 (Dong)", "path": "rtsp://localhost:8554/east",  "max_vehicles": 5, "default_green": 42, "emergency_green": 80},
+    3: {"name": "Road 3 (Nam)",  "path": "rtsp://localhost:8554/south", "max_vehicles": 5, "default_green": 42, "emergency_green": 80},
+    4: {"name": "Road 4 (Tay)",  "path": "rtsp://localhost:8554/west",  "max_vehicles": 5, "default_green": 42, "emergency_green": 80},
 }
 
 frame_buffer = {1: None, 2: None, 3: None, 4: None}
@@ -108,9 +82,21 @@ def calculate_adjusted_time(num_vehicles, max_vehicles=30, default_time=42):
 def process_camera(road_id, config, model):
     video_path = config["path"]
     cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        print(f"[{road_id}] Cannot open {video_path}, retrying...")
+        time.sleep(1)
+        cap = cv2.VideoCapture(video_path)
 
     frame_skip = 2
     frame_count = 0
+
+    # throttle realtime emit
+    last_sent = 0.0 
+    send_interval = 1.0  
+    # per-minute aggregation state
+    minute_start_ts = int(time.time() // 60 * 60)
+    minute_counts = []
+    minute_max = 0
 
     blank_image = np.zeros((360, 640, 3), np.uint8)
     cv2.putText(blank_image, "Loading...", (50, 180),
@@ -120,7 +106,10 @@ def process_camera(road_id, config, model):
     while True:
         ret, frame = cap.read()
         if not ret:
-            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            print(f"[{road_id}] Lost stream, reconnecting...")
+            cap.release()
+            time.sleep(1)
+            cap = cv2.VideoCapture(video_path)
             continue
 
         frame_count += 1
@@ -133,7 +122,6 @@ def process_camera(road_id, config, model):
 
         vehicle_count = 0
         emergency_count = 0
-
         annotated_frame = frame.copy()
 
         for r in results:
@@ -146,8 +134,39 @@ def process_camera(road_id, config, model):
                 cv2.putText(annotated_frame, "Car", (x1, y1 - 5),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5,
                             (0, 255, 0), 1)
+                
+        now = time.time()
+        if now - last_sent >= send_interval:
+            send_traffic(road_id, vehicle_count, emergency_count)
+            last_sent = now
 
-        send_traffic(road_id, vehicle_count, emergency_count)
+            # chỉ cập nhật trạng thái chia sẻ ở tốc độ 1Hz (ổn định và ít jitter hơn)
+            with state_lock: 
+                traffic_state[road_id]["vehicles"] = vehicle_count
+                traffic_state[road_id]["emergency"] = emergency_count
+
+            # cập nhật số liệu phút hiện tại
+            current_minute_start = int(now // 60 * 60)
+            if current_minute_start != minute_start_ts:
+                samples = len(minute_counts)
+                if samples > 0:
+                    avg_vehicles = sum(minute_counts) / samples
+                    summary = {
+                        "minuteStart": minute_start_ts,
+                        "minuteEnd": minute_start_ts + 60,
+                        "vehicles_avg": round(avg_vehicles, 3),
+                        "vehicles_max": int(minute_max),
+                        "samples": int(samples),
+                    }
+                    send_minute_summary(road_id, summary)
+
+                # reset for new minute
+                minute_start_ts = current_minute_start
+                minute_counts = []
+                minute_max = 0
+
+            minute_counts.append(vehicle_count)
+            minute_max = max(minute_max, vehicle_count)
 
         with state_lock:
             traffic_state[road_id]["vehicles"] = vehicle_count
@@ -251,8 +270,6 @@ def traffic_control_loop():
                 },
                 "trafficStatus": status_snapshot,
             }
-
-            save_log(payload)
 
             try:
                 sio.emit("signal_decision", payload, namespace=NAMESPACE)

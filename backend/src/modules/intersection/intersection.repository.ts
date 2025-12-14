@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { CreateIntersectionDto, UpdateIntersectionDto } from './dto/intersection.dto';
+import {
+  CreateIntersectionDto,
+  UpdateIntersectionDto,
+} from './dto/intersection.dto';
 import { Intersection } from '@prisma/client';
 
 /**
@@ -16,6 +19,9 @@ export class IntersectionRepository {
   async findAll(): Promise<Intersection[]> {
     return this.prisma.intersection.findMany({
       orderBy: { createdAt: 'desc' },
+      include: {
+        cameras: true,
+      },
     });
   }
 

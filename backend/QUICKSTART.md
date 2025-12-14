@@ -3,6 +3,7 @@
 ## ⚡ Fastest Way to Get Running
 
 ### 1. Start Infrastructure (PostgreSQL + Redis)
+
 ```powershell
 cd D:\it4409\IT4409_QuadHuy\backend
 docker-compose up -d postgres redis
@@ -11,16 +12,19 @@ docker-compose up -d postgres redis
 Wait 5 seconds for PostgreSQL to initialize.
 
 ### 2. Run Database Migration
+
 ```powershell
 npx prisma migrate dev --name init
 ```
 
 ### 3. Start Backend (with Hot Reload)
+
 ```powershell
 npm run start:dev
 ```
 
 You should see:
+
 ```
 🚀 Server is running on: http://localhost:3000
 📡 WebSocket (AI Cameras): ws://localhost:3000/ingest
@@ -32,6 +36,7 @@ You should see:
 ## 🧪 Quick Test
 
 ### Test REST API
+
 ```powershell
 # Get current traffic snapshot
 curl http://localhost:3000/traffic/snapshot
@@ -68,28 +73,34 @@ curl http://localhost:3000/cameras
 ## 📁 What Was Created
 
 ### Core Infrastructure
+
 - ✅ `prisma/schema.prisma` - 4 tables with proper relations
 - ✅ `docker-compose.yml` - 3 services (postgres, redis, backend)
 - ✅ `Dockerfile` - Multi-stage production build
 - ✅ `.env` - Environment configuration
 
 ### Database Module
+
 - ✅ `PrismaModule` + `PrismaService` - Type-safe database access
 
 ### Redis Module
+
 - ✅ `RedisModule` + `RedisService` - Caching & pub/sub
 
 ### Camera Module (Full CRUD)
+
 - ✅ Controller, Service, Repository
 - ✅ DTOs: Create, Update
 - ✅ REST endpoints: GET, POST, PUT, DELETE
 
 ### Intersection Module (Full CRUD)
+
 - ✅ Controller, Service, Repository
 - ✅ DTOs: Create, Update
 - ✅ REST endpoints: GET, POST, PUT, DELETE
 
 ### Traffic Module ⭐ (The Core)
+
 - ✅ **TrafficService** - Main orchestration
 - ✅ **TrafficControlService** - Intelligent algorithm
   - Emergency vehicle priority
@@ -102,10 +113,12 @@ curl http://localhost:3000/cameras
 - ✅ **TrafficRepository** - Database operations
 
 ### Application Setup
+
 - ✅ `app.module.ts` - All modules wired
 - ✅ `main.ts` - CORS, validation, WebSocket configured
 
 ### Documentation
+
 - ✅ `README.md` - Complete setup guide
 - ✅ `SETUP_COMPLETE.md` - Detailed completion summary
 - ✅ `WEBSOCKET_TESTING.md` - Testing examples
@@ -124,6 +137,7 @@ The brain of the system - **5 rules**:
 5. **Full Logging**: All decisions tracked
 
 ### Example Flow
+
 ```
 Camera 1 (North) → 8 vehicles detected
 Camera 2 (East) → 3 vehicles
@@ -143,6 +157,7 @@ Broadcasts to dashboard ✓
 ## 🌐 API Endpoints Summary
 
 ### REST
+
 - `GET /cameras` - List all cameras
 - `POST /cameras` - Create camera
 - `GET /intersections` - List intersections
@@ -152,6 +167,7 @@ Broadcasts to dashboard ✓
 - `GET /traffic/stats` - Statistics by time range
 
 ### WebSocket
+
 - `ws://localhost:3000/ingest` - AI Camera → Backend
   - Event: `traffic_data`
 - `ws://localhost:3000/traffic` - Backend → Dashboard
@@ -205,6 +221,7 @@ npm test
 ## ✅ Pre-flight Checklist
 
 Before running, ensure:
+
 - [ ] Node.js 22+ installed (or use Docker)
 - [ ] Port 3000 available (backend)
 - [ ] Port 5433 available (PostgreSQL)
@@ -216,6 +233,7 @@ Before running, ensure:
 ## 🎓 Architecture Highlights
 
 ### Clean Code Principles
+
 ✅ **Separation of concerns** (Controller → Service → Repository)
 ✅ **Dependency injection** (NestJS IoC)
 ✅ **Type safety** (TypeScript + Prisma)
@@ -223,12 +241,14 @@ Before running, ensure:
 ✅ **Modularity** (Feature-based module structure)
 
 ### Real-time Architecture
+
 ✅ **Dual WebSocket** (bidirectional communication)
 ✅ **Pub/Sub pattern** (Redis for event broadcasting)
 ✅ **State caching** (Redis with TTL)
 ✅ **Persistent storage** (PostgreSQL for history)
 
 ### Production Ready
+
 ✅ **Docker multi-stage build** (optimized image)
 ✅ **Environment variables** (.env configuration)
 ✅ **Logging** (NestJS Logger)
@@ -242,15 +262,18 @@ Before running, ensure:
 ### Common Issues
 
 **"Port already in use"**
+
 - Change postgres port in `docker-compose.yml`
 - Update `.env` DATABASE_URL
 
 **"Prisma Client not found"**
+
 ```powershell
 npx prisma generate
 ```
 
 **"Cannot connect to database"**
+
 ```powershell
 # Check if postgres is running
 docker-compose ps
@@ -260,6 +283,7 @@ docker-compose restart postgres
 ```
 
 **"WebSocket connection failed"**
+
 - Ensure backend is running
 - Check correct namespace (`/ingest` or `/traffic`)
 - Verify port 3000 is accessible
@@ -280,6 +304,7 @@ docker-compose restart postgres
 ## 📊 System Status: ✅ PRODUCTION READY
 
 All requirements met:
+
 - ✅ NestJS backend
 - ✅ WebSocket (AI → Backend)
 - ✅ WebSocket (Backend → Frontend)
