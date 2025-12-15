@@ -1,5 +1,3 @@
-// File: MainApp.jsx
-
 import React, { useState, useEffect } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useTraffic } from "./context/TrafficContext";
@@ -7,6 +5,7 @@ import { useAuth } from "./context/AuthContext";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import AccountSettings from "./pages/AccountSettings.jsx";
+import CameraGridWithModal from "./components/CameraGridWithModal"; // Component lưới camera
 
 const LogoutConfirmationModal = ({ onConfirm, onCancel }) => (
     <div
@@ -72,6 +71,119 @@ const LogoutConfirmationModal = ({ onConfirm, onCancel }) => (
     </div>
 );
 
+const LiveCameraGridModal = ({ activeIntersection, closeModal }) => {
+    if (!activeIntersection || activeIntersection.cameras.length === 0) {
+        return (
+            <div
+                className="live-modal-overlay"
+                role="dialog"
+                aria-modal="true"
+                onClick={closeModal}
+            >
+                <div className="live-modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px', padding: '30px' }}>
+                    <div className="live-modal-header" style={{ position: 'relative', background: 'none', color: 'var(--color-text-primary)', padding: 0 }}>
+                        <h3 className="live-modal-title">{activeIntersection.name}</h3>
+                        <button onClick={closeModal} className="btn-close-modal" style={{ position: 'absolute', top: '-40px', right: '-40px' }}>
+                            ×
+                        </button>
+                    </div>
+                    <p style={{ marginTop: '20px', color: 'var(--color-text-secondary)' }}>
+                        Ngã tư này không có camera nào được cấu hình.
+                    </p>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div
+            className="live-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Live View: ${activeIntersection.name}`}
+            onClick={closeModal}
+        >
+            <div
+                className="live-modal-content"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    maxWidth: '95%',
+                    maxHeight: '95vh',
+                    width: '95%',
+                    background: 'var(--color-bg-primary)', // Đổi màu nền cho modal lớn
+                    padding: '20px',
+                }}
+            >
+                <div className="live-modal-header" style={{ position: 'relative', background: 'none', color: 'var(--color-text-primary)', padding: '0 0 15px 0' }}>
+                    <h3 className="live-modal-title">Live Grid: {activeIntersection.name}</h3>
+                    <button onClick={closeModal} className="btn-close-modal" style={{ position: 'absolute', top: '-10px', right: '-10px', width: '38px', height: '38px', fontSize: '20px' }}>
+                        ×
+                    </button>
+                </div>
+
+                <CameraGridWithModal cameras={activeIntersection.cameras} />
+
+            </div>
+        </div>
+    );
+};
+
+const SingleCameraModal = ({ liveCamera, closeModal }) => {
+    if (!liveCamera || !liveCamera.videoSource) {
+        return null;
+    }
+
+    return (
+        <div
+            className="live-modal-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Live View: ${liveCamera.name}`}
+            onClick={closeModal}
+        >
+            <div
+                className="live-modal-content"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    maxWidth: '90%',
+                    maxHeight: '90vh',
+                    width: 'fit-content',
+                    padding: '20px',
+                    background: 'var(--color-bg-primary)',
+                }}
+            >
+                <div className="live-modal-header" style={{ position: 'relative', background: 'none', color: 'var(--color-text-primary)', padding: '0 0 15px 0' }}>
+                    <h3 className="live-modal-title" style={{ maxWidth: 'calc(100% - 60px)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {liveCamera.name || liveCamera.id}
+                    </h3>
+                    <button onClick={closeModal} className="btn-close-modal" style={{ position: 'absolute', top: '-10px', right: '-10px', width: '38px', height: '38px', fontSize: '20px' }}>
+                        ×
+                    </button>
+                </div>
+
+                <video
+                    src={liveCamera.videoSource}
+                    poster={liveCamera.thumbnail || ""}
+                    controls
+                    autoPlay
+                    playsInline
+                    muted={false}
+                    className="live-modal-video"
+                    style={{ maxHeight: '80vh', maxWidth: '100%', objectFit: 'contain' }}
+                    onError={(e) => {
+                        e.target.parentNode.innerHTML = `
+                            <div style="padding:40px; text-align:center; color:#fca5a5; background:rgba(0,0,0,0.5); height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; min-height: 400px; width: 600px;">
+                                <div style="font-size:18px; margin-bottom:8px;">Không thể phát video</div>
+                                <div style="font-size:12px; opacity:0.8;">URL: ${liveCamera.videoSource || "Không có"}</div>
+                            </div>
+                         `;
+                    }}
+                />
+            </div>
+        </div>
+    );
+};
+
 
 export default function MainApp() {
     const { user, logout } = useAuth();
@@ -83,17 +195,25 @@ export default function MainApp() {
         loading: trafficLoading,
     } = useTraffic();
 
+    const [liveIntersection, setLiveIntersection] = useState(null);
     const [liveCamera, setLiveCamera] = useState(null);
     const [showLogoutModal, setShowLogoutModal] = useState(false);
     const [showUserDropdown, setShowUserDropdown] = useState(false);
 
-    const openLiveView = (camera) => {
-        if (!camera || !camera.id) return;
-        console.log("Mở camera:", camera);
-        setLiveCamera(camera);
+    const openLiveView = () => {
+        if (!activeIntersection || activeIntersection.cameras.length === 0) return;
+        setLiveIntersection(activeIntersection);
     };
 
     const closeLiveView = () => {
+        setLiveIntersection(null);
+    };
+
+    const openSingleLiveView = (camera) => {
+        setLiveCamera(camera);
+    };
+
+    const closeSingleLiveView = () => {
         setLiveCamera(null);
     };
 
@@ -103,14 +223,17 @@ export default function MainApp() {
 
     useEffect(() => {
         const handleEsc = (e) => {
-            if (e.key === "Escape" && liveCamera) closeLiveView();
+            if (e.key === "Escape") {
+                if (liveIntersection) closeLiveGrid();
+                if (liveCamera) closeSingleLiveView(); // Thêm logic cho camera đơn
+            }
         };
         window.addEventListener("keydown", handleEsc);
         return () => window.removeEventListener("keydown", handleEsc);
-    }, [liveCamera]);
+    }, [liveIntersection, liveCamera]); // Thêm liveCamera vào dependency
 
     useEffect(() => {
-        if (liveCamera || showLogoutModal) {
+        if (liveIntersection || liveCamera || showLogoutModal) { // Thêm liveCamera
             document.body.style.overflow = "hidden";
             return () => {
                 document.body.style.overflow = "";
@@ -126,7 +249,7 @@ export default function MainApp() {
         window.addEventListener('mousedown', closeDropdown);
         return () => window.removeEventListener('mousedown', closeDropdown);
 
-    }, [liveCamera, showLogoutModal, showUserDropdown]);
+    }, [liveIntersection, liveCamera, showLogoutModal, showUserDropdown]);
 
     const handleLogoutConfirm = () => {
         logout();
@@ -158,7 +281,7 @@ export default function MainApp() {
                     currentUser={user}
                     onToggleDropdown={handleToggleDropdown}
                     isDropdownOpen={showUserDropdown}
-                    onLogoutRequest={() => setShowLogoutModal(true)} // Gọi modal xác nhận
+                    onLogoutRequest={() => setShowLogoutModal(true)}
                     onThemeToggle={toggleTheme}
                 />
 
@@ -170,11 +293,11 @@ export default function MainApp() {
                                 <Dashboard
                                     activeIntersection={activeIntersection}
                                     onReload={refreshActiveDashboard}
-                                    onLiveView={openLiveView}
+                                    onLiveGrid={openLiveView}
+                                    onLiveView={openSingleLiveView}
                                 />
                             }
                         />
-                        <Route path="/account" element={<AccountSettings />} />
 
                         <Route
                             path="/*"
@@ -182,7 +305,8 @@ export default function MainApp() {
                                 <Dashboard
                                     activeIntersection={activeIntersection}
                                     onReload={refreshActiveDashboard}
-                                    onLiveView={openLiveView}
+                                    onLiveGrid={openLiveView}
+                                    onLiveView={openSingleLiveView}
                                 />
                             }
                         />
@@ -198,49 +322,20 @@ export default function MainApp() {
                 />
             )}
 
-            {/* MODAL XEM CHI TIẾT CAMERA */}
-            {liveCamera && (
-                <div
-                    className="live-modal-overlay"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label={`Live View: ${liveCamera.name || liveCamera.id}`}
-                    onClick={closeLiveView}
-                >
-                    <div
-                        className="live-modal-content"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <div className="live-modal-header">
-                            <div className="live-modal-title">
-                                {liveCamera.name || liveCamera.id}
-                            </div>
-                            <button onClick={closeLiveView} className="btn-close-modal">
-                                ×
-                            </button>
-                        </div>
+            {/* MODAL LƯỚI CAMERA TRỰC TIẾP */}
+            {liveIntersection && (
+                <LiveCameraGridModal
+                    activeIntersection={liveIntersection}
+                    closeModal={closeLiveView}
+                />
+            )}
 
-                        <video
-                            src={liveCamera.videoSource}
-                            poster={liveCamera.thumbnail || ""}
-                            controls
-                            autoPlay
-                            playsInline
-                            muted={false}
-                            className="live-modal-video"
-                            onError={(e) => {
-                                e.target.innerHTML = `
-                                  <div style="padding:40px; text-align:center; color:#fca5a5; background:rgba(0,0,0,0.5); height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column;">
-                                    <div style="font-size:18px; margin-bottom:8px;">Không thể phát video</div>
-                                    <div style="font-size:12px; opacity:0.8;">URL: ${
-                                    liveCamera.videoSource || "Không có"
-                                }</div>
-                                  </div>
-                                `;
-                            }}
-                        />
-                    </div>
-                </div>
+            {/* MODAL CAMERA ĐƠN*/}
+            {liveCamera && (
+                <SingleCameraModal
+                    liveCamera={liveCamera}
+                    closeModal={closeSingleLiveView}
+                />
             )}
         </>
     );
