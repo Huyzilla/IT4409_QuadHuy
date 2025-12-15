@@ -40,7 +40,7 @@ def send_traffic(road_id, vehicles, emergency_count):
     }
     try:
         sio.emit("traffic_data", payload, namespace=NAMESPACE)
-        print(f"[WS] Sent traffic_data: {payload}")
+        # print(f"[WS] Sent traffic_data: {payload}")
     except Exception as e:
         print(f"[WS] Error sending traffic_data: {e}")
 
@@ -59,7 +59,6 @@ cam_config = {
     4: {"name": "Road 4 (Tay)",  "path": "rtsp://localhost:8554/west",  "max_vehicles": 5, "default_green": 42, "emergency_green": 80},
 }
 
-frame_buffer = {1: None, 2: None, 3: None, 4: None}
 traffic_state = {
     1: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0},
     2: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0},
@@ -82,31 +81,21 @@ def calculate_adjusted_time(num_vehicles, max_vehicles=30, default_time=42):
 def process_camera(road_id, config, model):
     video_path = config["path"]
     cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        print(f"[{road_id}] Cannot open {video_path}, retrying...")
-        time.sleep(1)
-        cap = cv2.VideoCapture(video_path)
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+    # throttle realtime emit
+    last_sent = 0.0
+    send_interval = 1.0
 
     frame_skip = 2
     frame_count = 0
-
-    # throttle realtime emit
-    last_sent = 0.0 
-    send_interval = 1.0  
     # per-minute aggregation state
     minute_start_ts = int(time.time() // 60 * 60)
     minute_counts = []
     minute_max = 0
 
-    blank_image = np.zeros((360, 640, 3), np.uint8)
-    cv2.putText(blank_image, "Loading...", (50, 180),
-                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
-    frame_buffer[road_id] = blank_image
-
     while True:
         ret, frame = cap.read()
         if not ret:
-            print(f"[{road_id}] Lost stream, reconnecting...")
             cap.release()
             time.sleep(1)
             cap = cv2.VideoCapture(video_path)
@@ -116,32 +105,19 @@ def process_camera(road_id, config, model):
         if frame_count % (frame_skip + 1) != 0:
             continue
 
+        # giảm tải CPU: infer trên frame nhỏ hơn
         frame = cv2.resize(frame, (640, 360))
-
-        results = model(frame, conf=0.7, classes=[0], verbose=False, stream=True)
-
-        vehicle_count = 0
+        results = model(frame, conf=0.7, classes=[0], verbose=False)
+        vehicle_count = sum(len(r.boxes) for r in results)
         emergency_count = 0
-        annotated_frame = frame.copy()
 
-        for r in results:
-            boxes = r.boxes
-            for box in boxes:
-                vehicle_count += 1
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                cv2.rectangle(annotated_frame, (x1, y1), (x2, y2),
-                              (0, 255, 0), 2)
-                cv2.putText(annotated_frame, "Car", (x1, y1 - 5),
-                            cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                            (0, 255, 0), 1)
-                
         now = time.time()
         if now - last_sent >= send_interval:
             send_traffic(road_id, vehicle_count, emergency_count)
             last_sent = now
 
-            # chỉ cập nhật trạng thái chia sẻ ở tốc độ 1Hz (ổn định và ít jitter hơn)
-            with state_lock: 
+            # cập nhật trạng thái ở tốc độ 1Hz (ổn định và ít jitter hơn)
+            with state_lock:
                 traffic_state[road_id]["vehicles"] = vehicle_count
                 traffic_state[road_id]["emergency"] = emergency_count
 
@@ -167,36 +143,6 @@ def process_camera(road_id, config, model):
 
             minute_counts.append(vehicle_count)
             minute_max = max(minute_max, vehicle_count)
-
-        with state_lock:
-            traffic_state[road_id]["vehicles"] = vehicle_count
-            traffic_state[road_id]["emergency"] = emergency_count
-
-            current_light = traffic_state[road_id]["light"]
-            time_left = traffic_state[road_id]["time_left"]
-
-        cv2.rectangle(annotated_frame, (0, 0), (640, 50), (0, 0, 0), -1)
-
-        info_text = f"Road {road_id}: {vehicle_count} vehicles"
-        cv2.putText(annotated_frame, info_text,
-                    (10, 30), cv2.FONT_HERSHEY_COMPLEX, 0.8,
-                    (255, 255, 255), 2)
-
-        color = (0, 0, 255)
-        if current_light == "GREEN":
-            color = (0, 255, 0)
-        elif current_light == "YELLOW":
-            color = (0, 255, 255)
-
-        cv2.circle(annotated_frame, (600, 25), 15, color, -1)
-
-        if current_light == "GREEN":
-            cv2.putText(annotated_frame, str(time_left),
-                        (585, 32),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5,
-                        (0, 0, 0), 1)
-
-        frame_buffer[road_id] = annotated_frame
 
 def traffic_control_loop():
     time.sleep(2)
@@ -301,38 +247,16 @@ def traffic_control_loop():
 if __name__ == "__main__":
     print("Loading Model...")
     model = YOLO("models/best.onnx", task='detect')
-
     # NEW: kết nối backend trước khi start các thread
     connect_backend()
-
     # Thread xử lý từng camera
     for r_id, config in cam_config.items():
         t = threading.Thread(target=process_camera, args=(r_id, config, model))
         t.daemon = True
         t.start()
-
     # Thread thuật toán điều khiển đèn
     threading.Thread(target=traffic_control_loop, daemon=True).start()
-
-    print("Hệ thống đang chạy. Nhấn 'q' trên cửa sổ hình ảnh để thoát.")
-
+    print("AI traffic service is running...")
     while True:
-        f1 = frame_buffer[1]
-        f2 = frame_buffer[2]
-        f3 = frame_buffer[3]
-        f4 = frame_buffer[4]
+        time.sleep(10)
 
-        if f1 is None or f2 is None or f3 is None or f4 is None:
-            time.sleep(0.1)
-            continue
-
-        top_row = np.hstack((f1, f2))
-        bottom_row = np.hstack((f4, f3))
-
-        dashboard = np.vstack((top_row, bottom_row))
-        cv2.imshow("Traffic Control System Monitoring", dashboard)
-
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cv2.destroyAllWindows()
