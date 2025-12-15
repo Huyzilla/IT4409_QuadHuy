@@ -82,4 +82,29 @@ export class IngestGateway {
       };
     }
   }
+  @SubscribeMessage('signal_decision')
+  async handleSignalDecision(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      this.logger.log(
+        `[AI] Signal decision received: greenRoadId=${data?.decision?.greenRoadId}, ` +
+        `duration=${data?.decision?.duration}, reason=${data?.decision?.reason}`,
+      );
+
+      await this.trafficService.applySignalDecision(data)
+
+      return {
+        status: 'success',
+        message: 'Signal decision applied',
+      };
+    } catch (error) {
+      this.logger.error(`Error applying signal decision: ${error.message}`);
+      return {
+        status: 'error',
+        message: error.message,
+      };
+    }
+  }
 }
