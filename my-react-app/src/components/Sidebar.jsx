@@ -1,14 +1,67 @@
 import React, { useState } from 'react';
 import { useTraffic } from '../context/TrafficContext';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 
-const Sidebar = ({ currentUser, onLogout, onThemeToggle }) => {
+const UserDropdown = ({ onLogoutRequest, onToggleTheme, currentUser, closeModal }) => {
+    const navigate = useNavigate();
+    const { theme } = useTraffic();
+
+    const handleNavigation = (path) => {
+        navigate(path);
+        closeModal();
+    };
+
+    return (
+        <div className="user-dropdown-menu">
+            <div className="user-dropdown-header-compact">
+                <div className="sidebar-user-avatar" style={{width: '32px', height: '32px'}}>
+                    {currentUser?.avatarUrl ? (
+                        <img src={currentUser.avatarUrl} alt="Avatar người dùng" />
+                    ) : (
+                        <span className="icon icon-user-placeholder"></span>
+                    )}
+                </div>
+                <div className="user-info-text">
+                    <strong>{currentUser?.fullName}</strong>
+                    <small>{currentUser?.role === "admin" ? "Quản trị viên" : "Nhân viên giám sát"}</small>
+                </div>
+            </div>
+
+            <button
+                className="dropdown-item"
+                onClick={() => handleNavigation('/account')}
+            >
+                <span className="icon icon-settings-dropdown"></span>
+                Thông tin tài khoản
+            </button>
+
+            <button className="dropdown-item" onClick={onToggleTheme}>
+                <span className="icon icon-moon-dropdown"></span>
+                Chế độ ({theme === 'theme-dark' ? 'Tối' : 'Sáng'})
+            </button>
+
+            <div className="dropdown-divider"></div>
+
+            <button className="dropdown-item logout" onClick={onLogoutRequest}>
+                <span className="icon icon-logout-dropdown"></span>
+                Đăng xuất
+            </button>
+        </div>
+    );
+};
+
+
+const Sidebar = ({
+                     currentUser,
+                     onLogoutRequest,
+                     onThemeToggle,
+                     onToggleDropdown,
+                     isDropdownOpen
+                 }) => {
     const {
         intersections,
         activeIntersection,
         handleIntersectionSelect,
-        alerts,
-        unreadAlertCount
     } = useTraffic();
 
     const [searchText, setSearchText] = useState('');
@@ -24,18 +77,13 @@ const Sidebar = ({ currentUser, onLogout, onThemeToggle }) => {
         return matchesStatus && matchesArea && matchesSearch;
     });
 
+    const closeDropdownWrapper = () => onToggleDropdown(false);
+
     return (
         <aside className="sidebar" role="navigation">
             <div className="sidebar-header">
                 <span className="icon icon-traffic" style={{ color: 'var(--color-accent-blue)' }}></span>
                 <span className="logo-text">Traffic Monitor</span>
-                <button
-                    className="theme-toggle-btn"
-                    aria-label="Chuyển chế độ Sáng/Tối"
-                    onClick={onThemeToggle}
-                >
-                    <span className="icon icon-moon"></span>
-                </button>
             </div>
 
             <div className="search-box">
@@ -118,25 +166,44 @@ const Sidebar = ({ currentUser, onLogout, onThemeToggle }) => {
             <NavLink
                 to="/history"
                 className="report-btn action-btn"
-                style={{ textDecoration: 'none' }}
+                style={{ textDecoration: 'none', marginTop: '15px' }}
             >
                 <span className="icon icon-dashboard"></span>
                 Lịch sử & Phân tích
             </NavLink>
 
             <div className="sidebar-user-info">
-                <div className="sidebar-user-card">
-                    <div className="sidebar-user-details">
-                        <div className="sidebar-user-name">
+                <div
+                    className={`sidebar-user-card ${isDropdownOpen ? 'active-dropdown' : ''}`}
+                    onClick={() => onToggleDropdown(!isDropdownOpen)}
+                >
+                    <div className="sidebar-user-avatar" aria-label={`Avatar của ${currentUser?.fullName || "Người dùng"}`}>
+                        {currentUser?.avatarUrl ? (
+                            <img src={currentUser.avatarUrl} alt="Avatar người dùng" />
+                        ) : (
+                            <span className="icon icon-user-placeholder"></span>
+                        )}
+                    </div>
+
+                    <div className="sidebar-user-details" style={{ flex: '1', minWidth: 0 }}>
+                        <div className="sidebar-user-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {currentUser?.fullName || "Người dùng"}
                         </div>
                         <div className="sidebar-user-role">
                             {currentUser?.role === "admin" ? "Quản trị viên" : "Nhân viên giám sát"}
                         </div>
                     </div>
-                    <button onClick={onLogout} className="btn-logout">
-                        Đăng xuất
-                    </button>
+
+                    <span className={`icon icon-chevron ${isDropdownOpen ? 'open' : ''}`}></span>
+
+                    {isDropdownOpen && (
+                        <UserDropdown
+                            onLogoutRequest={onLogoutRequest}
+                            onToggleTheme={onThemeToggle}
+                            currentUser={currentUser}
+                            closeModal={closeDropdownWrapper}
+                        />
+                    )}
                 </div>
             </div>
         </aside>

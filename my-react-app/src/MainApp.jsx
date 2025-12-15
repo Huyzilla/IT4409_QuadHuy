@@ -1,16 +1,82 @@
+// File: MainApp.jsx
+
 import React, { useState, useEffect } from "react";
-import CameraGridWithModal from "./components/CameraGridWithModal";
+import { Routes, Route } from "react-router-dom";
 import { useTraffic } from "./context/TrafficContext";
 import { useAuth } from "./context/AuthContext";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
+import AccountSettings from "./pages/AccountSettings.jsx";
+
+const LogoutConfirmationModal = ({ onConfirm, onCancel }) => (
+    <div
+        className="live-modal-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Xác nhận Đăng xuất"
+        onClick={onCancel}
+    >
+        <div
+            className="live-modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+                maxWidth: '420px',
+                padding: '30px',
+                background: 'var(--color-bg-secondary)'
+            }}
+        >
+            <h3 style={{
+                marginBottom: '15px',
+                fontSize: '22px',
+                fontWeight: '700',
+                color: 'var(--color-traffic-heavy)'
+            }}>
+                Xác nhận Đăng xuất
+            </h3>
+
+            <p style={{
+                marginBottom: '30px',
+                color: 'var(--color-text-secondary)',
+                fontSize: '16px'
+            }}>
+                Bạn có chắc chắn muốn đăng xuất khỏi hệ thống Traffic Monitor không?
+            </p>
+
+            <div className="modal-actions" style={{ display: 'flex', justifyContent: 'flex-end', gap: '15px' }}>
+                <button
+                    onClick={onCancel}
+                    className="action-btn"
+                    style={{
+                        background: 'var(--color-bg-tertiary)',
+                        color: 'var(--color-text-primary)',
+                        padding: '10px 20px',
+                        borderRadius: 'var(--radius-md)'
+                    }}
+                >
+                    Hủy bỏ
+                </button>
+                <button
+                    onClick={onConfirm}
+                    className="action-btn primary"
+                    style={{
+                        background: 'var(--color-traffic-heavy)',
+                        borderColor: 'var(--color-traffic-heavy)',
+                        padding: '10px 20px',
+                        borderRadius: 'var(--radius-md)'
+                    }}
+                >
+                    Đăng xuất
+                </button>
+            </div>
+        </div>
+    </div>
+);
+
 
 export default function MainApp() {
     const { user, logout } = useAuth();
     const {
-        intersections,
         activeIntersection,
-        handleIntersectionSelect,
         toggleTheme,
         theme,
         refreshActiveDashboard,
@@ -18,6 +84,8 @@ export default function MainApp() {
     } = useTraffic();
 
     const [liveCamera, setLiveCamera] = useState(null);
+    const [showLogoutModal, setShowLogoutModal] = useState(false);
+    const [showUserDropdown, setShowUserDropdown] = useState(false);
 
     const openLiveView = (camera) => {
         if (!camera || !camera.id) return;
@@ -30,6 +98,10 @@ export default function MainApp() {
     };
 
     useEffect(() => {
+        document.body.className = theme;
+    }, [theme]);
+
+    useEffect(() => {
         const handleEsc = (e) => {
             if (e.key === "Escape" && liveCamera) closeLiveView();
         };
@@ -38,27 +110,43 @@ export default function MainApp() {
     }, [liveCamera]);
 
     useEffect(() => {
-        if (liveCamera) {
+        if (liveCamera || showLogoutModal) {
             document.body.style.overflow = "hidden";
             return () => {
                 document.body.style.overflow = "";
             };
         }
-    }, [liveCamera]);
 
-    useEffect(() => {
-        document.body.classList.remove("theme-dark", "theme-light");
-        document.body.classList.add(theme);
-
-        return () => {
-            document.body.classList.remove(theme);
+        const closeDropdown = (e) => {
+            const sidebar = document.querySelector('.sidebar');
+            if (showUserDropdown && sidebar && !sidebar.contains(e.target)) {
+                setShowUserDropdown(false);
+            }
         };
-    }, [theme]);
+        window.addEventListener('mousedown', closeDropdown);
+        return () => window.removeEventListener('mousedown', closeDropdown);
+
+    }, [liveCamera, showLogoutModal, showUserDropdown]);
+
+    const handleLogoutConfirm = () => {
+        logout();
+        setShowLogoutModal(false);
+        setShowUserDropdown(false);
+    }
+
+    const handleToggleDropdown = (forceState) => {
+        if (typeof forceState === 'boolean') {
+            setShowUserDropdown(forceState);
+        } else {
+            setShowUserDropdown(prev => !prev);
+        }
+    }
+
 
     if (trafficLoading) {
         return (
             <div className="app-loading">
-                <div>Đang tải dữ liệu giao thông...</div>
+                <div>Đang tải dữ liệu ngã tư...</div>
             </div>
         );
     }
@@ -68,20 +156,57 @@ export default function MainApp() {
             <div className="app-layout">
                 <Sidebar
                     currentUser={user}
-                    onLogout={logout}
+                    onToggleDropdown={handleToggleDropdown}
+                    isDropdownOpen={showUserDropdown}
+                    onLogoutRequest={() => setShowLogoutModal(true)} // Gọi modal xác nhận
                     onThemeToggle={toggleTheme}
                 />
 
-                <Dashboard
-                    activeIntersection={activeIntersection}
-                    onReload={refreshActiveDashboard}
-                    onLiveView={openLiveView}
-                />
+                <div className="main-content">
+                    <Routes>
+                        <Route
+                            path="/dashboard"
+                            element={
+                                <Dashboard
+                                    activeIntersection={activeIntersection}
+                                    onReload={refreshActiveDashboard}
+                                    onLiveView={openLiveView}
+                                />
+                            }
+                        />
+                        <Route path="/account" element={<AccountSettings />} />
+
+                        <Route
+                            path="/*"
+                            element={
+                                <Dashboard
+                                    activeIntersection={activeIntersection}
+                                    onReload={refreshActiveDashboard}
+                                    onLiveView={openLiveView}
+                                />
+                            }
+                        />
+                    </Routes>
+                </div>
+
             </div>
 
-            {/*MODAL XEM CHI TIẾT*/}
+            {showLogoutModal && (
+                <LogoutConfirmationModal
+                    onConfirm={handleLogoutConfirm}
+                    onCancel={() => setShowLogoutModal(false)}
+                />
+            )}
+
+            {/* MODAL XEM CHI TIẾT CAMERA */}
             {liveCamera && (
-                <div className="live-modal-overlay" onClick={closeLiveView}>
+                <div
+                    className="live-modal-overlay"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`Live View: ${liveCamera.name || liveCamera.id}`}
+                    onClick={closeLiveView}
+                >
                     <div
                         className="live-modal-content"
                         onClick={(e) => e.stopPropagation()}
