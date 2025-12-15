@@ -29,7 +29,7 @@ const STATUS_MAP = {
   },
 };
 
-// Hàm giả lập thông số AI (Để giao diện hiển thị đẹp như cũ)
+// Hàm giả lập thông số AI
 const generateFakeStats = (camId) => {
   const density = Math.random();
   let status = "low";

@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }) => {
             password,
             fullName,
             role: username === "20225336" ? "admin" : "user",
+            avatarUrl: null,
         };
 
         const updatedUsers = [...users, newUser];
@@ -72,6 +73,31 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem("traffic-user", JSON.stringify(userWithoutPassword));
     };
 
+    const updateUserProfile = async (updates) => {
+        await new Promise((r) => setTimeout(r, 600)); // Giả lập API call
+
+        if (!user) {
+            throw new Error("Người dùng chưa đăng nhập.");
+        }
+
+        // Cập nhật trong list users (DB giả lập)
+        const updatedUsers = users.map(u => {
+            if (u.id === user.id) {
+                return { ...u, ...updates };
+            }
+            return u;
+        });
+
+        setUsers(updatedUsers);
+        localStorage.setItem(DB_KEY, JSON.stringify(updatedUsers));
+
+        const updatedUser = { ...user, ...updates };
+        setUser(updatedUser);
+        localStorage.setItem("traffic-user", JSON.stringify(updatedUser));
+
+        return updatedUser;
+    };
+
     // HÀM ĐĂNG NHẬP GOOGLE(GIẢ LẬP)
     const googleLogin = async (googleIdToken) => {
         await new Promise((r) => setTimeout(r, 1000));
@@ -82,6 +108,7 @@ export const AuthProvider = ({ children }) => {
             username: "google_user_" + Date.now(),
             fullName: "Tài khoản Google",
             role: "user",
+            avatarUrl: "https://picsum.photos/seed/google/100/100",
         };
 
         setUser(mockUser);
