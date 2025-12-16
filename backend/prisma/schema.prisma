@@ -8,17 +8,18 @@ datasource db {
 }
 
 model Camera {
-  id           Int      @id @default(autoincrement())
-  name         String   @db.VarChar(255)
-  videoSource  String   @map("video_source") @db.VarChar(500)
-  latitude     Float
-  longitude    Float
-  intersectionId Int?          // Có thể null (nếu camera chưa gán vào đâu)
+  id             Int           @id @default(autoincrement())
+  name           String        @db.VarChar(255)
+  videoSource    String        @map("video_source") @db.VarChar(500)
+  latitude       Float
+  longitude      Float
+  intersectionId Int? // Có thể null (nếu camera chưa gán vào đâu)
   intersection   Intersection? @relation(fields: [intersectionId], references: [id])
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
 
-  frameStats   TrafficFrameStat[]
+  frameStats      TrafficFrameStat[]
+  minuteSummaries TrafficMinuteSummary[]
 
   @@map("cameras")
 }
@@ -27,10 +28,10 @@ model TrafficFrameStat {
   id          Int      @id @default(autoincrement())
   cameraId    Int      @map("camera_id")
   vehicles    Int
-  isEmergency Boolean  @map("is_emergency") @default(false)
+  isEmergency Boolean  @default(false) @map("is_emergency")
   capturedAt  DateTime @map("captured_at")
 
-  camera      Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
 
   @@index([cameraId])
   @@index([capturedAt])
@@ -64,4 +65,21 @@ model Intersection {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("intersections")
+}
+
+model TrafficMinuteSummary {
+  id          Int      @id @default(autoincrement())
+  cameraId    Int      @map("camera_id")
+  minuteStart Int      @map("minute_start")
+  minuteEnd   Int      @map("minute_end")
+  vehiclesAvg Float    @map("vehicles_avg")
+  vehiclesMax Int      @map("vehicles_max")
+  samples     Int
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@unique([cameraId, minuteStart]) // tránh insert trùng 1 phút/cam
+  @@index([minuteStart])
+  @@map("traffic_minute_summaries")
 }
