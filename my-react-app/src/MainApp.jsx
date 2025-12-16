@@ -310,6 +310,11 @@ export default function MainApp() {
                                 />
                             }
                         />
+
+                        <Route
+                            path="/account"
+                            element={<AccountSettings />}
+                        />
                     </Routes>
                 </div>
 
