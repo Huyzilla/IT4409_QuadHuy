@@ -1,0 +1,29 @@
+backend_url: "http://backend:3000"
+namespace: "/ingest"
+model_path: "/models/best.onnx"
+
+cameras:
+  - id: 1
+    name: "Road 1 (Bac)"
+    rtsp: "rtsp://mediamtx:8554/north"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+  - id: 2
+    name: "Road 2 (Dong)"
+    rtsp: "rtsp://mediamtx:8554/east"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+  - id: 3
+    name: "Road 3 (Nam)"
+    rtsp: "rtsp://mediamtx:8554/south"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+  - id: 4
+    name: "Road 4 (Tay)"
+    rtsp: "rtsp://mediamtx:8554/west"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80

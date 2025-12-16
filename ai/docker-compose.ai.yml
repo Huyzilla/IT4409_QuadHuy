@@ -1,0 +1,28 @@
+services:
+  ai:
+    build:
+      context: .
+    container_name: ai-service
+    restart: unless-stopped
+    environment:
+      AI_CONFIG: /app/config.yaml
+      # optional override:
+      # BACKEND_URL: "http://backend:3000"
+      # NAMESPACE: "/ingest"
+      # MODEL_PATH: "/models/best.onnx"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+      - ./models:/models:ro
+    depends_on:
+      - dummy  
+    networks: [traffic-net]
+
+  dummy:
+    image: alpine:3.20
+    command: ["sh", "-c", "sleep 360000"]
+    networks: [traffic-net]
+    restart: unless-stopped
+
+networks:
+  traffic-net:
+    external: true
