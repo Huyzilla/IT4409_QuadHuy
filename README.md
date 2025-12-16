@@ -1,9 +1,5 @@
-A CN WEB
+Chạy lần lượt từng docker
 
-Chạy docker: docker compose -f docker-compose.rtsp.yml up -d
-
-Không cần dùng 
-(Lệnh khởi động RSTP cam (4 cam dùng 4 terminal)
-ffmpeg -re -stream_loop -1 -i videos/west.mp4 `
-     -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p `
-     -f rtsp -rtsp_transport tcp rtsp://localhost:8554/west)
+1. Trong thư mục gốc của dự án, chạy: docker compose -f docker-compose.cam.yml up -d để khởi động 4 cam RTSP
+2. Trong thư mục backend, chạy: docker compose -f docker-compose.backend.yml up -d
+3. Trong thư mục ai, chạy: docker compose -f docker-compose.ai.yml up -d để khởi động model
