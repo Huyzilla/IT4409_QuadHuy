@@ -1,64 +1,64 @@
-backend_url: "http://backend:3000"
+backend_url: "http://localhost:3000"
 namespace: "/ingest"
-model_path: "/models/best.onnx"
+model_path: "models/best.onnx"
 
 cameras:
   - id: 1
     name: "Road 1 (Bac)"
-    rtsp: "rtsp://mediamtx:8554/north"
+    rtsp: "rtsp://localhost:8554/north"
     max_vehicles: 5
     default_green: 42
     emergency_green: 80
     roi:
-      - [20, 150]   
-      - [280, 150]  
-      - [330, 355] 
-      - [10, 355]
+      - [20, 100]  
+      - [300, 140]  
+      - [340, 360] 
+      - [0, 360]
     count_line:
       p1: [70, 190]
       p2: [300, 180]
     line_dir: "down"
   - id: 2
     name: "Road 2 (Dong)"
-    rtsp: "rtsp://mediamtx:8554/east"
+    rtsp: "rtsp://localhost:8554/east"
     max_vehicles: 5
     default_green: 42
     emergency_green: 80
     roi:
-      - [20, 150]   
-      - [280, 150]  
-      - [330, 355] 
-      - [10, 355]
+      - [20, 100]  
+      - [300, 140]  
+      - [340, 360] 
+      - [0, 360]
     count_line:
       p1: [70, 190]
       p2: [300, 180]
     line_dir: "down"
   - id: 3
     name: "Road 3 (Nam)"
-    rtsp: "rtsp://mediamtx:8554/south"
+    rtsp: "rtsp://localhost:8554/south"
     max_vehicles: 5
     default_green: 42
     emergency_green: 80
     roi:
-      - [20, 150]   
-      - [280, 150]  
-      - [330, 355] 
-      - [10, 355]
+      - [20, 100]  
+      - [300, 140]  
+      - [340, 360] 
+      - [0, 360]
     count_line:
       p1: [70, 190]
       p2: [300, 180]
     line_dir: "down"
   - id: 4
     name: "Road 4 (Tay)"
-    rtsp: "rtsp://mediamtx:8554/west"
+    rtsp: "rtsp://localhost:8554/west"
     max_vehicles: 5
     default_green: 42
     emergency_green: 80
     roi:
-      - [20, 150]   
-      - [280, 150]  
-      - [330, 355] 
-      - [10, 355]
+      - [20, 100]  
+      - [300, 140]  
+      - [340, 360] 
+      - [0, 360]
     count_line:
       p1: [70, 190]
       p2: [300, 180]
