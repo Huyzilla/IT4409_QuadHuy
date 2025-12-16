@@ -5,9 +5,56 @@ import threading, time
 import socketio
 import copy 
 import os, yaml
+import numpy as np
+
+DEBUG_VIEW = True
+
+def get_distance(p1, p2):
+    return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+def _as_int_poly(poly):
+    if not poly:
+        return None
+    return [(int(x), int(y)) for x, y in poly]
+
+def point_in_poly(cx, cy, poly_pts):
+    if not poly_pts:
+        return False
+    poly = np.array(poly_pts, dtype=np.int32)
+    return cv2.pointPolygonTest(poly, (float(cx), float(cy)), False) >= 0
+
+def side_of_line(p, a, b):
+    return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+
+# kiểm tra xem điểm prev_p -> cur_p có cắt qua đoạn thẳng ab không
+def crossed(prev_p, cur_p, a, b):
+    s1 = side_of_line(prev_p, a, b)
+    s2 = side_of_line(cur_p, a, b)
+    return (s1 == 0) or (s2 == 0) or ((s1 > 0) != (s2 > 0))
+
+# xác định hướng di chuyển qua đoạn thẳng ab
+def movement_in_dir(prev_p, cur_p, a, b):
+    s1 = side_of_line(prev_p, a, b)
+    s2 = side_of_line(cur_p, a, b)
+    if s1 > 0 and s2 < 0:
+        return "down"
+    if s1 < 0 and s2 > 0:
+        return "up"
+    return "unknown"
+
+def count_in_roi(dets, roi_pts):
+    count = 0
+    for det in dets:
+        box = det["box"]
+        x1, y1, x2, y2 = box
+        cx = (x1 + x2) / 2
+        cy = (y1 + y2) / 2
+        if point_in_poly(cx, cy, roi_pts):
+            count += 1
+    return count
 
 def load_config():
-    path = os.getenv("AI_CONFIG", "config.yaml")
+    path = os.getenv("AI_CONFIG", "config_example.yaml")
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
@@ -65,6 +112,9 @@ cam_config = {
         "max_vehicles": cam["max_vehicles"],
         "default_green": cam["default_green"],
         "emergency_green": cam["emergency_green"],
+        "roi": _as_int_poly(cam.get("roi")),
+        "count_line": cam.get("count_line"),
+        "line_dir": cam.get("line_dir", None),
     }
     for cam in CFG["cameras"]
 }
@@ -96,12 +146,29 @@ def process_camera(road_id, config, detector):
     last_sent = 0.0
     send_interval = 1.0
 
-    frame_skip = 2
+    frame_skip = 1
     frame_count = 0
     # per-minute aggregation state
     minute_start_ts = int(time.time() // 60 * 60)
     minute_counts = []
     minute_max = 0
+    minute_flow = 0
+
+    # ROI + line
+    roi_pts = config.get("roi")
+    line = config.get("count_line")
+    line_dir = config.get("line_dir", None)
+
+    if line and "p1" in line and "p2" in line:
+        a = (int(line["p1"][0]), int(line["p1"][1]))
+        b = (int(line["p2"][0]), int(line["p2"][1]))
+    else:
+        a = b = None
+
+    # ===== SIMPLE EUCLIDEAN TRACKING (as you proposed) =====
+    prev_centroids = {}   # {id: (cx, cy)}
+    next_id = 0
+    max_distance = 100     # px
 
     while True:
         ret, frame = cap.read()
@@ -115,23 +182,102 @@ def process_camera(road_id, config, detector):
         if frame_count % (frame_skip + 1) != 0:
             continue
 
-        # giảm tải CPU: infer trên frame nhỏ hơn
-        frame = cv2.resize(frame, (640, 360))
+        # giảm tải CPU
+        frame = cv2.resize(frame, (512, 288))
         dets = detector.infer(frame)
-        vehicle_count = len(dets)
-        emergency_count = 0
+
+        # ===== DEBUG overlay =====
+        if DEBUG_VIEW:
+            vis = frame.copy()
+
+            if roi_pts:
+                cv2.polylines(vis, [np.array(roi_pts, dtype=np.int32)], True, (0, 255, 0), 2)
+
+            if line:
+                cv2.line(vis, a, b, (0, 0, 255), 2)
+
+            in_roi = 0
+            for det in dets:
+                x1, y1, x2, y2 = map(int, det["box"])
+                cx = int((x1 + x2) / 2)
+                cy = int((y1 + y2) / 2)
+
+                inside = (roi_pts is not None) and point_in_poly(cx, cy, roi_pts)
+                if inside:
+                    in_roi += 1
+                    cv2.rectangle(vis, (x1, y1), (x2, y2), (255, 0, 0), 2)
+                    cv2.circle(vis, (cx, cy), 3, (255, 0, 0), -1)
+                else:
+                    cv2.rectangle(vis, (x1, y1), (x2, y2), (80, 80, 80), 1)
+                    cv2.circle(vis, (cx, cy), 2, (80, 80, 80), -1)
+
+            cv2.putText(
+                vis,
+                f"cam={road_id} dets={len(dets)} flow={minute_flow}",
+                (10, 25),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.7,
+                (255, 255, 255),
+                2
+            )
+
+            cv2.imshow(f"cam_{road_id}", vis)
+            cv2.waitKey(1)
 
         now = time.time()
+
+        # ===== build centers in ROI =====
+        centers = []
+        for det in dets:
+            x1, y1, x2, y2 = det["box"]
+            cx = (x1 + x2) / 2
+            cy = (y1 + y2) / 2
+            if roi_pts is None or point_in_poly(cx, cy, roi_pts):
+                centers.append((cx, cy))
+
+        vehicle_count = len(centers)
+        emergency_count = 0
+
+        # ===== TRACKING + LINE COUNTING (simple version) =====
+        curr_centroids = {}
+
+        for curr_p in centers:
+            matched_id = None
+            min_dist = max_distance
+
+            for obj_id, prev_p in prev_centroids.items():
+                d = get_distance(curr_p, prev_p)
+                if d < min_dist:
+                    min_dist = d
+                    matched_id = obj_id
+
+            if matched_id is not None:
+                # kiểm tra cắt vạch
+                if a is not None and crossed(prev_centroids[matched_id], curr_p, a, b):
+                    if line_dir:
+                        ddir = movement_in_dir(prev_centroids[matched_id], curr_p, a, b)
+                        if ddir == line_dir:
+                            minute_flow += 1
+                    else:
+                        minute_flow += 1
+
+                curr_centroids[matched_id] = curr_p
+                del prev_centroids[matched_id]
+            else:
+                curr_centroids[next_id] = curr_p
+                next_id += 1
+
+        prev_centroids = curr_centroids
+
+        # ===== SEND DATA =====
         if now - last_sent >= send_interval:
             send_traffic(road_id, vehicle_count, emergency_count)
             last_sent = now
 
-            # cập nhật trạng thái ở tốc độ 1Hz (ổn định và ít jitter hơn)
             with state_lock:
                 traffic_state[road_id]["vehicles"] = vehicle_count
                 traffic_state[road_id]["emergency"] = emergency_count
 
-            # cập nhật số liệu phút hiện tại
             current_minute_start = int(now // 60 * 60)
             if current_minute_start != minute_start_ts:
                 samples = len(minute_counts)
@@ -143,13 +289,17 @@ def process_camera(road_id, config, detector):
                         "vehicles_avg": round(avg_vehicles, 3),
                         "vehicles_max": int(minute_max),
                         "samples": int(samples),
+                        "flow_count": int(minute_flow),
                     }
                     send_minute_summary(road_id, summary)
 
-                # reset for new minute
+                # reset per minute
                 minute_start_ts = current_minute_start
                 minute_counts = []
                 minute_max = 0
+                minute_flow = 0
+                prev_centroids = {}
+                next_id = 0
 
             minute_counts.append(vehicle_count)
             minute_max = max(minute_max, vehicle_count)
