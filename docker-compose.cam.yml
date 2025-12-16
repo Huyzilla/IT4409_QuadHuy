@@ -1,0 +1,78 @@
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: mediamtx
+    ports:
+      - "8554:8554"   # RTSP 
+      - "8888:8888"   # HLS
+      - "8889:8889"   # WebRTC
+    restart: unless-stopped
+    networks: [traffic-net]
+
+  cam_north:
+    image: linuxserver/ffmpeg:latest
+    container_name: cam_north
+    depends_on: [mediamtx]
+    volumes:
+      - ./videos:/videos:ro
+    command: >
+      -re -stream_loop -1 -i /videos/north.mp4
+      -an
+      -vf "scale=640:360,fps=10"
+      -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p
+      -b:v 800k -maxrate 800k -bufsize 1600k
+      -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/north
+    restart: unless-stopped
+    networks: [traffic-net]
+
+  cam_east:
+    image: linuxserver/ffmpeg:latest
+    container_name: cam_east
+    depends_on: [mediamtx]
+    volumes:
+      - ./videos:/videos:ro
+    command: >
+      -re -stream_loop -1 -i /videos/east.mp4
+      -an
+      -vf "scale=640:360,fps=10"
+      -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p
+      -b:v 800k -maxrate 800k -bufsize 1600k
+      -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/east
+    restart: unless-stopped
+    networks: [traffic-net]
+
+  cam_south:
+    image: linuxserver/ffmpeg:latest
+    container_name: cam_south
+    depends_on: [mediamtx]
+    volumes:
+      - ./videos:/videos:ro
+    command: >
+      -re -stream_loop -1 -i /videos/south.mp4
+      -an
+      -vf "scale=640:360,fps=10"
+      -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p
+      -b:v 800k -maxrate 800k -bufsize 1600k
+      -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/south
+    restart: unless-stopped
+    networks: [traffic-net]
+
+  cam_west:
+    image: linuxserver/ffmpeg:latest
+    container_name: cam_west
+    depends_on: [mediamtx]
+    volumes:
+      - ./videos:/videos:ro
+    command: >
+      -re -stream_loop -1 -i /videos/west.mp4
+      -an
+      -vf "scale=640:360,fps=10"
+      -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p
+      -b:v 800k -maxrate 800k -bufsize 1600k
+      -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/west
+    restart: unless-stopped
+    networks: [traffic-net]
+
+networks:
+  traffic-net:
+    external: true

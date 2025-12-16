@@ -82,6 +82,13 @@ export class TrafficService {
     });
     // 3. Cache updated state
     await this.cacheCurrentState();
+    //4. Publish light change event
+    await this.redisService.publish('traffic:light-change', {
+      greenRoadId,
+      duration,
+      reason,
+      state: this.currentState,
+    });
     return this.currentState;
   }
 
@@ -146,6 +153,10 @@ export class TrafficService {
     };
 
     await this.trafficRepository.saveSignalLog(logDto);
+  }
+
+  async processMinuteSummary(dto: any): Promise<void> {
+    await this.trafficRepository.upsertMinuteSummary(dto);
   }
 
   /**
