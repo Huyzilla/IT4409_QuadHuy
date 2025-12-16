@@ -1186,6 +1186,63 @@ h3 {
 .alert-badge.pulse-animation {
   animation: alertPulse 2s infinite cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
+
+.alert-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 350px;
+    z-index: 50;
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    max-height: 400px;
+    overflow: hidden;
+    transform-origin: top right;
+    animation: fadeIn 0.2s ease-out, slideInDownAlert 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes slideInDownAlert {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-dropdown-menu .alert-item {
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.alert-dropdown-menu .alert-item:hover {
+    background-color: var(--color-bg-tertiary) !important;
+}
+
+.alert-dropdown-menu .alert-item.read {
+    opacity: 0.7;
+}
+
+.alert-dropdown-menu .custom-select {
+    padding: 6px 30px 6px 10px;
+    height: 35px;
+    font-size: 13px;
+    flex-grow: 1;
+}
+
+.alert-dropdown-menu .action-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+    background-color: var(--color-bg-tertiary);
+}
+.alert-dropdown-menu .action-btn:hover {
+    background-color: var(--color-border);
+}
+
 .theme-light .alert-badge {
   border: 2px solid var(--color-bg-secondary);
 }

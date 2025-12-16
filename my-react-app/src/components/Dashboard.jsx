@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { useTraffic } from "../context/TrafficContext";
+import AlertPanel from "./AlertPanel.jsx";
 
 const STATUS_MAP = {
     low: {
@@ -301,8 +302,29 @@ const DashboardSegmentCard = ({ camera, onLiveView, onSettings }) => {
 };
 
 const Dashboard = ({ onReload, onLiveGrid, onLiveView }) => {
-    const { activeIntersection, loading } = useTraffic();
+    const { activeIntersection, loading, unreadAlertCount } = useTraffic();
     const [settingsCamera, setSettingsCamera] = useState(null);
+    const [showAlertPanel, setShowAlertPanel] = useState(false);
+
+    const alertRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (alertRef.current && !alertRef.current.contains(event.target)) {
+                setShowAlertPanel(false);
+            }
+        };
+
+        if (showAlertPanel) {
+            document.addEventListener("mousedown", handleClickOutside);
+        } else {
+            document.removeEventListener("mousedown", handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [showAlertPanel]);
 
     if (loading)
         return (
@@ -335,10 +357,23 @@ const Dashboard = ({ onReload, onLiveGrid, onLiveView }) => {
             <header className="main-header">
                 <h1 className="page-title">{title}</h1>
                 <div className="header-actions">
-                    <button className="alert-btn action-btn">
-                        <span className="icon icon-bell"></span>
-                        <span className="alert-badge">3</span>
-                    </button>
+                    <div ref={alertRef} style={{ position: 'relative', display: 'inline-block' }}> {/* Gắn ref vào container */}
+                        <button
+                            className="alert-btn action-btn"
+                            onClick={() => setShowAlertPanel(prev => !prev)}
+                            aria-label={`Thông báo, có ${unreadAlertCount} chưa đọc`}
+                        >
+                            <span className="icon icon-bell"></span>
+                            {unreadAlertCount > 0 && (
+                                <span className="alert-badge pulse-animation">{unreadAlertCount}</span>
+                            )}
+                        </button>
+
+                        {showAlertPanel && (
+                            <AlertPanel onClose={() => setShowAlertPanel(false)} isDropdown={true} />
+                        )}
+                    </div>
+
                     <button className="action-btn" onClick={onReload}>
                         Tải lại
                     </button>
