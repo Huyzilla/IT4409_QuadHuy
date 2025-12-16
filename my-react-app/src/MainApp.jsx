@@ -233,7 +233,7 @@ export default function MainApp() {
     }, [liveIntersection, liveCamera]); // Thêm liveCamera vào dependency
 
     useEffect(() => {
-        if (liveIntersection || liveCamera || showLogoutModal) { // Thêm liveCamera
+        if (liveIntersection || liveCamera || showLogoutModal) {
             document.body.style.overflow = "hidden";
             return () => {
                 document.body.style.overflow = "";
@@ -242,6 +242,8 @@ export default function MainApp() {
 
         const closeDropdown = (e) => {
             const sidebar = document.querySelector('.sidebar');
+            const alertButton = document.querySelector('.alert-btn');
+            const alertPanel = document.querySelector('.alert-dropdown-menu');
             if (showUserDropdown && sidebar && !sidebar.contains(e.target)) {
                 setShowUserDropdown(false);
             }
