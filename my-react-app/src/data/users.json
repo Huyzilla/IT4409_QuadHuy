@@ -1,0 +1,23 @@
+[
+  {
+    "id": "usr_admin",
+    "username": "admin",
+    "password": "123456",
+    "fullName": "Quản trị viên",
+    "role": "admin"
+  },
+  {
+    "id": "usr_user",
+    "username": "user",
+    "password": "user",
+    "fullName": "Nhân viên giám sát",
+    "role": "user"
+  },
+  {
+    "id": "usr_20225336",
+    "username": "20225336",
+    "password": "123456",
+    "fullName": "Sinh viên 20225336",
+    "role": "admin"
+  }
+]
