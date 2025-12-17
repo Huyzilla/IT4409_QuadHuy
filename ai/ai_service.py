@@ -7,7 +7,7 @@ import copy
 import os, yaml
 import numpy as np
 
-DEBUG_VIEW = True
+DEBUG_VIEW = False
 
 def get_distance(p1, p2):
     return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
@@ -165,10 +165,9 @@ def process_camera(road_id, config, detector):
     else:
         a = b = None
 
-    # ===== SIMPLE EUCLIDEAN TRACKING (as you proposed) =====
-    prev_centroids = {}   # {id: (cx, cy)}
+    prev_centroids = {} # {id: (cx, cy)}
     next_id = 0
-    max_distance = 100     # px
+    max_distance = 100 # px
 
     while True:
         ret, frame = cap.read()
@@ -186,7 +185,6 @@ def process_camera(road_id, config, detector):
         frame = cv2.resize(frame, (512, 288))
         dets = detector.infer(frame)
 
-        # ===== DEBUG overlay =====
         if DEBUG_VIEW:
             vis = frame.copy()
 
@@ -223,10 +221,8 @@ def process_camera(road_id, config, detector):
 
             cv2.imshow(f"cam_{road_id}", vis)
             cv2.waitKey(1)
-
         now = time.time()
 
-        # ===== build centers in ROI =====
         centers = []
         for det in dets:
             x1, y1, x2, y2 = det["box"]
@@ -238,7 +234,7 @@ def process_camera(road_id, config, detector):
         vehicle_count = len(centers)
         emergency_count = 0
 
-        # ===== TRACKING + LINE COUNTING (simple version) =====
+        # Tracking + line counting
         curr_centroids = {}
 
         for curr_p in centers:
@@ -268,8 +264,7 @@ def process_camera(road_id, config, detector):
                 next_id += 1
 
         prev_centroids = curr_centroids
-
-        # ===== SEND DATA =====
+        
         if now - last_sent >= send_interval:
             send_traffic(road_id, vehicle_count, emergency_count)
             last_sent = now
