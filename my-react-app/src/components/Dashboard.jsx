@@ -124,7 +124,9 @@ const CameraSettingsModal = ({ camera, onClose, onSave }) => {
 };
 
 const DashboardSegmentCard = ({ camera, onLiveView, onSettings }) => {
-    const { density, status, trend, trendText } = generateFakeStats(camera.id);
+    const [stats] = useState(() => generateFakeStats(camera.id));
+    const { density, status, trend, trendText } = stats;
+
 
     const statusInfo = STATUS_MAP[status] || STATUS_MAP["no-connection"];
     const densityPercent = Math.round(density * 100);

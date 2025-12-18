@@ -6,6 +6,7 @@ import { RedisModule } from './modules/redis/redis.module';
 import { CameraModule } from './modules/camera/camera.module';
 import { IntersectionModule } from './modules/intersection/intersection.module';
 import { TrafficModule } from './modules/traffic/traffic.module';
+import { UsersModule } from './users/users.module';
 
 /**
  * AppModule is the root module of the application.
@@ -21,6 +22,7 @@ import { TrafficModule } from './modules/traffic/traffic.module';
     CameraModule,
     IntersectionModule,
     TrafficModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],
