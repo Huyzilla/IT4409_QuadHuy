@@ -4,7 +4,7 @@ import { io } from "socket.io-client";
 // Backend NestJS: TrafficGateway thường để namespace "/traffic"
 // => URL sẽ là http://localhost:3000/traffic
 // Nếu sau này anh đổi namespace thì sửa lại string này cho khớp.
-export const trafficSocket = io("http://localhost:3000/traffic", {
+export const trafficSocket = io("http://localhost:3001/traffic", {
     transports: ["websocket"],
     autoConnect: true,
 });

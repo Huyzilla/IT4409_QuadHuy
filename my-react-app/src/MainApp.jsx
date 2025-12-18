@@ -5,7 +5,8 @@ import { useAuth } from "./context/AuthContext";
 import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import AccountSettings from "./pages/AccountSettings.jsx";
-import CameraGridWithModal from "./components/CameraGridWithModal"; // Component lưới camera
+import CameraGridWithModal from "./components/CameraGridWithModal";
+import AIBotIcon from './assets/chatbot1.png';
 
 const LogoutConfirmationModal = ({ onConfirm, onCancel }) => (
     <div
@@ -184,6 +185,157 @@ const SingleCameraModal = ({ liveCamera, closeModal }) => {
     );
 };
 
+const AIChatbox = () => {
+    const { user } = useAuth();
+    const [isOpen, setIsOpen] = useState(false);
+    const [position, setPosition] = useState({ x: window.innerWidth - 100, y: window.innerHeight - 100 });
+    const [isDragging, setIsDragging] = useState(false);
+    const [rel, setRel] = useState({ x: 0, y: 0 });
+
+    const [input, setInput] = useState("");
+    const [messages, setMessages] = useState([
+        { role: 'bot', text: `Chào ${user?.fullName || 'bạn'}, tôi đã sẵn sàng phân tích dữ liệu. Bạn cần hỏi gì không?` }
+    ]);
+
+    const onMouseDown = (e) => {
+        if (e.button !== 0) return;
+        setIsDragging(true);
+        const ref = e.currentTarget.getBoundingClientRect();
+        setRel({ x: e.pageX - ref.left, y: e.pageY - ref.top });
+        e.stopPropagation();
+        e.preventDefault();
+    };
+
+    useEffect(() => {
+        const onMouseMove = (e) => {
+            if (!isDragging) return;
+            setPosition({
+                x: e.pageX - rel.x,
+                y: e.pageY - rel.y
+            });
+        };
+        const onMouseUp = () => setIsDragging(false);
+
+        if (isDragging) {
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        }
+        return () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+    }, [isDragging, rel]);
+
+    const handleSendMessage = () => {
+        if (!input.trim()) return;
+        setMessages(prev => [...prev, { role: 'user', text: input }]);
+        setInput("");
+        setTimeout(() => {
+            setMessages(prev => [...prev, { role: 'bot', text: "Tôi đang phân tích dữ liệu giao thông thực tế, vui lòng đợi giây lát..." }]);
+        }, 1000);
+    };
+
+    return (
+        <div
+            className="ai-chat-container"
+            style={{
+                position: 'fixed',
+                left: `${position.x}px`,
+                top: `${position.y}px`,
+                zIndex: 1000,
+                cursor: isDragging ? 'grabbing' : 'auto'
+            }}
+        >
+            <button
+                className="ai-trigger-btn"
+                onMouseDown={onMouseDown}
+                onClick={() => !isDragging && setIsOpen(!isOpen)}
+                style={{
+                    width: '64px',
+                    height: '64px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: isDragging ? 'grabbing' : 'pointer',
+                    padding: '0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    position: 'relative'
+                }}
+            >
+                <div className="bot-floating-container">
+                    <img
+                        src={AIBotIcon}
+                        alt="Trợ lý AI"
+                        style={{ width: '172px', height: '172px', objectFit: 'contain', position: 'relative', zIndex: 2 }}
+                    />
+                </div>
+            </button>
+
+            {isOpen && (
+                <div className="ai-window" style={{
+                    position: 'absolute', bottom: '85px', right: '0',
+                    width: '380px', height: '520px', background: 'var(--color-bg-secondary)',
+                    borderRadius: '20px', border: '1px solid var(--color-border)',
+                    boxShadow: 'var(--shadow-lg)', display: 'flex', flexDirection: 'column',
+                    overflow: 'hidden', animation: 'slideUp 0.3s ease'
+                }}>
+                    <div className="ai-header" style={{ padding: '20px', background: 'var(--color-bg-tertiary)', borderBottom: '1px solid var(--color-border)' }}>
+                        <h4 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <span className="status-dot" style={{ background: '#10b981', width: '8px', height: '8px', borderRadius: '50%' }}></span>
+                            Trợ lý Giao thông AI
+                        </h4>
+                    </div>
+
+                    <div className="ai-messages" style={{ flex: 1, padding: '20px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                        {messages.map((msg, idx) => (
+                            <div key={idx} className={`msg ${msg.role}`} style={{
+                                background: msg.role === 'bot' ? 'var(--color-bg-tertiary)' : 'var(--color-accent-blue)',
+                                padding: '12px 16px',
+                                borderRadius: msg.role === 'bot' ? '0 15px 15px 15px' : '15px 15px 0 15px',
+                                maxWidth: '85%',
+                                fontSize: '14px',
+                                alignSelf: msg.role === 'bot' ? 'flex-start' : 'flex-end',
+                                color: 'white'
+                            }}>
+                                {msg.text}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="ai-input-area" style={{ padding: '20px', borderTop: '1px solid var(--color-border)' }}>
+                        <div style={{ position: 'relative', display: 'flex', gap: '10px' }}>
+                            <input
+                                type="text"
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                                placeholder="Hỏi về xu hướng ùn tắc..."
+                                style={{
+                                    flex: 1, padding: '12px 15px', borderRadius: '12px',
+                                    border: '1px solid var(--color-border)',
+                                    background: 'var(--color-bg-primary)',
+                                    color: 'white', outline: 'none'
+                                }}
+                            />
+                            <button
+                                onClick={handleSendMessage}
+                                style={{
+                                    background: 'var(--color-accent-blue)',
+                                    border: 'none', borderRadius: '10px',
+                                    color: 'white', padding: '0 15px', cursor: 'pointer'
+                                }}
+                            >
+                                ➤
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 
 export default function MainApp() {
     const { user, logout } = useAuth();
@@ -321,6 +473,8 @@ export default function MainApp() {
                 </div>
 
             </div>
+
+            <AIChatbox />
 
             {showLogoutModal && (
                 <LogoutConfirmationModal
