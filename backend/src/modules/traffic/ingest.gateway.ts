@@ -9,6 +9,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger, UseFilters } from '@nestjs/common';
 import { TrafficService } from './traffic.service';
 import { IngestTrafficDataDto } from './dto/ingest-traffic-data.dto';
+import { TrafficMinuteSummaryDto } from './dto/traffic-minute-summary.dto';
 
 /**
  * IngestGateway handles WebSocket connections from AI cameras.
@@ -18,11 +19,8 @@ import { IngestTrafficDataDto } from './dto/ingest-traffic-data.dto';
  * Event: 'traffic_data'
  */
 @WebSocketGateway({
-  namespace: 'ingest',
-  cors: {
-    origin: '*',
-    credentials: true,
-  },
+  namespace: '/ingest',
+  cors: { origin: '*', credentials: true },
 })
 export class IngestGateway {
   @WebSocketServer()
@@ -80,6 +78,51 @@ export class IngestGateway {
         status: 'error',
         message: error.message,
       };
+    }
+  }
+  @SubscribeMessage('signal_decision')
+  async handleSignalDecision(
+    @MessageBody() data: any,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      this.logger.log(
+        `[AI] Signal decision received: greenRoadId=${data?.decision?.greenRoadId}, ` +
+        `duration=${data?.decision?.duration}, reason=${data?.decision?.reason}`,
+      );
+
+      await this.trafficService.applySignalDecision(data)
+
+      return {
+        status: 'success',
+        message: 'Signal decision applied',
+      };
+    } catch (error) {
+      this.logger.error(`Error applying signal decision: ${error.message}`);
+      return {
+        status: 'error',
+        message: error.message,
+      };
+    }
+  }
+
+  @SubscribeMessage('traffic_minute_summary')
+  async handleMinuteSummary(
+    @MessageBody() data: TrafficMinuteSummaryDto,
+    @ConnectedSocket() client: Socket,
+  ) {
+    try {
+      this.logger.log(
+        `[AI] Minute summary cam=${data.cameraId} start=${data.minuteStart} avg=${data.vehicles_avg} max=${data.vehicles_max} samples=${data.samples}`,
+      );
+
+      await this.trafficService.processMinuteSummary(data);
+
+      return { status: 'success', message: 'Minute summary saved' };
+    }
+    catch (error) {
+      this.logger.error(`Error saving minute summary: ${error.message}`);
+      return { status: 'error', message: error.message };
     }
   }
 }
