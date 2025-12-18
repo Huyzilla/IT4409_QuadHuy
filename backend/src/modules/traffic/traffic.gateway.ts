@@ -18,8 +18,11 @@ import { RedisService } from '../redis/redis.service';
  * Event: 'traffic_update' (server → client)
  */
 @WebSocketGateway({
-  namespace: '/traffic',
-  cors: { origin: '*', credentials: true },
+  namespace: 'traffic',
+  cors: {
+    origin: '*',
+    credentials: true,
+  },
 })
 export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()

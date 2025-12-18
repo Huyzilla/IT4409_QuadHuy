@@ -60,24 +60,7 @@ class YOLOv8ONNX:
         img, r, (dw, dh) = letterbox(bgr, (self.img_size, self.img_size))
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img = img.astype(np.float32) / 255.0
-        img = np.transpose(img, (2, 0, 1))[None, ...]  # 1x3x640x640
-
-        # out = self.session.run(None, {self.input_name: img})[0]
-        # print("NUM_OUTPUTS:", len(out), "SHAPES:", [o.shape for o in out])
-
-        # # YOLOv8 ONNX thường ra (1, 84, 8400) hoặc (1, 8400, 84)
-        # if out.ndim == 3 and out.shape[1] < out.shape[2]:
-        #     out = np.transpose(out, (0, 2, 1))  # -> (1, 8400, 84)
-
-        # pred = out[0]  # (8400, 84)
-        # # format: [x, y, w, h, conf, cls1..] hoặc [x,y,w,h, cls...]
-        # # YOLOv8 export phổ biến: [x,y,w,h, obj, cls...]
-        # # ta lấy score = obj * max(cls)
-        # obj = pred[:, 4:5]
-        # cls = pred[:, 5:]
-        # cls_id = np.argmax(cls, axis=1)
-        # cls_score = cls[np.arange(cls.shape[0]), cls_id]
-        # score = (obj[:, 0] * cls_score)
+        img = np.transpose(img, (2, 0, 1))[None, ...] 
         out = self.session.run(None, {self.input_name: img})[0]
         out = out[0].T
         xywh = out[:, 0:4]

@@ -40,7 +40,9 @@ export class TrafficService {
    * 2. Save to traffic_frame_stats table
    * 3. Update current state
    * 4. Cache in Redis
-   * 5. Broadcast to frontend (handled by gateway)
+   * 5. Run traffic control algorithm
+   * 6. If light change needed, save signal log
+   * 7. Broadcast to frontend (handled by gateway)
    */
   async processIncomingData(dto: IngestTrafficDataDto): Promise<TrafficState> {
     this.logger.log(`Processing traffic data from camera ${dto.cameraId}`);
@@ -54,41 +56,29 @@ export class TrafficService {
     // Step 3: Cache state in Redis
     await this.cacheCurrentState();
 
-    return this.currentState;
-  }
+    // Step 4: Run traffic control algorithm
+    const decision = this.trafficControlService.calculateOptimalDecision(this.currentState);
 
-  async applySignalDecision(payload: any): Promise<TrafficState> {
-    const decision = payload?.decision;
-    if(!decision) {
-      throw new Error('Invalid signal decision payload');
+    // Step 5: Check if light change is needed
+    const currentGreen = this.trafficControlService.getCurrentGreenRoadId();
+    if (decision.greenRoadId !== currentGreen) {
+      this.logger.log(`Signal change: Road ${decision.greenRoadId} → GREEN (${decision.reason})`);
+      
+      // Update light states
+      this.applyLightChange(decision.greenRoadId, decision.duration);
+      
+      // Save signal log
+      await this.saveSignalLog(decision);
+      
+      // Publish light change event
+      await this.redisService.publish('traffic:light-change', {
+        greenRoadId: decision.greenRoadId,
+        duration: decision.duration,
+        reason: decision.reason,
+        state: this.currentState,
+      });
     }
 
-    const greenRoadId = decision.greenRoadId;
-    const duration = decision.duration;
-    const reason = decision.reason ?? 'AI_DECISION';
-
-    this.logger.log(
-      `[AI] Apply signal decision: greenRoadId=${greenRoadId}, duration=${duration}, reason=${reason}`,
-    );
-
-    // 1. Apply light change to current state
-    this.applyLightChange(greenRoadId, duration);
-    // 2. Save signal log to db
-    await this.saveSignalLog({
-      greenRoadId,
-      duration,
-      reason,
-      nextQueue: null,
-    });
-    // 3. Cache updated state
-    await this.cacheCurrentState();
-    //4. Publish light change event
-    await this.redisService.publish('traffic:light-change', {
-      greenRoadId,
-      duration,
-      reason,
-      state: this.currentState,
-    });
     return this.currentState;
   }
 
@@ -153,10 +143,6 @@ export class TrafficService {
     };
 
     await this.trafficRepository.saveSignalLog(logDto);
-  }
-
-  async processMinuteSummary(dto: any): Promise<void> {
-    await this.trafficRepository.upsertMinuteSummary(dto);
   }
 
   /**
