@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from "react"; // Thêm useEffect
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 
 export default function AccountSettings() {
-    const { user, loading: authLoading, updateUserProfile } = useAuth(); // Destructure updateUserProfile
+    const { user, loading: authLoading, updateUserProfile } = useAuth();
     const [formData, setFormData] = useState({
         fullName: user?.fullName || "",
         username: user?.username || "",
@@ -104,7 +104,7 @@ export default function AccountSettings() {
         const newAvatarUrl = `https://picsum.photos/seed/${Date.now() + Math.random()}/100/100`; // URL giả lập thay đổi
 
         try {
-            await updateUserProfile({ avatarUrl: newAvatarUrl }); // Cập nhật AuthContext
+            await updateUserProfile({ avatarUrl: newAvatarUrl });
 
             setStatusMessage({ type: "success", message: "Cập nhật ảnh đại diện thành công!" });
         } catch (error) {

@@ -2,21 +2,6 @@ import React, { useState } from "react";
 import { useTraffic } from "../context/TrafficContext";
 import { useNavigate } from "react-router-dom";
 
-const formatRelativeTime = (isoString) => {
-    const now = new Date();
-    const past = new Date(isoString);
-    const diffInSeconds = Math.floor((now - past) / 1000);
-
-    if (diffInSeconds < 60) return "Vừa xong";
-
-    const diffInMinutes = Math.floor(diffInSeconds / 60);
-    if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
-
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    if (diffInHours < 24) return `${diffInHours} giờ trước`;
-
-    return past.toLocaleDateString('vi-VN');
-};
 
 const AlertPanel = ({ onClose, isDropdown = false }) => {
     const { alerts, unreadAlertCount, markAllAsRead, markAlertsAsRead, handleIntersectionSelect } = useTraffic();
@@ -31,6 +16,22 @@ const AlertPanel = ({ onClose, isDropdown = false }) => {
             navigate("/dashboard");
             if (onClose) onClose();
         }
+    };
+
+    const formatRelativeTime = (isoString) => {
+        const now = new Date();
+        const past = new Date(isoString);
+        const diffInSeconds = Math.floor((now - past) / 1000);
+
+        if (diffInSeconds < 60) return "Vừa xong";
+
+        const diffInMinutes = Math.floor(diffInSeconds / 60);
+        if (diffInMinutes < 60) return `${diffInMinutes} phút trước`;
+
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        if (diffInHours < 24) return `${diffInHours} giờ trước`;
+
+        return past.toLocaleDateString('vi-VN');
     };
 
     const filteredAlerts = alerts.filter(alert => {
@@ -111,7 +112,7 @@ const AlertPanel = ({ onClose, isDropdown = false }) => {
                                         {alert.message}
                                     </div>
                                     <small style={{ color: 'var(--color-text-secondary)', display: 'block', marginTop: '2px', fontSize: '11px' }}>
-                                        {alert.time}
+                                        {formatRelativeTime(alert.createdAt)}
                                     </small>
                                 </div>
                             </div>
