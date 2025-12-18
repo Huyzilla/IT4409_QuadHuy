@@ -18,9 +18,7 @@ RUN npm ci --only=production
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/prisma ./prisma
 
-RUN npx prisma generate
-
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]

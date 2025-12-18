@@ -81,8 +81,65 @@ export const TrafficProvider = ({ children }) => {
     setTheme((prev) => (prev === "theme-dark" ? "theme-light" : "theme-dark"));
   };
 
-  const [alerts, setAlerts] = useState(MOCK_ALERTS);
+  const [alerts, setAlerts] = useState([]);
   const unreadAlertCount = alerts.filter(a => !a.isRead).length;
+
+    useEffect(() => {
+        if (intersections.length === 0) return;
+
+        const interval = setInterval(() => {
+            const randomIdx = Math.floor(Math.random() * intersections.length);
+            const intersection = intersections[randomIdx];
+
+            const eventType = Math.random();
+
+            if (eventType > 0.8) {
+                addAlert({
+                    type: "heavy",
+                    message: `[Nguy cấp] ${intersection.label} đang ùn tắc nghiêm trọng, cần điều tiết!`,
+                    intersectionId: intersection.id,
+                    timestamp: Date.now()
+                });
+            }
+            else if (eventType > 0.6) {
+                addAlert({
+                    type: "medium",
+                    message: `[Cảnh báo] Mật độ phương tiện tại ${intersection.label} đang tăng nhanh (Xu hướng tăng).`,
+                    intersectionId: intersection.id,
+                    timestamp: Date.now()
+                });
+            }
+            else if (eventType > 0.5) {
+                const camNames = ["A1", "B2", "C3", "D1"];
+                const randomCam = camNames[Math.floor(Math.random() * camNames.length)];
+                addAlert({
+                    type: "system",
+                    message: `[Hệ thống] Camera ${randomCam} tại ${intersection.label} mất tín hiệu video.`,
+                    intersectionId: intersection.id,
+                    timestamp: Date.now()
+                });
+            }
+        }, 20000);
+
+        return () => clearInterval(interval);
+    }, [intersections]);
+
+  const addAlert = (newAlert) => {
+    setAlerts(prev => {
+        const isDuplicate = prev.slice(0, 10).some(a =>
+            a.intersectionId === newAlert.intersectionId &&
+            (new Date().getTime() - a.timestamp < 60000)
+        );
+        if (isDuplicate) return prev;
+
+        return [{
+            id: Date.now() + Math.random(),
+            isRead: false,
+            createdAt: new Date().toISOString(),
+            ...newAlert
+        }, ...prev].slice(0, 20);
+    });
+  };
 
   const markAlertsAsRead = (alertIds) => {
     setAlerts(prev => prev.map(alert => {
@@ -106,6 +163,7 @@ export const TrafficProvider = ({ children }) => {
     refreshActiveDashboard: async () => {},
     loading,
     alerts,
+    addAlert,
     unreadAlertCount,
     markAlertsAsRead,
     markAllAsRead,
