@@ -19,9 +19,9 @@ export class IntersectionRepository {
   async findAll(): Promise<Intersection[]> {
     return this.prisma.intersection.findMany({
       orderBy: { createdAt: 'desc' },
-      // include: {
-      //   cameras: true,
-      // },
+      include: {
+        cameras: true,
+      },
     });
   }
 
@@ -31,6 +31,9 @@ export class IntersectionRepository {
   async findById(id: number): Promise<Intersection | null> {
     return this.prisma.intersection.findUnique({
       where: { id },
+      include: {
+        cameras: true,
+      },
     });
   }
 
