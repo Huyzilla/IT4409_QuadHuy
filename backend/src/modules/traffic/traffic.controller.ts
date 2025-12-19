@@ -1,11 +1,14 @@
-import { Controller, Get, Query, ParseIntPipe } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
+import { Controller, Get, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { TrafficService } from './traffic.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 /**
  * TrafficController provides REST API endpoints for traffic data
  */
 @ApiTags('traffic')
+@ApiBearerAuth('bearer')
+@UseGuards(JwtAuthGuard)
 @Controller('traffic')
 export class TrafficController {
   constructor(private readonly trafficService: TrafficService) {}

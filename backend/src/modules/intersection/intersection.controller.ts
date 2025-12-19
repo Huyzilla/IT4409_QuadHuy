@@ -9,15 +9,26 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { IntersectionService } from './intersection.service';
 import { CreateIntersectionDto, UpdateIntersectionDto } from './dto/intersection.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 /**
  * IntersectionController handles HTTP requests for intersection management
  */
 @ApiTags('intersections')
+@ApiBearerAuth('bearer')
+@UseGuards(JwtAuthGuard)
 @Controller('intersections')
 export class IntersectionController {
   constructor(private readonly intersectionService: IntersectionService) {}
