@@ -9,15 +9,26 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
+  ApiBody,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { CameraService } from './camera.service';
 import { CreateCameraDto, UpdateCameraDto } from './dto/camera.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 /**
  * CameraController handles HTTP requests for camera management
  */
 @ApiTags('cameras')
+@ApiBearerAuth('bearer')
+@UseGuards(JwtAuthGuard)
 @Controller('cameras')
 export class CameraController {
   constructor(private readonly cameraService: CameraService) {}

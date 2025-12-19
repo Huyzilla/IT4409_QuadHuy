@@ -4,11 +4,13 @@ import {
   OnGatewayInit,
   OnGatewayConnection,
   OnGatewayDisconnect,
+  SubscribeMessage,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { TrafficService } from './traffic.service';
 import { RedisService } from '../redis/redis.service';
+import { AuthService } from '../auth/auth.service';
 
 /**
  * TrafficGateway broadcasts real-time traffic state to frontend dashboard.
@@ -31,6 +33,7 @@ export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGat
   constructor(
     private readonly trafficService: TrafficService,
     private readonly redisService: RedisService,
+    private readonly authService: AuthService,
   ) {}
 
   /**
@@ -39,6 +42,28 @@ export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGat
    */
   afterInit(server: Server) {
     this.logger.log('Traffic Gateway initialized');
+
+    // Require JWT for /traffic namespace (keep /ingest unauthenticated)
+    server.use((socket, next) => {
+      try {
+        const tokenFromAuth = (socket.handshake as any)?.auth?.token as string | undefined;
+        const authHeader = socket.handshake.headers?.authorization as string | undefined;
+        const tokenFromHeader = authHeader?.startsWith('Bearer ')
+          ? authHeader.slice('Bearer '.length).trim()
+          : undefined;
+
+        const token = tokenFromAuth || tokenFromHeader;
+        if (!token) {
+          return next(new Error('Unauthorized'));
+        }
+
+        const payload = this.authService.verifyAccessToken(token);
+        (socket.data as any).user = payload;
+        return next();
+      } catch {
+        return next(new Error('Unauthorized'));
+      }
+    });
 
     // Send updates every 1 second
     this.updateInterval = setInterval(() => {
@@ -50,6 +75,23 @@ export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGat
       this.logger.log('Received light change event from Redis');
       this.broadcastTrafficState();
     });
+  }
+
+  /**
+   * Handle client request for an immediate initial stream/state.
+   * The frontend emits 'request-initial-stream' right after connect to
+   * ask the server to send the latest frame/state immediately.
+   */
+  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+  @SubscribeMessage('request-initial-stream')
+  handleRequestInitialStream(client: Socket) {
+    this.logger.log(`Client requested initial stream: ${client.id}`);
+    try {
+      const currentState = this.trafficService.getCurrentState();
+      client.emit('traffic_update', currentState);
+    } catch (err) {
+      this.logger.error('Failed to send initial stream', err as any);
+    }
   }
 
   /**
