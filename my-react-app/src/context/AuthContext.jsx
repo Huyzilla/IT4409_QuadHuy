@@ -1,5 +1,7 @@
 import initialUsers from "../data/users.json";
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { api, setOnUnauthorized } from "../api";
+import { connectTrafficSocket, disconnectTrafficSocket } from "../socket";
 
 const AuthContext = createContext();
 
@@ -11,12 +13,28 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [accessToken, setAccessToken] = useState(null);
     const [loading, setLoading] = useState(true);
     const [users, setUsers] = useState([]);
 
     const DB_KEY = "traffic-users-db";
 
     useEffect(() => {
+        // Global 401 handler: if token becomes invalid/expired, force logout and go to login.
+        setOnUnauthorized(() => {
+            // Avoid loops if we're already on /login
+            const isOnLogin = window.location?.pathname === "/login";
+            setUser(null);
+            setAccessToken(null);
+            localStorage.removeItem("traffic-user");
+            localStorage.removeItem("traffic-google-id-token");
+            localStorage.removeItem("traffic-access-token");
+            disconnectTrafficSocket();
+            if (!isOnLogin) {
+                window.location.assign("/login");
+            }
+        });
+
         const savedUsers = localStorage.getItem(DB_KEY);
 
         if (savedUsers) {
@@ -31,65 +49,79 @@ export const AuthProvider = ({ children }) => {
             setUser(JSON.parse(savedUser));
         }
 
+        const savedAccessToken = localStorage.getItem("traffic-access-token");
+        if (savedAccessToken) {
+            setAccessToken(savedAccessToken);
+            connectTrafficSocket();
+        }
+
         setLoading(false);
     }, []);
 
-    const register = async (fullName, username, password) => {
-        await new Promise((r) => setTimeout(r, 800));
+    const register = async (fullName, username, email, password) => {
+        const res = await api.post(`/auth/register`, {
+            fullName,
+            username,
+            email,
+            password,
+        });
 
-        const exists = users.some((u) => u.username === username);
-        if (exists) {
-            throw new Error("Tên đăng nhập đã tồn tại!");
+        const { accessToken: issuedToken, user: backendUser } = res.data || {};
+        if (!issuedToken || !backendUser) {
+            throw new Error("Backend không trả về accessToken/user.");
         }
 
-        const newUser = {
-            id: "usr_" + Date.now(),
-            username,
-            password,
-            fullName,
-            role: username === "20225336" ? "admin" : "user",
-            avatarUrl: null,
+        setAccessToken(issuedToken);
+        localStorage.setItem("traffic-access-token", issuedToken);
+        connectTrafficSocket();
+
+        const normalizedUser = {
+            id: backendUser.id,
+            username: backendUser.username,
+            fullName: backendUser.fullName,
+            role: "user",
+            avatarUrl: backendUser.avatar || null,
+            email: backendUser.email,
+            provider: "local",
         };
 
-        const updatedUsers = [...users, newUser];
-        setUsers(updatedUsers);
-        localStorage.setItem(DB_KEY, JSON.stringify(updatedUsers));
-
-        alert("Đăng ký thành công! Bây giờ bạn có thể đăng nhập.");
+        setUser(normalizedUser);
+        localStorage.setItem("traffic-user", JSON.stringify(normalizedUser));
     };
 
-    const login = async (username, password) => {
-        await new Promise((r) => setTimeout(r, 600));
+    const login = async (usernameOrEmail, password) => {
+        const res = await api.post(`/auth/login`, {
+            username: usernameOrEmail,
+            password,
+        });
 
-        const foundUser = users.find(
-            (u) => u.username === username && u.password === password
-        );
-        if (!foundUser) {
-            throw new Error("Sai tên đăng nhập hoặc mật khẩu!");
+        const { accessToken: issuedToken, user: backendUser } = res.data || {};
+        if (!issuedToken || !backendUser) {
+            throw new Error("Backend không trả về accessToken/user.");
         }
 
-        const { password: _, ...userWithoutPassword } = foundUser;
-        setUser(userWithoutPassword);
-        localStorage.setItem("traffic-user", JSON.stringify(userWithoutPassword));
+        setAccessToken(issuedToken);
+        localStorage.setItem("traffic-access-token", issuedToken);
+        connectTrafficSocket();
+
+        const normalizedUser = {
+            id: backendUser.id,
+            username: backendUser.username,
+            fullName: backendUser.fullName,
+            role: "user",
+            avatarUrl: backendUser.avatar || null,
+            email: backendUser.email,
+            provider: backendUser.provider || "local",
+        };
+
+        setUser(normalizedUser);
+        localStorage.setItem("traffic-user", JSON.stringify(normalizedUser));
     };
 
     const updateUserProfile = async (updates) => {
-        await new Promise((r) => setTimeout(r, 600)); // Giả lập API call
-
         if (!user) {
             throw new Error("Người dùng chưa đăng nhập.");
         }
-
-        // Cập nhật trong list users (DB giả lập)
-        const updatedUsers = users.map(u => {
-            if (u.id === user.id) {
-                return { ...u, ...updates };
-            }
-            return u;
-        });
-
-        setUsers(updatedUsers);
-        localStorage.setItem(DB_KEY, JSON.stringify(updatedUsers));
 
         const updatedUser = { ...user, ...updates };
         setUser(updatedUser);
@@ -100,37 +132,115 @@ export const AuthProvider = ({ children }) => {
 
     // HÀM ĐĂNG NHẬP GOOGLE(GIẢ LẬP)
     const googleLogin = async (googleIdToken) => {
-        await new Promise((r) => setTimeout(r, 1000));
+        if (!googleIdToken) {
+            throw new Error("Thiếu Google credential.");
+        }
 
-        // Dữ liệu người dùng giả định từ Google
-        const mockUser = {
-            id: "google_" + Date.now(),
-            username: "google_user_" + Date.now(),
-            fullName: "Tài khoản Google",
+        // Case 2: gửi Google credential lên backend để verify, rồi nhận JWT của hệ thống
+        const res = await api.post(`/auth/google`, {
+            credential: googleIdToken,
+        });
+
+        const { accessToken: issuedToken, user: backendUser } = res.data || {};
+        if (!issuedToken || !backendUser) {
+            throw new Error("Backend không trả về accessToken/user.");
+        }
+
+        setAccessToken(issuedToken);
+        localStorage.setItem("traffic-access-token", issuedToken);
+        connectTrafficSocket();
+
+        const normalizedUser = {
+            id: backendUser.id,
+            username: backendUser.username,
+            fullName: backendUser.fullName,
             role: "user",
-            avatarUrl: "https://picsum.photos/seed/google/100/100",
+            avatarUrl: backendUser.avatar || null,
+            email: backendUser.email,
+            provider: "google",
         };
 
-        setUser(mockUser);
-        localStorage.setItem("traffic-user", JSON.stringify(mockUser));
+        setUser(normalizedUser);
+        localStorage.setItem("traffic-user", JSON.stringify(normalizedUser));
+        localStorage.setItem("traffic-google-id-token", googleIdToken);
     };
 
     const logout = () => {
         setUser(null);
+        setAccessToken(null);
         localStorage.removeItem("traffic-user");
+        localStorage.removeItem("traffic-google-id-token");
+        localStorage.removeItem("traffic-access-token");
+        disconnectTrafficSocket();
+    };
+
+    // Hàm cho OAuth redirect: lưu accessToken và refreshToken
+    const setTokens = (token, refreshToken) => {
+        setAccessToken(token);
+        localStorage.setItem("traffic-access-token", token);
+        // Refresh token is now managed by httpOnly cookie set by the backend
+        connectTrafficSocket();
+    };
+
+    // After setting tokens, fetch user profile from backend and set user in context
+    const setTokensAndFetchUser = async (token, refreshToken) => {
+        try {
+            setTokens(token);
+            // Fetch current user
+            const res = await api.get('/auth/me');
+            const backendUser = res.data || {};
+            const normalizedUser = {
+                id: backendUser.id,
+                username: backendUser.username,
+                fullName: backendUser.fullName,
+                role: 'user',
+                avatarUrl: backendUser.avatar || null,
+                email: backendUser.email,
+                provider: backendUser.provider || 'google',
+            };
+            setUser(normalizedUser);
+            localStorage.setItem('traffic-user', JSON.stringify(normalizedUser));
+        } catch (err) {
+            // If fetching user fails, clear tokens
+            setAccessToken(null);
+            localStorage.removeItem('traffic-access-token');
+            // refresh token is server-managed cookie
+        }
+    };
+
+    // Set tokens and user directly when the backend returns user data
+    const setTokensAndSetUser = async (token, backendUser) => {
+        setTokens(token);
+        if (backendUser) {
+            const normalizedUser = {
+                id: backendUser.id,
+                username: backendUser.username,
+                fullName: backendUser.fullName,
+                role: 'user',
+                avatarUrl: backendUser.avatar || null,
+                email: backendUser.email,
+                provider: backendUser.provider || 'google',
+            };
+            setUser(normalizedUser);
+            localStorage.setItem('traffic-user', JSON.stringify(normalizedUser));
+        }
     };
 
     return (
         <AuthContext.Provider
             value={{
                 user,
+                accessToken,
                 users,
                 login,
                 register,
                 logout,
                 googleLogin,
+                setTokens,
+                setTokensAndFetchUser,
+                setTokensAndSetUser,
                 loading,
-                isAuthenticated: !!user,
+                isAuthenticated: !!accessToken,
             }}
         >
             {children}
