@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useTraffic } from "./context/TrafficContext";
 import { useAuth } from "./context/AuthContext";
-import Sidebar from "./components/Sidebar";
-import Dashboard from "./components/Dashboard";
-import AccountSettings from "./pages/AccountSettings.jsx";
-import CameraGridWithModal from "./components/CameraGridWithModal"; // Component lưới camera
-import HlsVideo from "./components/HlsVideo.jsx";
+
+const Sidebar = lazy(() => import("./components/Sidebar"));
+const Dashboard = lazy(() => import("./components/Dashboard"));
+const AccountSettings = lazy(() => import("./pages/AccountSettings.jsx"));
+const CameraGridWithModal = lazy(() => import("./components/CameraGridWithModal"));
+const HlsVideo = lazy(() => import("./components/HlsVideo.jsx"));
+import Spinner from "./components/Spinner";
 
 const LogoutConfirmationModal = ({ onConfirm, onCancel }) => (
     <div
@@ -278,73 +280,89 @@ export default function MainApp() {
     }
 
     return (
-        <>
-            <div className="app-layout">
-                <Sidebar
-                    currentUser={user}
-                    onToggleDropdown={handleToggleDropdown}
-                    isDropdownOpen={showUserDropdown}
-                    onLogoutRequest={() => setShowLogoutModal(true)}
-                    onThemeToggle={toggleTheme}
-                />
-
-                <div className="main-content">
-                    <Routes>
-                        <Route
-                            path="/dashboard"
-                            element={
-                                <Dashboard
-                                    activeIntersection={activeIntersection}
-                                    onReload={refreshActiveDashboard}
-                                    onLiveGrid={openLiveView}
-                                    onLiveView={openSingleLiveView}
-                                />
-                            }
+        <Suspense fallback={<Spinner />}> 
+            <>
+                <div className="app-layout">
+                        <Suspense fallback={<Spinner small />}>
+                        <Sidebar
+                            currentUser={user}
+                            onToggleDropdown={handleToggleDropdown}
+                            isDropdownOpen={showUserDropdown}
+                            onLogoutRequest={() => setShowLogoutModal(true)}
+                            onThemeToggle={toggleTheme}
                         />
+                    </Suspense>
 
-                        <Route
-                            path="/*"
-                            element={
-                                <Dashboard
-                                    activeIntersection={activeIntersection}
-                                    onReload={refreshActiveDashboard}
-                                    onLiveGrid={openLiveView}
-                                    onLiveView={openSingleLiveView}
-                                />
-                            }
-                        />
+                    <div className="main-content">
+                        <Routes>
+                            <Route
+                                path="/dashboard"
+                                element={
+                                    <Suspense fallback={<Spinner small />}>
+                                        <Dashboard
+                                            activeIntersection={activeIntersection}
+                                            onReload={refreshActiveDashboard}
+                                            onLiveGrid={openLiveView}
+                                            onLiveView={openSingleLiveView}
+                                        />
+                                    </Suspense>
+                                }
+                            />
 
-                        <Route
-                            path="/account"
-                            element={<AccountSettings />}
-                        />
-                    </Routes>
+                            <Route
+                                path="/*"
+                                element={
+                                    <Suspense fallback={<div>Loading dashboard...</div>}>
+                                        <Dashboard
+                                            activeIntersection={activeIntersection}
+                                            onReload={refreshActiveDashboard}
+                                            onLiveGrid={openLiveView}
+                                            onLiveView={openSingleLiveView}
+                                        />
+                                    </Suspense>
+                                }
+                            />
+
+                            <Route
+                                path="/account"
+                                element={
+                                    <Suspense fallback={<Spinner small />}>
+                                        <AccountSettings />
+                                    </Suspense>
+                                }
+                            />
+                        </Routes>
+                    </div>
+
                 </div>
 
-            </div>
+                {showLogoutModal && (
+                    <LogoutConfirmationModal
+                        onConfirm={handleLogoutConfirm}
+                        onCancel={() => setShowLogoutModal(false)}
+                    />
+                )}
 
-            {showLogoutModal && (
-                <LogoutConfirmationModal
-                    onConfirm={handleLogoutConfirm}
-                    onCancel={() => setShowLogoutModal(false)}
-                />
-            )}
+                {/* MODAL LƯỚI CAMERA TRỰC TIẾP */}
+                {liveIntersection && (
+                    <Suspense fallback={null}>
+                        <LiveCameraGridModal
+                            activeIntersection={liveIntersection}
+                            closeModal={closeLiveView}
+                        />
+                    </Suspense>
+                )}
 
-            {/* MODAL LƯỚI CAMERA TRỰC TIẾP */}
-            {liveIntersection && (
-                <LiveCameraGridModal
-                    activeIntersection={liveIntersection}
-                    closeModal={closeLiveView}
-                />
-            )}
-
-            {/* MODAL CAMERA ĐƠN*/}
-            {liveCamera && (
-                <SingleCameraModal
-                    liveCamera={liveCamera}
-                    closeModal={closeSingleLiveView}
-                />
-            )}
-        </>
+                {/* MODAL CAMERA ĐƠN*/}
+                {liveCamera && (
+                    <Suspense fallback={null}>
+                        <SingleCameraModal
+                            liveCamera={liveCamera}
+                            closeModal={closeSingleLiveView}
+                        />
+                    </Suspense>
+                )}
+            </>
+        </Suspense>
     );
 }

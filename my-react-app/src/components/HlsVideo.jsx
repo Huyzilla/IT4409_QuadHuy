@@ -8,6 +8,8 @@ export default function HlsVideo({ src, ...videoProps }) {
     const video = videoRef.current;
     if (!video) return;
 
+    console.debug('HlsVideo: mount/update', { src });
+
     // Clear previous playback state
     video.pause();
     video.removeAttribute("src");
