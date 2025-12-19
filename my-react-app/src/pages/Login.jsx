@@ -1,22 +1,32 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { GoogleOAuthProvider, GoogleLogin } from "@react-oauth/google";
+import { useLocation, useNavigate } from "react-router-dom";
 
-const GOOGLE_CLIENT_ID = "GOOGLE_CLIENT_ID";
 
 export default function Login() {
     const [isRegister, setIsRegister] = useState(false);
     const [formData, setFormData] = useState({
         fullName: "",
         username: "",
+        email: "",
         password: "",
     });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const { login, register, googleLogin } = useAuth();
+    const { login, register, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
+
+    // Default: if already logged in, don't let /login linger.
+    // If you need to open the login page while authenticated (e.g. switch accounts), use: /login?stay=1
+    useEffect(() => {
+        const params = new URLSearchParams(location.search || "");
+        const stay = params.get("stay") === "1";
+        if (isAuthenticated && !stay) {
+            navigate("/dashboard", { replace: true });
+        }
+    }, [isAuthenticated, location.search, navigate]);
 
     const handleChange = (e) =>
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -31,12 +41,13 @@ export default function Login() {
                 await register(
                     formData.fullName,
                     formData.username,
+                    formData.email,
                     formData.password
                 );
 
                 setIsRegister(false);
-                setFormData({ ...formData, fullName: "", password: "" });
-                alert("Đăng ký thành công! Vui lòng đăng nhập.");
+                setFormData({ ...formData, fullName: "", email: "", password: "" });
+                navigate("/");
             } else {
                 await login(formData.username, formData.password);
 
@@ -49,26 +60,13 @@ export default function Login() {
         }
     };
 
-    const handleGoogleSuccess = async (credentialResponse) => {
-        setLoading(true);
-        setError("");
 
-        try {
-            await googleLogin(credentialResponse.credential);
-            navigate("/");
-        } catch (err) {
-            setError(err.message || "Đăng nhập Google thất bại.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleGoogleFailure = () => {
-        setError("Đăng nhập Google thất bại. Vui lòng thử lại.");
+    // Đăng nhập Google bằng redirect
+    const handleGoogleRedirect = () => {
+        window.location.href = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"}/api/auth/google`;
     };
 
     return (
-        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
             <div className="login-container">
                 {/* Hiệu ứng nền mờ trang trí */}
                 <div className="bg-glow-1"></div>
@@ -106,6 +104,20 @@ export default function Login() {
                             </div>
                         )}
 
+                        {isRegister && (
+                            <div className="form-group">
+                                <label>Email</label>
+                                <input
+                                    type="email"
+                                    name="email"
+                                    required
+                                    value={formData.email}
+                                    onChange={handleChange}
+                                    placeholder="you@example.com"
+                                />
+                            </div>
+                        )}
+
                         <div className="form-group">
                             <label>Tên đăng nhập / Email</label>
                             <input
@@ -114,7 +126,7 @@ export default function Login() {
                                 required
                                 value={formData.username}
                                 onChange={handleChange}
-                                placeholder="admin"
+                                placeholder="username"
                             />
                         </div>
 
@@ -150,11 +162,24 @@ export default function Login() {
                                 justifyContent: "center",
                             }}
                         >
-                            <GoogleLogin
-                                onSuccess={handleGoogleSuccess}
-                                onError={handleGoogleFailure}
-                                useOneTap
-                            />
+                            <button
+                                type="button"
+                                className="google-login-btn"
+                                onClick={handleGoogleRedirect}
+                                style={{
+                                    background: '#fff',
+                                    border: '1px solid #ccc',
+                                    borderRadius: 4,
+                                    padding: '8px 16px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    cursor: 'pointer',
+                                    fontWeight: 500
+                                }}
+                            >
+                                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style={{ width: 20, height: 20, marginRight: 8 }} />
+                                Đăng nhập với Google
+                            </button>
                         </div>
                     )}
 
@@ -187,6 +212,5 @@ export default function Login() {
                     </div>
                 </div>
             </div>
-        </GoogleOAuthProvider>
     );
 }
