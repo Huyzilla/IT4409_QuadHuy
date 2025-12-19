@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class DatabaseSeedService implements OnModuleInit {
@@ -8,7 +9,30 @@ export class DatabaseSeedService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit(): Promise<void> {
-    // Only seed when DB is empty to keep this safe/idempotent.
+    // Seed a default admin for demo/dev environments (idempotent).
+    // Username: admin
+    // Password: 123456
+    const existingAdmin = await this.prisma.user.findFirst({
+      where: {
+        OR: [{ username: 'admin' }, { email: 'admin@traffic.ai' }],
+      },
+      select: { id: true },
+    });
+
+    if (!existingAdmin) {
+      const hashedPassword = await bcrypt.hash('123456', 10);
+      await this.prisma.user.create({
+        data: {
+          username: 'admin',
+          fullName: 'Quản trị viên Hệ thống',
+          email: 'admin@traffic.ai',
+          password: hashedPassword,
+        },
+      });
+      this.logger.log('Seeded default admin user (admin/123456).');
+    }
+
+    // Only seed intersections/cameras when DB is empty to keep this safe/idempotent.
     const existingCameraCount = await this.prisma.camera.count();
     if (existingCameraCount > 0) {
       return;

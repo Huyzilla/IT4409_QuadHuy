@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from "react";
 import { useTraffic } from "../context/TrafficContext";
 import AlertPanel from "./AlertPanel.jsx";
+import HlsVideo from "./HlsVideo.jsx";
 
 const STATUS_MAP = {
     low: {
@@ -161,7 +162,7 @@ const DashboardSegmentCard = ({ camera, onLiveView, onSettings }) => {
             >
                 {/*hiển thị camera*/}
                 {camera.videoSource ? (
-                    <video
+                    <HlsVideo
                         src={camera.videoSource}
                         muted
                         playsInline
