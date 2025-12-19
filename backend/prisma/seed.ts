@@ -13,10 +13,10 @@ async function main() {
 
   await prisma.camera.createMany({
     data: [
-      { name: "North", videoSource: "rtsp://localhost:8554/north", latitude: 21.0, longitude: 105.8, intersectionId: intersection.id },
-      { name: "East",  videoSource: "rtsp://localhost:8554/east",  latitude: 21.0, longitude: 105.8, intersectionId: intersection.id },
-      { name: "South", videoSource: "rtsp://localhost:8554/south", latitude: 21.0, longitude: 105.8, intersectionId: intersection.id },
-      { name: "West",  videoSource: "rtsp://localhost:8554/west",  latitude: 21.0, longitude: 105.8, intersectionId: intersection.id },
+      { name: "North", videoSource: "rtsp://mediamtx:8554/north", latitude: 21.0, longitude: 105.8, intersectionId: intersection.id },
+      { name: "East",  videoSource: "rtsp://mediamtx:8554/east",  latitude: 21.0, longitude: 105.8, intersectionId: intersection.id },
+      { name: "South", videoSource: "rtsp://mediamtx:8554/south", latitude: 21.0, longitude: 105.8, intersectionId: intersection.id },
+      { name: "West",  videoSource: "rtsp://mediamtx:8554/west",  latitude: 21.0, longitude: 105.8, intersectionId: intersection.id },
     ],
   });
 }
