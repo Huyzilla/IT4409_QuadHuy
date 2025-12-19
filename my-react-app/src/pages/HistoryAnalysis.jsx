@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React, {useState, useEffect, useCallback} from "react";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { useTraffic } from "../context/TrafficContext";
+import { ingestSocket } from "../socket";
+import axios from "axios";
 import * as XLSX from 'xlsx';
 
-// const API_URL = "http://localhost:3000/api";
+const API_URL = "http://localhost:3001/api";
 
 const COLOR_PALETTE = ["#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4"];
 
@@ -13,88 +15,119 @@ export default function HistoryAnalysis() {
     const { activeIntersection, intersections } = useTraffic();
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [timeRange, setTimeRange] = useState("24h");
+    const [isRealTime, setIsRealTime] = useState(true);
+    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+    const [selectedHour, setSelectedHour] = useState("all");
     const [selectedIntersections, setSelectedIntersections] = useState([]);
 
-    useEffect(() => {
-        if (activeIntersection && selectedIntersections.includes(activeIntersection.id)) {
-            setSelectedIntersections(prev => prev.filter(id => id !== activeIntersection.id));
-        }
-    }, [activeIntersection]);
+    const fetchHistoryData = useCallback(async () => {
+        const mainCamId = activeIntersection?.cameras?.[0]?.id;
+        if (!mainCamId) return;
 
-    useEffect(() => {
-        fetchHistory();
-    }, [timeRange, activeIntersection, selectedIntersections]);
+        const compareCamIds = selectedIntersections.map(id =>
+            intersections.find(i => i.id === id)?.cameras?.[0]?.id
+        ).filter(Boolean);
 
-    const fetchHistory = async () => {
+        const allIds = [mainCamId, ...compareCamIds];
+
+        setLoading(true);
         try {
-            setLoading(true);
-            setStats(generateFakeLastHourHistory(selectedIntersections));
+            const params = {
+                cameraIds: allIds.join(','),
+                _t: Date.now()
+            };
+
+            if (!isRealTime) {
+                const datePart = selectedDate;
+                if (selectedHour === "all") {
+                    params.from = new Date(`${datePart}T00:00:00`).toISOString();
+                    params.to = new Date(`${datePart}T23:59:59`).toISOString();
+                } else {
+                    const hour = parseInt(selectedHour);
+                    params.from = new Date(`${datePart}T${hour.toString().padStart(2, '0')}:00:00`).toISOString();
+                    params.to = new Date(`${datePart}T${hour.toString().padStart(2, '0')}:59:59`).toISOString();
+                }
+            }
+
+            const response = await axios.get(`${API_URL}/traffic/minute-stats`, { params });
+
+            const grouped = response.data.reduce((acc, item) => {
+                const timeKey = new Date(item.minuteStart * 1000).toLocaleTimeString("vi-VN", {
+                    hour: "2-digit", minute: "2-digit"
+                });
+
+                if (!acc[timeKey]) acc[timeKey] = { time: timeKey, vehicles: 0 };
+
+                if (item.cameraId === mainCamId) {
+                    acc[timeKey].density = Math.min(1, (Number(item.vehiclesAvg) || 0) / 100);
+                    acc[timeKey].vehicles = Math.round(item.vehiclesAvg) || 0;
+                } else {
+                    acc[timeKey][`density_${item.cameraId}`] = Math.min(1, (Number(item.vehiclesAvg) || 0) / 100);
+                }
+                return acc;
+            }, {});
+
+            setStats(Object.values(grouped));
         } catch (err) {
-            console.error(err);
+            console.error("Lỗi fetch:", err);
         } finally {
             setLoading(false);
         }
+    }, [activeIntersection, isRealTime, selectedDate, selectedHour, selectedIntersections, intersections]);
+
+    useEffect(() => {
+        fetchHistoryData();
+    }, [fetchHistoryData]);
+
+    const handleToggleRealTime = () => {
+        setIsRealTime(true);
+        setSelectedHour("all");
     };
 
-    const generateFakeLastHourHistory = (compareIds) => {
-        const data = [];
-        const now = Date.now();
-        const totalMinutes = 60;
+    const handleHourChange = (e) => {
+        setSelectedHour(e.target.value);
+        setIsRealTime(false);
+    };
 
-        for (let i = totalMinutes - 1; i >= 0; i--) {
-            const time = new Date(now - i * 60 * 1000);
-            const minutesAgo = i;
+    useEffect(() => {
+        const handleNewData = (newData) => {
+            if (!isRealTime) return;
 
-            let baseDensity = 0.4 + Math.sin(minutesAgo / 10) * 0.2 + Math.random() * 0.15;
+            const currentCamId = activeIntersection?.cameras?.[0]?.id;
+            if (currentCamId && Number(newData.cameraId) === Number(currentCamId)) {
+                setStats(prev => {
+                    const newTime = new Date(newData.minuteStart * 1000).toLocaleTimeString("vi-VN", {
+                        hour: "2-digit", minute: "2-digit"
+                    });
 
-            const hour = time.getHours();
-            if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) {
-                baseDensity += 0.25 + Math.random() * 0.15;
+                    if (prev.length > 0 && prev[prev.length - 1].time === newTime) return prev;
+
+                    const newPoint = {
+                        time: newTime,
+                        density: newData.density,
+                        vehicles: Math.round(newData.vehicles_avg)
+                    };
+
+                    const updated = [...prev, newPoint];
+                    return updated.slice(-60);
+                });
             }
+        };
 
-            const dataPoint = {
-                time: time.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-                density: Math.min(1, Math.max(0, baseDensity)),
-                vehicles: Math.floor(baseDensity * 220 + Math.random() * 40),
-            };
-
-            compareIds.forEach(id => {
-                let compareDensity = 0.35 + Math.sin((minutesAgo + id) / 8) * 0.25 + Math.random() * 0.2;
-                if ((hour >= 7 && hour <= 9) || (hour >= 17 && hour <= 19)) {
-                    compareDensity += 0.2 + Math.random() * 0.15;
-                }
-                dataPoint[`density_${id}`] = Math.min(1, Math.max(0, compareDensity));
-            });
-
-            data.push(dataPoint);
-        }
-
-        return data;
-    };
-
-    if (loading) {
-        return (
-            <div
-                className="main-content"
-                style={{
-                    display: "grid",
-                    placeItems: "center",
-                    height: "100vh",
-                    color: "#94a3b8",
-                }}
-            >
-                <div>Đang tải dữ liệu lịch sử...</div>
-            </div>
-        );
-    }
+        ingestSocket.on("new_minute_stats", handleNewData);
+        return () => ingestSocket.off("new_minute_stats");
+    }, [isRealTime, activeIntersection]);
 
     const handleCompare = (intersectionId) => {
-        if (selectedIntersections.includes(intersectionId)) {
-            setSelectedIntersections(prev => prev.filter(id => id !== intersectionId));
-        } else if (selectedIntersections.length < 3) {
-            setSelectedIntersections(prev => [...prev, intersectionId]);
-        }
+        setSelectedIntersections(prev => {
+            const isSelected = prev.includes(intersectionId);
+            if (isSelected) {
+                return prev.filter(id => id !== intersectionId);
+            } else if (prev.length < 3) {
+                return [...prev, intersectionId];
+            }
+            return prev;
+        });
     };
 
     const handleExportExcel = () => {
@@ -102,23 +135,27 @@ export default function HistoryAnalysis() {
 
         const exportData = stats.map(item => {
             const row = {
-                "Thời điểm (Phút)": item.time,
-                [`${activeIntersection?.label} (Mật độ)`]: item.density.toFixed(2),
+                "Thời điểm": item.time,
+                [`${activeIntersection?.label} (Mật độ %)`]: (item.density * 100).toFixed(1) + "%",
+                [`${activeIntersection?.label} (Số xe)`]: item.vehicles,
             };
 
             selectedIntersections.forEach(id => {
-                const name = intersections.find(i => i.id === id)?.label || `Ngã tư ${id}`;
-                row[`${name} (Mật độ)`] = item[`density_${id}`] ? item[`density_${id}`].toFixed(2) : "0.00";
+                const intersection = intersections.find(i => i.id === id);
+                const name = intersection?.label || `Ngã tư ${id}`;
+                const camId = intersection?.cameras?.[0]?.id;
+
+                const val = item[`density_${camId}`];
+                row[`${name} (Mật độ %)`] = val ? (val * 100).toFixed(1) + "%" : "0.0%";
             });
 
-            row["Số xe dự kiến"] = item.vehicles;
             return row;
         });
 
         const ws = XLSX.utils.json_to_sheet(exportData);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Báo cáo phút");
-        XLSX.writeFile(wb, `Bao_cao_Phut_${activeIntersection?.label}.xlsx`);
+        XLSX.utils.book_append_sheet(wb, ws, "Báo cáo lưu lượng");
+        XLSX.writeFile(wb, `Bao_cao_${activeIntersection?.label}_${selectedDate}.xlsx`);
     };
 
     return (
@@ -126,86 +163,97 @@ export default function HistoryAnalysis() {
             <header className="main-header">
                 <h1 className="page-title">
                     Lịch sử & Phân tích giao thông
-                    <span
-                        style={{
-                            fontSize: "15px",
-                            color: "#94a3b8",
-                            marginLeft: "12px",
-                            fontWeight: "normal",
-                        }}
-                    >
-                        {activeIntersection
-                            ? `— ${activeIntersection.label}`
-                            : "— Toàn mạng lưới"}
+                    <span style={{ fontSize: "15px", color: "#94a3b8", marginLeft: "12px", fontWeight: "normal" }}>
+                        {activeIntersection ? `— ${activeIntersection.label}` : "— Toàn mạng lưới"}
                     </span>
                 </h1>
 
-                <div className="header-actions">
-                    <div style={{height: "40px", marginRight: "12px", display: "flex", alignItems: "center", color: "#94a3b8", fontSize: "14px"}}>
-                        Dữ liệu chi tiết theo từng phút (60 phút gần nhất)
-                    </div>
-                    <button className="action-btn primary" onClick={handleExportExcel}>
+                <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                        className="action-btn"
+                        onClick={handleExportExcel}
+                        style={{ background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
                         Export Excel
                     </button>
                 </div>
             </header>
 
-            <div className="comparison-selector" style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '14px', color: 'var(--color-text-secondary)', alignSelf: 'center', marginRight: '10px' }}>
-                    So sánh với:
-                </span>
-                {intersections
-                    .filter(item => item.id !== activeIntersection?.id)
-                    .map(item => (
-                        <button
-                            key={item.id}
-                            onClick={() => handleCompare(item.id)}
-                            className={`chip-btn ${selectedIntersections.includes(item.id) ? 'active' : ''}`}
-                            style={{
-                                padding: '8px 16px',
-                                borderRadius: '20px',
-                                border: '1px solid var(--color-border)',
-                                background: selectedIntersections.includes(item.id) ? 'var(--color-accent-blue)' : 'rgba(255,255,255,0.05)',
-                                color: 'white',
-                                cursor: 'pointer',
-                                transition: 'all 0.3s',
-                                fontSize: '13px'
-                            }}
-                        >
-                            {selectedIntersections.includes(item.id) ? '✓ ' : '+ '} {item.label}
-                        </button>
-                    ))}
+            <div className="filter-controls" style={{ marginBottom: '20px', display: 'flex', gap: '15px', alignItems: 'center' }}>
+                <button
+                    onClick={handleToggleRealTime}
+                    style={{
+                        padding: '10px 20px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: isRealTime ? '#ef4444' : '#334155',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        cursor: 'pointer',
+                        boxShadow: isRealTime ? '0 0 10px rgba(239, 68, 68, 0.3)' : 'none'
+                    }}
+                >
+                    🔴 {isRealTime ? 'Đang trực tiếp...' : 'Xem Trực tiếp'}
+                </button>
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'var(--color-bg-secondary)', padding: '6px 15px', borderRadius: '12px' }}>
+                    <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => { setSelectedDate(e.target.value); setIsRealTime(false); }}
+                        style={{ background: '#0f172a', color: 'white', border: '1px solid #334155', borderRadius: '6px', padding: '5px' }}
+                    />
+                    <select
+                        value={selectedHour}
+                        onChange={(e) => { setSelectedHour(e.target.value); setIsRealTime(false); }}
+                        style={{ background: '#0f172a', color: 'white', border: '1px solid #334155', borderRadius: '6px', padding: '5px' }}
+                    >
+                        <option value="all">Cả ngày</option>
+                        {[...Array(24).keys()].map(h => (
+                            <option key={h} value={h}>{h.toString().padStart(2, '0')}:00 - {(h+1).toString().padStart(2, '0')}:00</option>
+                        ))}
+                    </select>
+                </div>
             </div>
 
-            <div className="chart-card" style={{ background: 'var(--color-bg-secondary)', padding: '25px', borderRadius: '16px', boxShadow: 'var(--shadow-lg)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h3 style={{ margin: 0 }}>Phân tích tương quan lưu lượng (24h gần nhất)</h3>
-                    <div style={{ fontSize: '12px', display: 'flex', gap: '15px' }}>
-                        <span style={{ color: COLOR_PALETTE[0] }}>● Nét liền: Tiêu điểm</span>
-                        <span style={{ color: '#94a3b8' }}>◌ Nét đứt: So sánh</span>
-                    </div>
-                </div>
+            <div className="comparison-selector" style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '14px', color: '#94a3b8', alignSelf: 'center' }}>So sánh:</span>
+                {intersections
+                    .filter(item => item.id !== activeIntersection?.id)
+                    .map(item => {
+                        const isSelected = selectedIntersections.includes(item.id);
+                        return (
+                            <button
+                                key={item.id}
+                                onClick={() => handleCompare(item.id)}
+                                style={{
+                                    padding: '6px 14px',
+                                    borderRadius: '20px',
+                                    border: `1px solid ${isSelected ? '#3b82f6' : '#334155'}`,
+                                    background: isSelected ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                                    color: isSelected ? '#60a5fa' : '#94a3b8',
+                                    cursor: 'pointer',
+                                    fontSize: '13px'
+                                }}
+                            >
+                                {isSelected ? '✓ ' : '+ '} {item.label}
+                            </button>
+                        );
+                    })}
+            </div>
 
+            <div className="chart-card" style={{ background: 'var(--color-bg-secondary)', padding: '25px', borderRadius: '16px' }}>
+                <h3 style={{ marginTop: 0, marginBottom: '20px' }}>Phân tích tương quan lưu lượng</h3>
                 <ResponsiveContainer width="100%" height={420}>
                     <LineChart data={stats}>
                         <CartesianGrid strokeDasharray="4 4" stroke="#334155" vertical={false} />
-                        <XAxis
-                            dataKey="time"
-                            stroke="#94a3b8"
-                            interval="9"
-                            tick={{ fontSize: 12 }}
-                        />
-                        <YAxis stroke="#94a3b8" domain={[0, 1]} tickFormatter={(value) => `${(value * 100).toFixed(0)}%`} />
+                        <XAxis dataKey="time" stroke="#94a3b8" tick={{ fontSize: 12 }} />
+                        <YAxis stroke="#94a3b8" tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
                         <Tooltip
-                            contentStyle={{ background: "#1e293b", border: "none", borderRadius: "12px", boxShadow: 'var(--shadow-lg)' }}
-                            itemStyle={{ fontSize: '13px' }}
+                            contentStyle={{ background: "#1e293b", border: "none", borderRadius: "12px", color: "#fff" }}
+                            formatter={(value, name) => [`${(value * 100).toFixed(1)}%`, name]}
                         />
-                        <Legend
-                            verticalAlign="top"
-                            align="right"
-                            iconType="circle"
-                            wrapperStyle={{ paddingBottom: '20px' }}
-                        />
+                        <Legend verticalAlign="top" align="right" />
 
                         <Line
                             type="monotone"
@@ -213,22 +261,22 @@ export default function HistoryAnalysis() {
                             stroke={COLOR_PALETTE[0]}
                             strokeWidth={4}
                             dot={false}
-                            activeDot={false}
-                            name={`${activeIntersection?.label || "Mật độ chính"}`}
+                            name={activeIntersection?.label || "Chính"}
                         />
 
                         {selectedIntersections.map((id, index) => {
-                            const target = intersections.find(i => i.id === id);
+                            const intersection = intersections.find(i => i.id === id);
+                            const camId = intersection?.cameras?.[0]?.id;
+
                             return (
                                 <Line
                                     key={id}
                                     type="monotone"
-                                    dataKey={`density_${id}`}
+                                    dataKey={`density_${camId}`}
                                     stroke={COLOR_PALETTE[(index + 1) % COLOR_PALETTE.length]}
-                                    strokeWidth={2}
-                                    strokeDasharray="6 6"
+                                    strokeWidth={4}
                                     dot={false}
-                                    name={`${target?.label || id}`}
+                                    name={intersection?.label || id}
                                 />
                             );
                         })}
