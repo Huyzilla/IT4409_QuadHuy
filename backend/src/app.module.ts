@@ -7,6 +7,7 @@ import { CameraModule } from './modules/camera/camera.module';
 import { IntersectionModule } from './modules/intersection/intersection.module';
 import { TrafficModule } from './modules/traffic/traffic.module';
 import { UsersModule } from './users/users.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 /**
  * AppModule is the root module of the application.
@@ -19,6 +20,7 @@ import { UsersModule } from './users/users.module';
     RedisModule,
     
     // Feature modules
+    AuthModule,
     CameraModule,
     IntersectionModule,
     TrafficModule,

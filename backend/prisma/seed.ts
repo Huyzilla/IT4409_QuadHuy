@@ -12,7 +12,7 @@ async function main() {
   await prisma.user.deleteMany();
 
   console.log('--- 👤 Đang tạo User Admin... ---');
-  const hashedPassword = await bcrypt.hash('admin123', 10);
+  const hashedPassword = await bcrypt.hash('123456', 10);
   await prisma.user.create({
     data: {
       username: 'admin',
