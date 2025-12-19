@@ -1,0 +1,67 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Camera {
+  id           Int      @id @default(autoincrement())
+  name         String   @db.VarChar(255)
+  videoSource  String   @map("video_source") @db.VarChar(500)
+  latitude     Float
+  longitude    Float
+  intersectionId Int?          // Có thể null (nếu camera chưa gán vào đâu)
+  intersection   Intersection? @relation(fields: [intersectionId], references: [id])
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  frameStats   TrafficFrameStat[]
+
+  @@map("cameras")
+}
+
+model TrafficFrameStat {
+  id          Int      @id @default(autoincrement())
+  cameraId    Int      @map("camera_id")
+  vehicles    Int
+  isEmergency Boolean  @map("is_emergency") @default(false)
+  capturedAt  DateTime @map("captured_at")
+
+  camera      Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@index([cameraId])
+  @@index([capturedAt])
+  @@map("traffic_frame_stats")
+}
+
+model TrafficSignalLog {
+  id            Int      @id @default(autoincrement())
+  timestamp     BigInt
+  readableTime  String   @map("readable_time") @db.VarChar(100)
+  event         String   @db.VarChar(100)
+  greenRoadId   Int      @map("green_road_id")
+  duration      Int
+  reason        String   @db.VarChar(255)
+  trafficStatus Json     @map("traffic_status") @db.JsonB
+  cycleQueue    Json     @map("cycle_queue") @db.JsonB
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([timestamp])
+  @@map("traffic_signal_logs")
+}
+
+model Intersection {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  latitude    Float
+  longitude   Float
+  description String?  @db.Text
+  cameras     Camera[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("intersections")
+}
