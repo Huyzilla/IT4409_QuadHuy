@@ -7,7 +7,8 @@ import copy
 import os, yaml
 import numpy as np
 
-DEBUG_VIEW = False
+DEBUG_VIEW = True
+SHOW_DEBUG = True 
 
 def get_distance(p1, p2):
     return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
@@ -106,19 +107,17 @@ def send_minute_summary(road_id, summary):
         print(f"[WS] Error sending traffic_minute_summary: {e}")
 
 def process_camera_shared(source_config, target_road_ids, detector):
-    # Chạy infer 1 video r gửi kết quả cho nhiều road
     video_path = source_config["path"]
     cap = cv2.VideoCapture(video_path)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
 
-    source_id = target_road_ids[0]
     last_sent = 0.0
     send_interval = 1.0
     frame_skip = 1
     frame_count = 0
 
     minute_start_ts = int(time.time() // 60 * 60)
-    minute_count = []
+    minute_counts = []
     minute_max = 0
     minute_flow = 0
 
@@ -132,10 +131,12 @@ def process_camera_shared(source_config, target_road_ids, detector):
     else:
         a = b = None
     
-    prev_centroids = {}
+    tracked_objects = {}
     next_id = 0
-    max_distance = 100
-    
+
+    MAX_DISAPPEARED = 10  
+    MAX_DISTANCE = 80     
+
     while True:
         ret, frame = cap.read()
         if not ret:
@@ -143,52 +144,128 @@ def process_camera_shared(source_config, target_road_ids, detector):
             time.sleep(1)
             cap = cv2.VideoCapture(video_path)
             continue
+
         frame_count += 1
         if frame_count % (frame_skip + 1) != 0:
             continue
+        
         frame = cv2.resize(frame, (512, 288))
         dets = detector.infer(frame)
         now = time.time()
-        centers = []
-        for det in dets:
-            x1, y1, x2, y2 = det["box"]
-            cx = (x1 + x2) / 2
-            cy = (y1 + y2) / 2
-            if roi_pts is None or point_in_poly(cx, cy, roi_pts):
-                centers.append((cx, cy))
 
-        vehicle_count = len(centers)
+        if SHOW_DEBUG:
+            vis = frame.copy()
+            if roi_pts:
+                cv2.polylines(vis, [np.array(roi_pts, dtype=np.int32)], True, (0, 255, 0), 2)
+            if line:
+                cv2.line(vis, a, b, (0, 0, 255), 2)
+
+        input_centroids = []
+        for det in dets:
+            x1, y1, x2, y2 = map(int, det["box"])
+            cx = int((x1 + x2) / 2)
+            cy = int((y1 + y2) / 2)
+            
+            if roi_pts is None or point_in_poly(cx, cy, roi_pts):
+                input_centroids.append((cx, cy))
+                
+            if SHOW_DEBUG:
+                cv2.rectangle(vis, (x1, y1), (x2, y2), (100, 100, 100), 1)
+
+        vehicle_count = len(input_centroids)
         emergency_count = 0
 
-        curr_centroids = {}
-        for curr_p in centers:
-            matched_id = None
-            min_dist = max_distance
-            for obj_id, prev_p in prev_centroids.items():
-                d = get_distance(curr_p, prev_p)
-                if d < min_dist:
-                    min_dist = d
-                    matched_id = obj_id
-
-            if matched_id is not None:
-                if a is not None and crossed(prev_centroids[matched_id], curr_p, a, b):
-                    if line_dir:
-                        ddir = movement_in_dir(prev_centroids[matched_id], curr_p, a, b)
-                        if ddir == line_dir:
-                            minute_flow += 1
-                    else:
-                        minute_flow += 1
-                curr_centroids[matched_id] = curr_p
-                del prev_centroids[matched_id]
+        if len(input_centroids) == 0:
+            for obj_id in list(tracked_objects.keys()):
+                tracked_objects[obj_id]["disappeared"] += 1
+                if tracked_objects[obj_id]["disappeared"] > MAX_DISAPPEARED:
+                    del tracked_objects[obj_id]
+        else:
+            if len(tracked_objects) == 0:
+                for inp_c in input_centroids:
+                    tracked_objects[next_id] = {
+                        "centroid": inp_c,
+                        "disappeared": 0,
+                        "counted": False
+                    }
+                    next_id += 1
             else:
-                curr_centroids[next_id] = curr_p
-                next_id += 1
-        prev_centroids = curr_centroids
+                object_ids = list(tracked_objects.keys())
+                object_centroids = [tracked_objects[oid]["centroid"] for oid in object_ids]
+                used_rows = set() 
+                used_cols = set()
 
+                distances = []
+                for t_idx, t_c in enumerate(object_centroids):
+                    for i_idx, i_c in enumerate(input_centroids):
+                        dist = get_distance(t_c, i_c)
+                        if dist < MAX_DISTANCE:
+                            distances.append((dist, t_idx, i_idx))
+
+                distances.sort(key=lambda x: x[0])
+
+                for d, t_idx, i_idx in distances:
+                    if t_idx in used_cols or i_idx in used_rows:
+                        continue
+
+                    obj_id = object_ids[t_idx]
+                    prev_c = tracked_objects[obj_id]["centroid"]
+                    curr_c = input_centroids[i_idx]
+
+                    if not tracked_objects[obj_id]["counted"] and a is not None:
+                        if crossed(prev_c, curr_c, a, b):
+                            valid_dir = True
+                            if line_dir:
+                                ddir = movement_in_dir(prev_c, curr_c, a, b)
+                                if ddir != line_dir:
+                                    valid_dir = False
+                            
+                            if valid_dir:
+                                minute_flow += 1
+                                tracked_objects[obj_id]["counted"] = True 
+                                if SHOW_DEBUG:
+                                    cv2.circle(vis, curr_c, 10, (0, 255, 255), -1)
+
+                    tracked_objects[obj_id]["centroid"] = curr_c
+                    tracked_objects[obj_id]["disappeared"] = 0
+                    
+                    used_rows.add(i_idx)
+                    used_cols.add(t_idx)
+
+                for t_idx in range(len(object_ids)):
+                    if t_idx not in used_cols:
+                        obj_id = object_ids[t_idx]
+                        tracked_objects[obj_id]["disappeared"] += 1
+                        if tracked_objects[obj_id]["disappeared"] > MAX_DISAPPEARED:
+                            del tracked_objects[obj_id]
+
+                for i_idx in range(len(input_centroids)):
+                    if i_idx not in used_rows:
+                        tracked_objects[next_id] = {
+                            "centroid": input_centroids[i_idx],
+                            "disappeared": 0,
+                            "counted": False
+                        }
+                        next_id += 1
+
+        if SHOW_DEBUG:
+            for oid, info in tracked_objects.items():
+                if info["disappeared"] == 0:
+                    c = info["centroid"]
+                    cv2.putText(vis, f"ID:{oid}", (c[0]-10, c[1]-10), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                    color = (0, 255, 255) if info["counted"] else (0, 0, 255) 
+                    cv2.circle(vis, c, 4, color, -1)
+            
+            cv2.putText(vis, f"Live: {vehicle_count} | Flow: {minute_flow}", (10, 20), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            cv2.imshow("Tracking Debug V2", vis)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+        
         if now - last_sent >= send_interval:
             for tid in target_road_ids:
                 send_traffic(tid, vehicle_count, emergency_count)
-            
             last_sent = now
 
             with state_lock:
@@ -209,7 +286,6 @@ def process_camera_shared(source_config, target_road_ids, detector):
                     "samples": int(samples),
                     "flow_count": int(minute_flow),
                 }
-                # Gửi summary cho tất cả
                 for tid in target_road_ids:
                     send_minute_summary(tid, summary)
 
@@ -217,9 +293,7 @@ def process_camera_shared(source_config, target_road_ids, detector):
             minute_counts = []
             minute_max = 0
             minute_flow = 0
-            prev_centroids = {}
-            next_id = 0
-
+            
         minute_counts.append(vehicle_count)
         minute_max = max(minute_max, vehicle_count)
 
@@ -256,7 +330,7 @@ def calculate_adjusted_time(num_vehicles, max_vehicles=30, default_time=42):
         adjusted_time = default_time
     return max(10, min(80, round(adjusted_time)))
 
-def process_camera(road_id, config, detector):
+def process_camera(source_config, target_road_ids, detector):
     video_path = config["path"]
     cap = cv2.VideoCapture(video_path)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -273,9 +347,9 @@ def process_camera(road_id, config, detector):
     minute_flow = 0
 
     # ROI + line
-    roi_pts = config.get("roi")
-    line = config.get("count_line")
-    line_dir = config.get("line_dir", None)
+    roi_pts = source_config.get("roi")
+    line = source_config.get("count_line")
+    line_dir = source_config.get("line_dir", None)
 
     if line and "p1" in line and "p2" in line:
         a = (int(line["p1"][0]), int(line["p1"][1]))
@@ -283,9 +357,10 @@ def process_camera(road_id, config, detector):
     else:
         a = b = None
 
-    prev_centroids = {} # {id: (cx, cy)}
+    tracked_objects = {}
     next_id = 0
-    max_distance = 100 # px
+    MAX_DISAPPEARED = 10
+    MAX_DISTANCE = 80
 
     while True:
         ret, frame = cap.read()
@@ -302,95 +377,121 @@ def process_camera(road_id, config, detector):
         # giảm tải CPU
         frame = cv2.resize(frame, (512, 288))
         dets = detector.infer(frame)
+        now = time.time()
 
-        if DEBUG_VIEW:
+        if SHOW_DEBUG:
             vis = frame.copy()
-
             if roi_pts:
                 cv2.polylines(vis, [np.array(roi_pts, dtype=np.int32)], True, (0, 255, 0), 2)
-
             if line:
                 cv2.line(vis, a, b, (0, 0, 255), 2)
 
-            in_roi = 0
+            input_centroids = []
             for det in dets:
                 x1, y1, x2, y2 = map(int, det["box"])
                 cx = int((x1 + x2) / 2)
                 cy = int((y1 + y2) / 2)
 
-                inside = (roi_pts is not None) and point_in_poly(cx, cy, roi_pts)
-                if inside:
-                    in_roi += 1
-                    cv2.rectangle(vis, (x1, y1), (x2, y2), (255, 0, 0), 2)
-                    cv2.circle(vis, (cx, cy), 3, (255, 0, 0), -1)
-                else:
-                    cv2.rectangle(vis, (x1, y1), (x2, y2), (80, 80, 80), 1)
-                    cv2.circle(vis, (cx, cy), 2, (80, 80, 80), -1)
+                if roi_pts is None or point_in_poly(cx, cy, roi_pts):
+                    input_centroids.append((cx, cy))
+                if SHOW_DEBUG:
+                    cv2.rectangle(vis, (x1, y1), (x2, y2), (100, 100, 100), 1)
+            vehicle_count = len(input_centroids)
+            emergency_count = 0
 
-            cv2.putText(
-                vis,
-                f"cam={road_id} dets={len(dets)} flow={minute_flow}",
-                (10, 25),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.7,
-                (255, 255, 255),
-                2
-            )
-
-            cv2.imshow(f"cam_{road_id}", vis)
-            cv2.waitKey(1)
-        now = time.time()
-
-        centers = []
-        for det in dets:
-            x1, y1, x2, y2 = det["box"]
-            cx = (x1 + x2) / 2
-            cy = (y1 + y2) / 2
-            if roi_pts is None or point_in_poly(cx, cy, roi_pts):
-                centers.append((cx, cy))
-
-        vehicle_count = len(centers)
-        emergency_count = 0
-
-        # Tracking + line counting
-        curr_centroids = {}
-
-        for curr_p in centers:
-            matched_id = None
-            min_dist = max_distance
-
-            for obj_id, prev_p in prev_centroids.items():
-                d = get_distance(curr_p, prev_p)
-                if d < min_dist:
-                    min_dist = d
-                    matched_id = obj_id
-
-            if matched_id is not None:
-                # kiểm tra cắt vạch
-                if a is not None and crossed(prev_centroids[matched_id], curr_p, a, b):
-                    if line_dir:
-                        ddir = movement_in_dir(prev_centroids[matched_id], curr_p, a, b)
-                        if ddir == line_dir:
-                            minute_flow += 1
-                    else:
-                        minute_flow += 1
-
-                curr_centroids[matched_id] = curr_p
-                del prev_centroids[matched_id]
+            if len(input_centroids) == 0:
+                for obj_id in list(tracked_objects.keys()):
+                    tracked_objects[obj_id]["disappeared"] += 1
+                    if tracked_objects[obj_id]["disappeared"] > MAX_DISAPPEARED:
+                        del tracked_objects[obj_id]
             else:
-                curr_centroids[next_id] = curr_p
-                next_id += 1
+                if len(tracked_objects) == 0:
+                    for inp_c in input_centroids:
+                        tracked_objects[next_id] = {
+                            "centroid": inp_c,
+                            "disappeared": 0,
+                            "counted": False
+                        }
+                        next_id += 1
+                else:
+                    object_ids = list(tracked_objects.keys())
+                    object_centroids = [tracked_objects[oid]["centroid"] for oid in object_ids]
+                    used_rows = set() 
+                    used_cols = set()
 
-        prev_centroids = curr_centroids
-        
-        if now - last_sent >= send_interval:
-            send_traffic(road_id, vehicle_count, emergency_count)
-            last_sent = now
+                    distances = []
+                    for t_idx, t_c in enumerate(object_centroids):
+                        for i_idx, i_c in enumerate(input_centroids):
+                            dist = get_distance(t_c, i_c)
+                            if dist < MAX_DISTANCE:
+                                distances.append((dist, t_idx, i_idx))
+                    
+                    distances.sort(key=lambda x: x[0])
 
-            with state_lock:
-                traffic_state[road_id]["vehicles"] = vehicle_count
-                traffic_state[road_id]["emergency"] = emergency_count
+                    for d, t_idx, i_idx in distances:
+                        if t_idx in used_cols or i_idx in used_rows:
+                            continue
+                        obj_id = object_ids[t_idx]
+                        prev_c = tracked_objects[obj_id]["centroid"]
+                        curr_c = input_centroids[i_idx]
 
+                        if not tracked_objects[obj_id]["counted"] and a is not None:
+                            if crossed(prev_c, curr_c, a, b):
+                                valid_dir = True
+                                if line_dir:
+                                    ddir = movement_in_dir(prev_c, curr_c, a, b)
+                                    if ddir != line_dir:
+                                        valid_dir = False
+                                
+                                if valid_dir:
+                                    minute_flow += 1
+                                    tracked_objects[obj_id]["counted"] = True 
+                                    if SHOW_DEBUG:
+                                        cv2.circle(vis, curr_c, 10, (0, 255, 255), -1)
+                        tracked_objects[obj_id]["centroid"] = curr_c
+                        tracked_objects[obj_id]["disappeared"] = 0
+                        
+                        used_rows.add(i_idx)
+                        used_cols.add(t_idx)    
+                    for t_idx in range(len(object_ids)):
+                        if t_idx not in used_cols:
+                            obj_id = object_ids[t_idx]
+                            tracked_objects[obj_id]["disappeared"] += 1
+                            if tracked_objects[obj_id]["disappeared"] > MAX_DISAPPEARED:
+                                del tracked_objects[obj_id]
+                    for i_idx in range(len(input_centroids)):
+                        if i_idx not in used_rows:
+                            tracked_objects[next_id] = {
+                                "centroid": input_centroids[i_idx],
+                                "disappeared": 0,
+                                "counted": False
+                            }
+                            next_id += 1
+
+            if SHOW_DEBUG:
+                for oid, info in tracked_objects.items():
+                    if info["disappeared"] == 0:
+                        c = info["centroid"]
+                        cv2.putText(vis, f"ID:{oid}", (c[0]-10, c[1]-10), 
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+                        color = (0, 255, 255) if info["counted"] else (0, 0, 255) 
+                        cv2.circle(vis, c, 4, color, -1)
+                
+                cv2.putText(vis, f"Live: {vehicle_count} | Flow: {minute_flow}", (10, 20), 
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+                cv2.imshow("Tracking Debug V2", vis)
+                if cv2.waitKey(1) & 0xFF == ord('q'):
+                    break
+            
+            if now - last_sent >= send_interval:
+                for tid in target_road_ids:
+                    send_traffic(tid, vehicle_count, emergency_count)
+                last_sent = now
+
+                with state_lock:
+                    for tid in target_road_ids:
+                        traffic_state[tid]["vehicles"] = vehicle_count
+                        traffic_state[tid]["emergency"] = emergency_count
             current_minute_start = int(now // 60 * 60)
             if current_minute_start != minute_start_ts:
                 samples = len(minute_counts)
@@ -404,19 +505,17 @@ def process_camera(road_id, config, detector):
                         "samples": int(samples),
                         "flow_count": int(minute_flow),
                     }
-                    send_minute_summary(road_id, summary)
+                    for tid in target_road_ids:
+                        send_minute_summary(tid, summary)
 
-                # reset per minute
                 minute_start_ts = current_minute_start
                 minute_counts = []
                 minute_max = 0
                 minute_flow = 0
-                prev_centroids = {}
-                next_id = 0
-
+                
             minute_counts.append(vehicle_count)
             minute_max = max(minute_max, vehicle_count)
-
+    
 def traffic_control_loop():
     time.sleep(2)
     roads_cycle = [1, 2, 3, 4]
@@ -523,30 +622,38 @@ if __name__ == "__main__":
     print("INPUTS:", [(i.name, i.shape, i.type) for i in sess.get_inputs()])
     print("OUTPUTS:", [(o.name, o.shape, o.type) for o in sess.get_outputs()])
     input_name = sess.get_inputs()[0].name  
-    detector = YOLOv8ONNX(sess, input_name, img_size=640, conf_thres=0.7, iou_thres=0.45)
-    # kết nối backend trước khi start các thread
+    detector = YOLOv8ONNX(sess, input_name, img_size=640, conf_thres=0.5, iou_thres=0.45)
+    
+    # Kết nối backend trước khi start các thread
     connect_backend()
 
     DEMO_OPTIMIZED = True
+    
     if DEMO_OPTIMIZED:
+        print(">>> STARTING DEMO MODE: 1 VIDEO SOURCE FOR 4 ROADS <<<")
         source_id = 1
         source_config = cam_config.get(source_id)
+        all_road_ids = list(cam_config.keys()) 
+        
         if source_config:
-            all_road_ids = list(cam_config.keys())
-            t = threading.Thread(target=process_camera, args=(source_id, source_config, detector))
+            t = threading.Thread(
+                target=process_camera_shared, 
+                args=(source_config, all_road_ids, detector)
+            )
             t.daemon = True
             t.start()
+            # -----------------
         else:
             print("Error: Config for camera not found!")
     else:
-        print("Run with full 4 camera....")
+        print("Run with full 4 camera (High CPU usage)....")
         for r_id, config in cam_config.items():
             t = threading.Thread(target=process_camera, args=(r_id, config, detector))
             t.daemon = True
             t.start()
+
     # Thread thuật toán điều khiển đèn
     threading.Thread(target=traffic_control_loop, daemon=True).start()
     print("AI traffic service is running...")
     while True:
         time.sleep(10)
-

@@ -10,14 +10,14 @@ cameras:
     default_green: 42
     emergency_green: 80
     roi:
-      - [20, 100]  
-      - [300, 140]  
-      - [340, 360] 
-      - [0, 360]
+      - [205, 123]  
+      - [251, 124]  
+      - [213, 287] 
+      - [1, 224]
     count_line:
-      p1: [70, 190]
-      p2: [300, 180]
-    line_dir: "down"
+      p1: [148, 159]
+      p2: [237, 158]
+    line_dir: null
   - id: 2
     name: "Road 2 (Dong)"
     rtsp: "rtsp://localhost:8554/east"
@@ -25,14 +25,14 @@ cameras:
     default_green: 42
     emergency_green: 80
     roi:
-      - [20, 100]  
-      - [300, 140]  
-      - [340, 360] 
-      - [0, 360]
+      - [205, 123]  
+      - [251, 124]  
+      - [213, 287] 
+      - [1, 224]
     count_line:
-      p1: [70, 190]
-      p2: [300, 180]
-    line_dir: "down"
+      p1: [148, 159]
+      p2: [237, 158]
+    line_dir: null
   - id: 3
     name: "Road 3 (Nam)"
     rtsp: "rtsp://localhost:8554/south"
@@ -40,14 +40,14 @@ cameras:
     default_green: 42
     emergency_green: 80
     roi:
-      - [20, 100]  
-      - [300, 140]  
-      - [340, 360] 
-      - [0, 360]
+      - [205, 123]  
+      - [251, 124]  
+      - [213, 287] 
+      - [1, 224]
     count_line:
-      p1: [70, 190]
-      p2: [300, 180]
-    line_dir: "down"
+      p1: [148, 159]
+      p2: [237, 158]
+    line_dir: null
   - id: 4
     name: "Road 4 (Tay)"
     rtsp: "rtsp://localhost:8554/west"
@@ -55,11 +55,11 @@ cameras:
     default_green: 42
     emergency_green: 80
     roi:
-      - [20, 100]  
-      - [300, 140]  
-      - [340, 360] 
-      - [0, 360]
+      - [205, 123]  
+      - [251, 124]  
+      - [213, 287] 
+      - [1, 224]
     count_line:
-      p1: [70, 190]
-      p2: [300, 180]
-    line_dir: "down"
+      p1: [148, 159]
+      p2: [237, 158]
+    line_dir: null
