@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import AccountSettings from "./pages/AccountSettings.jsx";
 import CameraGridWithModal from "./components/CameraGridWithModal"; // Component lưới camera
+import HlsVideo from "./components/HlsVideo.jsx";
 
 const LogoutConfirmationModal = ({ onConfirm, onCancel }) => (
     <div
@@ -161,13 +162,13 @@ const SingleCameraModal = ({ liveCamera, closeModal }) => {
                     </button>
                 </div>
 
-                <video
+                <HlsVideo
                     src={liveCamera.videoSource}
                     poster={liveCamera.thumbnail || ""}
                     controls
                     autoPlay
                     playsInline
-                    muted={false}
+                    muted
                     className="live-modal-video"
                     style={{ maxHeight: '80vh', maxWidth: '100%', objectFit: 'contain' }}
                     onError={(e) => {
