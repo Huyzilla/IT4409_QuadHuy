@@ -293,6 +293,12 @@ const Sidebar = ({
           )}
         </div>
       </div>
+      <IntersectionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleFormSubmit}
+        initialData={editingItem}
+      />
     </aside>
   );
 };

@@ -298,6 +298,9 @@ export const TrafficProvider = ({ children }) => {
     unreadAlertCount,
     markAlertsAsRead,
     markAllAsRead,
+    createIntersection,
+    updateIntersection,
+    deleteIntersection,
     user: { role: "admin", username: "admin", fullName: "Quản trị viên" },
   };
 
