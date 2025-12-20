@@ -133,7 +133,7 @@ const Sidebar = ({
                         const statusClass = isActive ? 'active' : 'ready';
 
                         return (
-                            <li
+                             <li
                                 key={item.id}
                                 className={`intersection-item ${isActive ? 'active' : ''}`}
                                 data-status={item.status}

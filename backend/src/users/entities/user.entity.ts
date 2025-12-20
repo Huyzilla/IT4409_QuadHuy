@@ -1,36 +1,15 @@
-import { Exclude } from 'class-transformer'; // dùng để exclude thằng pw khi trả về json
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Exclude } from 'class-transformer';
 
-@Entity()
-export class User {
-  @PrimaryGeneratedColumn('uuid') // Dùng UUID bảo mật hơn số thứ tự tăng dần
+export class UserEntity {
   id: string;
-
-  @Column({ unique: true })
   username: string;
-
-  @Column()
-  fullName: string; // Họ và tên
-
-  @Column({ unique: true })
+  fullName: string;
   email: string;
 
-  @Column()
-  @Exclude() //  Tự động loại bỏ khi trả về JSON
+  @Exclude()
   password: string;
 
-  @Column({ nullable: true }) // Cho phép null ban đầu
-  avatar: string; // Lưu đường dẫn URL của ảnh
-
-  @CreateDateColumn()
+  avatar: string | null;
   createdAt: Date;
-
-  @UpdateDateColumn()
   updatedAt: Date;
 }

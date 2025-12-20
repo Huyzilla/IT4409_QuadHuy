@@ -28,43 +28,69 @@ const MOCK_ALERTS = [
 const TrafficContext = createContext();
 const API_URL = "http://localhost:3000/api";
 
+const rtspToHls = (videoSource) => {
+  if (!videoSource || typeof videoSource !== 'string') return null;
+  if (!videoSource.startsWith('rtsp://')) return null;
+
+  // Example seeded value: rtsp://mediamtx:8554/north
+  const match = videoSource.match(/^rtsp:\/\/[^/]+\/(.+)$/);
+  if (!match) return null;
+  const streamPath = match[1];
+
+  // MediaMTX HLS default: http://<host>:8888/<path>/index.m3u8
+  return `http://localhost:8888/${streamPath}/index.m3u8`;
+};
+
 export const TrafficProvider = ({ children }) => {
   const [intersections, setIntersections] = useState([]);
   const [activeIntersection, setActiveIntersection] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchIntersections = async () => {
-      try {
-        const res = await axios.get(`${API_URL}/intersections`);
+  const fetchIntersections = async (preferredActiveId) => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_URL}/intersections`);
 
-        if (res.data && res.data.length > 0) {
-          console.log("✅ Raw Data from DB:", res.data);
+      if (res.data && res.data.length > 0) {
+        console.log("✅ Raw Data from DB:", res.data);
 
-          //  Map dữ liệu DB sang UI cũ --- chắc phải sửa sidebar
-          const formattedData = res.data.map((item) => ({
-            ...item, // Giữ lại id, latitude, longitude, cameras...
+        const formattedData = res.data.map((item) => ({
+          ...item,
 
-            // Map các trường DB sang trường UI cũ
-            label: item.name,
-            details: item.description || "Chưa có mô tả",
+          cameras: (item.cameras || []).map((cam) => {
+            const hls = rtspToHls(cam.videoSource);
+            return {
+              ...cam,
+              rtspSource: cam.videoSource,
+              videoSource: hls || cam.videoSource,
+            };
+          }),
 
-            // Thêm các trường giả định để Sidebar không bị lỗi
-            status: "tracking",
-            area: "Khu vực chính",
-          }));
-          // ------
+          label: item.name,
+          details: item.description || "Chưa có mô tả",
+          status: "tracking",
+          area: "Khu vực chính",
+        }));
 
-          setIntersections(formattedData);
-          setActiveIntersection(formattedData[0]);
-        }
-      } catch (err) {
-        console.error("❌ Lỗi tải ngã tư:", err);
-      } finally {
-        setLoading(false);
+        setIntersections(formattedData);
+
+        const nextActive =
+          (preferredActiveId
+            ? formattedData.find((x) => x.id === preferredActiveId)
+            : null) || formattedData[0];
+        setActiveIntersection(nextActive);
+      } else {
+        setIntersections([]);
+        setActiveIntersection(null);
       }
-    };
+    } catch (err) {
+      console.error("❌ Lỗi tải ngã tư:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchIntersections();
   }, []);
 
@@ -160,7 +186,9 @@ export const TrafficProvider = ({ children }) => {
     intersections,
     activeIntersection,
     handleIntersectionSelect,
-    refreshActiveDashboard: async () => {},
+    refreshActiveDashboard: async () => {
+      await fetchIntersections(activeIntersection?.id);
+    },
     loading,
     alerts,
     addAlert,

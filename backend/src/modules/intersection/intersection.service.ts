@@ -13,14 +13,14 @@ export class IntersectionService {
   /**
    * Get all intersections
    */
-  async getAllIntersections(): Promise<Intersection[]> {
+  async getAllIntersections(): Promise<any[]> {
     return this.intersectionRepository.findAll();
   }
 
   /**
    * Get intersection by ID
    */
-  async getIntersectionById(id: number): Promise<Intersection> {
+  async getIntersectionById(id: number): Promise<any> {
     const intersection = await this.intersectionRepository.findById(id);
     if (!intersection) {
       throw new NotFoundException(`Intersection with ID ${id} not found`);

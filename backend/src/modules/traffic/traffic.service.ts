@@ -196,4 +196,15 @@ export class TrafficService {
     const toDate = to ? new Date(to) : undefined;
     return this.trafficRepository.getTrafficStats(cameraId, fromDate, toDate);
   }
+
+  async getMinuteStats(cameraIds?: string, from?: string, to?: string) {
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+
+    const idsArray = cameraIds
+      ? cameraIds.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+      : [];
+
+    return this.trafficRepository.getMinuteSummary(idsArray, fromDate, toDate);
+  }
 }
