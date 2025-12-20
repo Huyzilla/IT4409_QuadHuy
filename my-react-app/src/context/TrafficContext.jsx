@@ -2,35 +2,36 @@ import React, { createContext, useState, useEffect, useContext } from "react";
 import axios from "axios";
 
 const MOCK_ALERTS = [
-    {
-        id: 1,
-        type: "heavy",
-        message: "Ùn tắc nghiêm trọng tại Ngã tư Nguyễn Chí Thanh - Láng (Camera A1).",
-        time: "1 phút trước",
-        isRead: false,
-    },
-    {
-        id: 2,
-        type: "medium",
-        message: "Mật độ tăng nhanh tại Ngã tư Chùa Bộc - Phạm Ngọc Thạch.",
-        time: "15 phút trước",
-        isRead: false,
-    },
-    {
-        id: 3,
-        type: "system",
-        message: "Camera B3 bị mất kết nối lúc 19:30.",
-        time: "2 giờ trước",
-        isRead: true,
-    },
+  {
+    id: 1,
+    type: "heavy",
+    message:
+      "Ùn tắc nghiêm trọng tại Ngã tư Nguyễn Chí Thanh - Láng (Camera A1).",
+    time: "1 phút trước",
+    isRead: false,
+  },
+  {
+    id: 2,
+    type: "medium",
+    message: "Mật độ tăng nhanh tại Ngã tư Chùa Bộc - Phạm Ngọc Thạch.",
+    time: "15 phút trước",
+    isRead: false,
+  },
+  {
+    id: 3,
+    type: "system",
+    message: "Camera B3 bị mất kết nối lúc 19:30.",
+    time: "2 giờ trước",
+    isRead: true,
+  },
 ];
 
 const TrafficContext = createContext();
 const API_URL = "http://localhost:3000/api";
 
 const rtspToHls = (videoSource) => {
-  if (!videoSource || typeof videoSource !== 'string') return null;
-  if (!videoSource.startsWith('rtsp://')) return null;
+  if (!videoSource || typeof videoSource !== "string") return null;
+  if (!videoSource.startsWith("rtsp://")) return null;
 
   // Example seeded value: rtsp://mediamtx:8554/north
   const match = videoSource.match(/^rtsp:\/\/[^/]+\/(.+)$/);
@@ -95,6 +96,9 @@ export const TrafficProvider = ({ children }) => {
   }, []);
 
   const [theme, setTheme] = useState("theme-dark");
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "theme-dark" ? "theme-light" : "theme-dark"));
+  };
 
   const handleIntersectionSelect = (id) => {
     const found = intersections.find((i) => i.id === id);
@@ -102,82 +106,181 @@ export const TrafficProvider = ({ children }) => {
       setActiveIntersection(found);
     }
   };
+  // Hàm tạo Ngã tư --------------------------------------------------------
+  const createIntersection = async (data) => {
+    try {
+      // Gọi API POST /intersections
+      const res = await axios.post(`${API_URL}/intersections`, {
+        name: data.name,
+        latitude: parseFloat(data.latitude),
+        longitude: parseFloat(data.longitude),
+        description: data.description || "",
+      });
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "theme-dark" ? "theme-light" : "theme-dark"));
+      // Backend trả về object vừa tạo, ta thêm vào đầu danh sách local
+      const newIntersection = {
+        ...res.data,
+        label: res.data.name, // Map cho khớp UI cũ
+        details: res.data.description,
+        status: "tracking",
+        area: "Chưa phân loại",
+      };
+
+      setIntersections([newIntersection, ...intersections]);
+      alert("Thêm ngã tư thành công!");
+    } catch (error) {
+      console.error("Lỗi tạo ngã tư:", error);
+      alert(
+        "Thêm thất bại: " + (error.response?.data?.message || error.message)
+      );
+    }
+  };
+
+  // Hàm sửa Ngã tư -------------------------------------------------------------
+  const updateIntersection = async (id, data) => {
+    try {
+      // Gọi API PUT /intersections/:id
+      const res = await axios.put(`${API_URL}/intersections/${id}`, {
+        name: data.name,
+        latitude: parseFloat(data.latitude),
+        longitude: parseFloat(data.longitude),
+        description: data.description || "",
+      });
+
+      // Cập nhật lại danh sách local
+      setIntersections((prev) =>
+        prev.map((item) => {
+          if (item.id === id) {
+            return {
+              ...item,
+              ...res.data,
+              label: res.data.name,
+              details: res.data.description,
+            };
+          }
+          return item;
+        })
+      );
+
+      // Nếu đang chọn ngã tư này thì update luôn activeIntersection
+      if (activeIntersection && activeIntersection.id === id) {
+        setActiveIntersection((prev) => ({
+          ...prev,
+          ...res.data,
+          label: res.data.name,
+        }));
+      }
+
+      alert("Cập nhật thành công!");
+    } catch (error) {
+      console.error("Lỗi cập nhật:", error);
+      alert("Cập nhật thất bại: " + error.message);
+    }
+  };
+
+  //Hàm xóa Ngã tư ---------------------------------------------------------------
+  const deleteIntersection = async (id) => {
+    if (
+      !window.confirm(
+        "Bạn chắc chắn muốn xóa ngã tư này? Dữ liệu camera liên quan có thể bị ảnh hưởng."
+      )
+    )
+      return;
+
+    try {
+      // Gọi API DELETE /intersections/:id
+      await axios.delete(`${API_URL}/intersections/${id}`);
+
+      // Xóa khỏi danh sách local
+      setIntersections((prev) => prev.filter((item) => item.id !== id));
+
+      // Nếu đang chọn cái bị xóa thì reset active
+      if (activeIntersection && activeIntersection.id === id) {
+        setActiveIntersection(null);
+      }
+    } catch (error) {
+      console.error("Lỗi xóa:", error);
+      alert("Xóa thất bại!");
+    }
   };
 
   const [alerts, setAlerts] = useState([]);
-  const unreadAlertCount = alerts.filter(a => !a.isRead).length;
+  const unreadAlertCount = alerts.filter((a) => !a.isRead).length;
 
-    useEffect(() => {
-        if (intersections.length === 0) return;
+  useEffect(() => {
+    if (intersections.length === 0) return;
 
-        const interval = setInterval(() => {
-            const randomIdx = Math.floor(Math.random() * intersections.length);
-            const intersection = intersections[randomIdx];
+    const interval = setInterval(() => {
+      const randomIdx = Math.floor(Math.random() * intersections.length);
+      const intersection = intersections[randomIdx];
 
-            const eventType = Math.random();
+      const eventType = Math.random();
 
-            if (eventType > 0.8) {
-                addAlert({
-                    type: "heavy",
-                    message: `[Nguy cấp] ${intersection.label} đang ùn tắc nghiêm trọng, cần điều tiết!`,
-                    intersectionId: intersection.id,
-                    timestamp: Date.now()
-                });
-            }
-            else if (eventType > 0.6) {
-                addAlert({
-                    type: "medium",
-                    message: `[Cảnh báo] Mật độ phương tiện tại ${intersection.label} đang tăng nhanh (Xu hướng tăng).`,
-                    intersectionId: intersection.id,
-                    timestamp: Date.now()
-                });
-            }
-            else if (eventType > 0.5) {
-                const camNames = ["A1", "B2", "C3", "D1"];
-                const randomCam = camNames[Math.floor(Math.random() * camNames.length)];
-                addAlert({
-                    type: "system",
-                    message: `[Hệ thống] Camera ${randomCam} tại ${intersection.label} mất tín hiệu video.`,
-                    intersectionId: intersection.id,
-                    timestamp: Date.now()
-                });
-            }
-        }, 20000);
+      if (eventType > 0.8) {
+        addAlert({
+          type: "heavy",
+          message: `[Nguy cấp] ${intersection.label} đang ùn tắc nghiêm trọng, cần điều tiết!`,
+          intersectionId: intersection.id,
+          timestamp: Date.now(),
+        });
+      } else if (eventType > 0.6) {
+        addAlert({
+          type: "medium",
+          message: `[Cảnh báo] Mật độ phương tiện tại ${intersection.label} đang tăng nhanh (Xu hướng tăng).`,
+          intersectionId: intersection.id,
+          timestamp: Date.now(),
+        });
+      } else if (eventType > 0.5) {
+        const camNames = ["A1", "B2", "C3", "D1"];
+        const randomCam = camNames[Math.floor(Math.random() * camNames.length)];
+        addAlert({
+          type: "system",
+          message: `[Hệ thống] Camera ${randomCam} tại ${intersection.label} mất tín hiệu video.`,
+          intersectionId: intersection.id,
+          timestamp: Date.now(),
+        });
+      }
+    }, 20000);
 
-        return () => clearInterval(interval);
-    }, [intersections]);
+    return () => clearInterval(interval);
+  }, [intersections]);
 
   const addAlert = (newAlert) => {
-    setAlerts(prev => {
-        const isDuplicate = prev.slice(0, 10).some(a =>
+    setAlerts((prev) => {
+      const isDuplicate = prev
+        .slice(0, 10)
+        .some(
+          (a) =>
             a.intersectionId === newAlert.intersectionId &&
-            (new Date().getTime() - a.timestamp < 60000)
+            new Date().getTime() - a.timestamp < 60000
         );
-        if (isDuplicate) return prev;
+      if (isDuplicate) return prev;
 
-        return [{
-            id: Date.now() + Math.random(),
-            isRead: false,
-            createdAt: new Date().toISOString(),
-            ...newAlert
-        }, ...prev].slice(0, 20);
+      return [
+        {
+          id: Date.now() + Math.random(),
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          ...newAlert,
+        },
+        ...prev,
+      ].slice(0, 20);
     });
   };
 
   const markAlertsAsRead = (alertIds) => {
-    setAlerts(prev => prev.map(alert => {
+    setAlerts((prev) =>
+      prev.map((alert) => {
         if (alertIds.includes(alert.id)) {
-            return { ...alert, isRead: true };
+          return { ...alert, isRead: true };
         }
         return alert;
-    }));
+      })
+    );
   };
 
   const markAllAsRead = () => {
-    setAlerts(prev => prev.map(alert => ({ ...alert, isRead: true })));
+    setAlerts((prev) => prev.map((alert) => ({ ...alert, isRead: true })));
   };
 
   const contextValue = {
