@@ -64,4 +64,14 @@ export class TrafficController {
     const cameraIdNum = cameraId ? parseInt(cameraId, 10) : undefined;
     return this.trafficService.getStats(cameraIdNum, from, to);
   }
+
+  @Get('minute-stats')
+  @ApiOperation({ summary: 'Lấy thống kê lưu lượng theo phút cho nhiều camera' })
+  async getMinuteStats(
+    @Query('cameraIds') cameraIds?: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.trafficService.getMinuteStats(cameraIds, from, to);
+  }
 }

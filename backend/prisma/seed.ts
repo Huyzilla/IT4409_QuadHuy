@@ -4,14 +4,14 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Đang dọn dẹp dữ liệu cũ...');
+  console.log('--- Đang dọn dẹp dữ liệu cũ... ---');
   await prisma.trafficFrameStat.deleteMany();
   await prisma.camera.deleteMany();
   await prisma.intersection.deleteMany();
   await prisma.trafficSignalLog.deleteMany();
   await prisma.user.deleteMany();
 
-  console.log('Đang tạo User Admin...');
+  console.log('--- 👤 Đang tạo User Admin... ---');
   const hashedPassword = await bcrypt.hash('admin123', 10);
   await prisma.user.create({
     data: {
@@ -29,7 +29,7 @@ async function main() {
     { name: "Ngã tư Giải Phóng - Đại Cồ Việt", lat: 21.0063, lng: 105.8427, area: "Hai Bà Trưng" }
   ];
 
-  console.log('Đang tạo 4 Ngã tư & 16 Camera...');
+  console.log('--- 🚦 Đang tạo 4 Ngã tư & 16 Camera... ---');
   const directions = ["North", "South", "East", "West"];
   const now = new Date();
 

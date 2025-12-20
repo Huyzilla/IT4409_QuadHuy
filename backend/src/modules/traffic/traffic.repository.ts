@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { TrafficFrameStat, TrafficSignalLog } from '@prisma/client';
+import {
+  TrafficFrameStat,
+  TrafficMinuteSummary,
+  TrafficSignalLog,
+} from '@prisma/client';
 import { IngestTrafficDataDto } from './dto/ingest-traffic-data.dto';
 import { CreateTrafficSignalLogDto } from './dto/create-traffic-signal-log.dto';
 import { TrafficMinuteSummaryDto } from './dto/traffic-minute-summary.dto';
@@ -89,6 +93,26 @@ export class TrafficRepository {
     return this.prisma.trafficFrameStat.findMany({
       orderBy: { capturedAt: 'desc' },
       take: 4, // Assuming 4 cameras for 4 directions
+    });
+  }
+
+  async getMinuteSummary(cameraIds: number[], from?: Date, to?: Date): Promise<any[]> {
+    const where: any = {};
+
+    if (cameraIds.length > 0) {
+      where.cameraId = { in: cameraIds };
+    }
+
+    if (from || to) {
+      where.minuteStart = {};
+      if (from) where.minuteStart.gte = Math.floor(from.getTime() / 1000);
+      if (to) where.minuteStart.lte = Math.floor(to.getTime() / 1000);
+    }
+
+    return this.prisma.trafficMinuteSummary.findMany({
+      where,
+      orderBy: { minuteStart: 'asc' },
+      take: (from || to) ? 2000 : 100,
     });
   }
 

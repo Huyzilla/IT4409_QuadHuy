@@ -107,22 +107,17 @@ export class IngestGateway {
   }
 
   @SubscribeMessage('traffic_minute_summary')
-  async handleMinuteSummary(
-    @MessageBody() data: TrafficMinuteSummaryDto,
-    @ConnectedSocket() client: Socket,
-  ) {
-    try {
-      this.logger.log(
-        `[AI] Minute summary cam=${data.cameraId} start=${data.minuteStart} avg=${data.vehicles_avg} max=${data.vehicles_max} samples=${data.samples}`,
-      );
+  async handleMinuteSummary(@MessageBody() data: TrafficMinuteSummaryDto) {
+    await this.trafficService.processMinuteSummary(data);
 
-      await this.trafficService.processMinuteSummary(data);
+    // Phát dữ liệu tới FE dashboard
+    this.server.emit('new_minute_stats', {
+      cameraId: data.cameraId,
+      minuteStart: data.minuteStart,
+      vehicles_avg: data.vehicles_avg,
+      density: Math.min(1, (data.vehicles_avg || 0) / 100),
+    });
 
-      return { status: 'success', message: 'Minute summary saved' };
-    }
-    catch (error) {
-      this.logger.error(`Error saving minute summary: ${error.message}`);
-      return { status: 'error', message: error.message };
-    }
+    return { status: 'success' };
   }
 }
