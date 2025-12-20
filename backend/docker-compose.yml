@@ -36,6 +36,7 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       NODE_ENV: production
+    command: sh -c "npx prisma migrate deploy && node dist/src/main.js"
     depends_on:
       - postgres
       - redis
@@ -47,4 +48,4 @@ volumes:
 
 networks:
   traffic-net:
-    driver: bridge
+    external: true
