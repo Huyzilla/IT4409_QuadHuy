@@ -36,7 +36,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       NODE_ENV: production
-    command: sh -c "npx prisma migrate deploy && node dist/src/main.js"
+      JWT_SECRET: "dev_jwt_secret_change_me"
+      GOOGLE_CLIENT_ID: ""
+    command: sh -c "npx prisma db push && node dist/src/main.js"
     depends_on:
       - postgres
       - redis
