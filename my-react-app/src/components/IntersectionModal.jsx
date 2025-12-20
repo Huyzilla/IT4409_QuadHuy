@@ -1,5 +1,7 @@
-//
+// src/components/IntersectionModal.jsx
 import React, { useState, useEffect } from "react";
+import ReactDOM from "react-dom"; // 👈 THÊM DÒNG NÀY
+import "./Sidebar.css"; // Đảm bảo CSS đã được load
 
 export default function IntersectionModal({
   isOpen,
@@ -14,7 +16,6 @@ export default function IntersectionModal({
     description: "",
   });
 
-  // Nếu có initialData (chế độ Sửa) thì điền vào form
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -24,7 +25,6 @@ export default function IntersectionModal({
         description: initialData.description || initialData.details || "",
       });
     } else {
-      // Reset form nếu là chế độ Thêm mới
       setFormData({ name: "", latitude: "", longitude: "", description: "" });
     }
   }, [initialData, isOpen]);
@@ -37,11 +37,12 @@ export default function IntersectionModal({
     onClose();
   };
 
-  return (
+  // 👇 SỬA ĐOẠN NÀY: Dùng createPortal để đưa Modal ra khỏi Sidebar
+  return ReactDOM.createPortal(
     <div
       className="live-modal-overlay"
       onClick={onClose}
-      style={{ zIndex: 9999 }}
+      style={{ zIndex: 99999 }} // Tăng thêm số 9 cho chắc ăn
     >
       <div
         className="live-modal-content"
@@ -91,6 +92,7 @@ export default function IntersectionModal({
                 setFormData({ ...formData, name: e.target.value })
               }
               placeholder="Ví dụ: Ngã tư Cầu Giấy"
+              autoFocus // 👈 Thêm cái này để test xem focus được không
             />
           </div>
 
@@ -162,6 +164,7 @@ export default function IntersectionModal({
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body // 👈 THAM SỐ THỨ 2: Gắn vào body
   );
 }
