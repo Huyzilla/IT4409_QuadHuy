@@ -82,6 +82,13 @@ export class TrafficService {
     });
     // 3. Cache updated state
     await this.cacheCurrentState();
+    //4. Publish light change event
+    await this.redisService.publish('traffic:light-change', {
+      greenRoadId,
+      duration,
+      reason,
+      state: this.currentState,
+    });
     return this.currentState;
   }
 
@@ -148,6 +155,10 @@ export class TrafficService {
     await this.trafficRepository.saveSignalLog(logDto);
   }
 
+  async processMinuteSummary(dto: any): Promise<void> {
+    await this.trafficRepository.upsertMinuteSummary(dto);
+  }
+
   /**
    * Cache current state in Redis
    */
@@ -184,5 +195,16 @@ export class TrafficService {
     const fromDate = from ? new Date(from) : undefined;
     const toDate = to ? new Date(to) : undefined;
     return this.trafficRepository.getTrafficStats(cameraId, fromDate, toDate);
+  }
+
+  async getMinuteStats(cameraIds?: string, from?: string, to?: string) {
+    const fromDate = from ? new Date(from) : undefined;
+    const toDate = to ? new Date(to) : undefined;
+
+    const idsArray = cameraIds
+      ? cameraIds.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+      : [];
+
+    return this.trafficRepository.getMinuteSummary(idsArray, fromDate, toDate);
   }
 }

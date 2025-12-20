@@ -13,7 +13,6 @@ export default function AccountSettings() {
     const [statusMessage, setStatusMessage] = useState({ type: null, message: "" });
     const [loading, setLoading] = useState(false);
     const [avatarFile, setAvatarFile] = useState(null);
-    const [showHelpModal, setShowHelpModal] = useState(false);
 
     useEffect(() => {
         setFormData(prev => ({
@@ -126,21 +125,6 @@ export default function AccountSettings() {
         }
     };
 
-    const HelpModal = ({ onClose }) => (
-        <div className="live-modal-overlay" onClick={onClose}>
-            <div className="live-modal-content" onClick={e => e.stopPropagation()} style={{maxWidth: '500px', padding: '25px'}}>
-                <h2 style={{color: 'var(--color-accent-blue)', marginBottom: '15px'}}>Trợ giúp người dùng</h2>
-                <div style={{maxHeight: '400px', overflowY: 'auto', textAlign: 'left', fontSize: '14px'}}>
-                    <p><strong>1. Làm sao để đổi ảnh đại diện?</strong><br/>Chọn "Chọn tệp ảnh", sau đó nhấn nút "Cập nhật Avatar".</p>
-                    <hr style={{margin: '10px 0', opacity: 0.2}}/>
-                    <p><strong>2. Tôi quên mật khẩu cũ?</strong><br/>Vui lòng liên hệ Admin hệ thống qua số nội bộ (8888) để reset.</p>
-                    <hr style={{margin: '10px 0', opacity: 0.2}}/>
-                    <p><strong>3. Tại sao không đổi được username?</strong><br/>Tên đăng nhập là định danh duy nhất và không được phép thay đổi để bảo mật.</p>
-                </div>
-                <button className="login-submit" style={{marginTop: '20px'}} onClick={onClose}>Đóng</button>
-            </div>
-        </div>
-    );
 
     if (authLoading) {
         return (
@@ -163,13 +147,11 @@ export default function AccountSettings() {
                     </span>
                 </h1>
                 <div className="header-actions">
-                    <button className="action-btn" onClick={() => setShowHelpModal(true)}>
+                    <button className="action-btn">
                         Trợ giúp
                     </button>
                 </div>
             </header>
-
-            {showHelpModal && <HelpModal onClose={() => setShowHelpModal(false)} />}
 
             {statusMessage.message && (
                 <div className={messageClass} style={{ marginBottom: '30px', ...messageStyle }}>
