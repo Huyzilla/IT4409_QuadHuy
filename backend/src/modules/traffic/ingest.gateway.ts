@@ -9,6 +9,7 @@ import { Server, Socket } from 'socket.io';
 import { Logger, UseFilters } from '@nestjs/common';
 import { TrafficService } from './traffic.service';
 import { IngestTrafficDataDto } from './dto/ingest-traffic-data.dto';
+import { TrafficMinuteSummaryDto } from './dto/traffic-minute-summary.dto';
 
 /**
  * IngestGateway handles WebSocket connections from AI cameras.
@@ -18,11 +19,8 @@ import { IngestTrafficDataDto } from './dto/ingest-traffic-data.dto';
  * Event: 'traffic_data'
  */
 @WebSocketGateway({
-  namespace: 'ingest',
-  cors: {
-    origin: '*',
-    credentials: true,
-  },
+  namespace: '/ingest',
+  cors: { origin: '*', credentials: true },
 })
 export class IngestGateway {
   @WebSocketServer()
@@ -106,5 +104,20 @@ export class IngestGateway {
         message: error.message,
       };
     }
+  }
+
+  @SubscribeMessage('traffic_minute_summary')
+  async handleMinuteSummary(@MessageBody() data: TrafficMinuteSummaryDto) {
+    await this.trafficService.processMinuteSummary(data);
+
+    // Phát dữ liệu tới FE dashboard
+    this.server.emit('new_minute_stats', {
+      cameraId: data.cameraId,
+      minuteStart: data.minuteStart,
+      vehicles_avg: data.vehicles_avg,
+      density: Math.min(1, (data.vehicles_avg || 0) / 100),
+    });
+
+    return { status: 'success' };
   }
 }

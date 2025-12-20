@@ -947,44 +947,6 @@ h3 {
   padding-right: 5px;
 }
 
-.intersection-list::-webkit-scrollbar,
-.main-content::-webkit-scrollbar,
-.ch-grid::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-
-.intersection-list::-webkit-scrollbar-track,
-.main-content::-webkit-scrollbar-track,
-.ch-grid::-webkit-scrollbar-track {
-    background: rgba(15, 23, 42, 0.1);
-    border-radius: 10px;
-}
-
-.intersection-list::-webkit-scrollbar-thumb,
-.main-content::-webkit-scrollbar-thumb,
-.ch-grid::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-            180deg,
-            var(--color-accent-blue) 0%,
-            var(--color-accent-purple) 100%
-    );
-    border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.intersection-list::-webkit-scrollbar-thumb:hover,
-.main-content::-webkit-scrollbar-thumb:hover,
-.ch-grid::-webkit-scrollbar-thumb:hover {
-    background: var(--color-accent-cyan);
-    box-shadow: 0 0 8px var(--color-accent-cyan);
-}
-
-.intersection-list {
-    scrollbar-width: thin;
-    scrollbar-color: var(--color-accent-blue) transparent;
-}
-
 .intersection-item {
   display: flex;
   justify-content: space-between;
@@ -1175,17 +1137,6 @@ h3 {
 .header-actions {
   display: flex;
   align-items: center;
-}
-
-.header-actions .action-btn.primary:active {
-    transform: scale(0.95);
-    transition: transform 0.1s;
-}
-
-.help-content-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
 }
 
 .alert-btn {
@@ -1875,61 +1826,6 @@ h3 {
     padding-top: 15px;
     border-top: 1px solid var(--color-border);
     margin-top: 25px;
-}
-
-.ai-trigger-btn {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1;
-}
-
-.ai-trigger-btn::after {
-    display: none;
-}
-
-.bot-floating-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    animation: floating-bot 3s ease-in-out infinite;
-}
-
-.bot-floating-container::after {
-    content: '';
-    position: absolute;
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    border: 2px solid var(--color-accent-blue);
-    animation: pulse-ai 2s infinite;
-    z-index: 1;
-    pointer-events: none;
-}
-
-@keyframes floating-bot {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-8px); }
-}
-
-@keyframes pulse-ai {
-    0% { transform: scale(1); opacity: 1; }
-    100% { transform: scale(1.6); opacity: 0; }
-}
-
-@keyframes slideUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.ai-messages::-webkit-scrollbar {
-    width: 4px;
-}
-.ai-messages::-webkit-scrollbar-thumb {
-    background: var(--color-bg-tertiary);
-    border-radius: 10px;
 }
 
 @media (max-width: 480px) {

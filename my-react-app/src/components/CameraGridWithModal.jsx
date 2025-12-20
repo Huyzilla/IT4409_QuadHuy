@@ -1,9 +1,9 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
+import HlsVideo from "./HlsVideo.jsx";
 // import "./CameraGridModal.css";
 
 export default function CameraGridWithModal({ cameras = [] }) {
     const [openCam, setOpenCam] = useState(null);
-    const modalVideoRef = useRef(null);
 
     const numCameras = cameras.length;
     let gridCols = 1;
@@ -13,34 +13,7 @@ export default function CameraGridWithModal({ cameras = [] }) {
     else if (numCameras >= 5) gridCols = 3;
     else if (numCameras === 1) gridCols = 1;
 
-    useEffect(() => {
-        const videoEl = modalVideoRef.current;
-        if (!videoEl) return;
-
-        if (!openCam) {
-            videoEl.srcObject = null;
-            videoEl.src = "";
-            return;
-        }
-
-        if (openCam.mediaStream) {
-            videoEl.srcObject = openCam.mediaStream;
-            videoEl.play().catch(() => {});
-            return;
-        }
-
-        if (openCam.streamUrl || openCam.videoSource) {
-            videoEl.srcObject = null;
-            videoEl.src = openCam.streamUrl || openCam.videoSource;
-            videoEl.play().catch(() => {});
-            return;
-        }
-
-        videoEl.srcObject = null;
-        videoEl.src = "";
-    }, [openCam]);
-
-    useEffect(() => {
+    React.useEffect(() => {
         const onKey = (e) => {
             if (e.key === "Escape" && openCam) setOpenCam(null);
         };
@@ -48,7 +21,7 @@ export default function CameraGridWithModal({ cameras = [] }) {
         return () => window.removeEventListener("keydown", onKey);
     }, [openCam]);
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (openCam) {
             const prev = document.body.style.overflow;
             document.body.style.overflow = "hidden";
@@ -94,7 +67,7 @@ export default function CameraGridWithModal({ cameras = [] }) {
                                     }}
                                 />
                             ) : cam.streamUrl || cam.videoSource ? (
-                                <video
+                                <HlsVideo
                                     src={cam.streamUrl || cam.videoSource}
                                     muted
                                     playsInline
@@ -172,12 +145,13 @@ export default function CameraGridWithModal({ cameras = [] }) {
                         </div>
 
                         <div className="ch-modal-body" style={{ width: '100%', height: '100%' }}>
-                            <video
-                                ref={modalVideoRef}
+                            <HlsVideo
+                                src={openCam.streamUrl || openCam.videoSource}
                                 className="ch-modal-video live-modal-video"
                                 controls
                                 autoPlay
                                 playsInline
+                                muted
                                 poster={openCam.thumbnail || undefined}
                                 style={{ height: '80vh', objectFit: 'contain' }}
                             />
