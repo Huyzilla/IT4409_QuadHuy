@@ -30,6 +30,11 @@ const MOCK_ALERTS = [
 const TrafficContext = createContext();
 const API_URL = "http://localhost:3000/api";
 
+const trafficAxios = axios.create({
+  baseURL: API_URL,
+  withCredentials: true, // : Cho phép gửi/nhận Cookie
+});
+
 const rtspToHls = (videoSource) => {
   if (!videoSource || typeof videoSource !== "string") return null;
   if (!videoSource.startsWith("rtsp://")) return null;
@@ -51,9 +56,11 @@ export const TrafficProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   const fetchIntersections = async (preferredActiveId) => {
+    if (!user) return;
+
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/intersections`);
+      const res = await trafficAxios.get("/intersections"); // Dùng instance mới
 
       if (res.data && res.data.length > 0) {
         console.log("✅ Raw Data from DB:", res.data);
@@ -95,8 +102,12 @@ export const TrafficProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    fetchIntersections();
-  }, []);
+    if (user) {
+      fetchIntersections(); //Tự tải lại khi user thay đổi (đăng nhập thành công)
+    } else {
+      setIntersections([]); // Xóa dữ liệu nếu logout
+    }
+  }, [user]);
 
   const [theme, setTheme] = useState("theme-dark");
   const toggleTheme = () => {
@@ -113,12 +124,15 @@ export const TrafficProvider = ({ children }) => {
   const createIntersection = async (data) => {
     try {
       // Gọi API POST /intersections
-      const res = await axios.post(`${API_URL}/intersections`, {
-        name: data.name,
-        latitude: parseFloat(data.latitude),
-        longitude: parseFloat(data.longitude),
-        description: data.description || "",
-      });
+      const res = await trafficAxios.post(
+        "/intersections", // Dùng trafficAxios
+        {
+          name: data.name,
+          latitude: parseFloat(data.latitude),
+          longitude: parseFloat(data.longitude),
+          description: data.description || "",
+        }
+      );
 
       // Backend trả về object vừa tạo, ta thêm vào đầu danh sách local
       const newIntersection = {
@@ -143,7 +157,7 @@ export const TrafficProvider = ({ children }) => {
   const updateIntersection = async (id, data) => {
     try {
       // Gọi API PUT /intersections/:id
-      const res = await axios.put(`${API_URL}/intersections/${id}`, {
+      const res = await trafficAxios.put(`/intersections/${id}`, {
         name: data.name,
         latitude: parseFloat(data.latitude),
         longitude: parseFloat(data.longitude),
@@ -192,7 +206,7 @@ export const TrafficProvider = ({ children }) => {
 
     try {
       // Gọi API DELETE /intersections/:id
-      await axios.delete(`${API_URL}/intersections/${id}`);
+      await trafficAxios.delete(`/intersections/${id}`);
 
       // Xóa khỏi danh sách local
       setIntersections((prev) => prev.filter((item) => item.id !== id));
@@ -304,7 +318,7 @@ export const TrafficProvider = ({ children }) => {
     createIntersection,
     updateIntersection,
     deleteIntersection,
-    user: { role: "admin", username: "admin", fullName: "Quản trị viên" },
+    user, //: { role: "admin", username: "admin", fullName: "Quản trị viên" },
   };
 
   return (
