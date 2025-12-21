@@ -38,11 +38,18 @@ export const initialIntersectionData = [
 ];
 
 export const STATUS_MAP = {
-    'low': { label: 'Ít đông', colorClass: 'low-traffic', gradientClass: 'low-gradient' },
-    'medium': { label: 'Trung bình', colorClass: 'medium-traffic', gradientClass: 'medium-gradient' },
-    'heavy': { label: 'Ùn tắc', colorClass: 'heavy-traffic', gradientClass: 'heavy-gradient' },
-    'no-connection': { label: 'Mất kết nối', colorClass: 'no-connection', gradientClass: '' },
-    'tracking': { label: 'Đang theo dõi', colorClass: 'medium-traffic', gradientClass: '' },
+    'low': { label: 'Ít đông', colorClass: 'low-traffic', gradientClass: 'low-gradient', densityMax: 0.3 },
+    'medium': { label: 'Trung bình', colorClass: 'medium-traffic', gradientClass: 'medium-gradient', densityMax: 0.6 },
+    'heavy': { label: 'Ùn tắc', colorClass: 'heavy-traffic', gradientClass: 'heavy-gradient', densityMax: 1.0 },
+    'no-connection': { label: 'Mất kết nối', colorClass: 'no-connection', gradientClass: '', densityMax: 0 },
+    'tracking': { label: 'Đang theo dõi', colorClass: 'medium-traffic', gradientClass: '', densityMax: 1.0 },
+};
+
+const getStatusByDensity = (density) => {
+    if (density === 0) return 'no-connection';
+    if (density <= STATUS_MAP.low.densityMax) return 'low';
+    if (density <= STATUS_MAP.medium.densityMax) return 'medium';
+    return 'heavy';
 };
 
 export const api = {
@@ -52,13 +59,33 @@ export const api = {
             console.log(`API: Đang gọi /api/traffic/realtime/${intersectionId}`);
             await new Promise(resolve => setTimeout(resolve, 300));
 
-            const newSegments = intersection.segments.map(seg => ({
-                ...seg,
-                density: Math.min(1.0, Math.max(0.0, seg.density + (Math.random() * 0.1 - 0.05))),
-            }));
+            const newSegments = intersection.segments.map(seg => {
+                // Giả lập mật độ ngẫu nhiên thay đổi nhẹ
+                let newDensity = seg.density;
+                if (seg.status !== 'no-connection') {
+                    newDensity = Math.min(1.0, Math.max(0.0, seg.density + (Math.random() * 0.1 - 0.05)));
+                }
+
+                return {
+                    ...seg,
+                    density: newDensity,
+                    status: getStatusByDensity(newDensity),
+                };
+            });
 
             return { success: true, data: { ...intersection, segments: newSegments } };
         }
         return { success: false, error: 'Intersection not found' };
     }
+};
+
+export const initialAlerts = [
+    { id: 1, intersection: 'Ngã tư B', segment: 'Hướng Bắc → Nam', message: 'Mật độ vượt ngưỡng 0.9. Cần điều chỉnh đèn.', timestamp: Date.now() - 600000, read: false },
+    { id: 2, intersection: 'Ngã tư C', segment: 'Hướng Đông → Tây', message: 'Tốc độ trung bình giảm 20% trong 5 phút.', timestamp: Date.now() - 1200000, read: true },
+    { id: 3, intersection: 'Ngã tư A', segment: 'Hướng Đông → Tây', message: 'Cảm biến lỗi kết nối trong 10 phút.', timestamp: Date.now() - 1800000, read: false },
+];
+
+export const MOCK_USER = {
+    role: 'admin',
+    username: 'admin_traffic',
 };
