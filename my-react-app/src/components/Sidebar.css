@@ -1,8 +1,10 @@
 /* src/components/Sidebar.css */
 .sidebar {
   position: relative;
-  z-index: 1000 !important; /* Quan trọng: Đảm bảo nút bấm nhận được click */
+  z-index: 1000 !important; /*Đảm bảo nút bấm nhận được click */
+  width: var(--sidebar-width);
 }
+
 /* Header chứa tiêu đề và nút Thêm */
 .sidebar-list-header {
   display: flex;
@@ -10,6 +12,23 @@
   align-items: center;
   margin-bottom: 10px;
   padding-right: 5px;
+}
+
+.resizer-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+  transition: background-color 0.2s;
+}
+
+.resizer-handle:hover,
+.resizer-handle:active {
+  background-color: var(--color-accent-blue);
+  opacity: 0.5;
 }
 
 /* Nút Thêm mới (+) */
@@ -24,6 +43,7 @@
   font-weight: 700;
   transition: opacity 0.2s;
 }
+
 .btn-add-new:hover {
   opacity: 0.9;
 }
@@ -73,6 +93,7 @@
   border-color: rgba(239, 68, 68, 0.2);
   color: var(--color-traffic-heavy);
 }
+
 .btn-icon-action.delete:hover {
   background: rgba(239, 68, 68, 0.2);
   border-color: var(--color-traffic-heavy);

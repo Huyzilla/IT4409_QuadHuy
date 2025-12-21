@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useTraffic } from "../context/TrafficContext";
 import { NavLink, useNavigate } from "react-router-dom";
 
@@ -124,8 +124,50 @@ const Sidebar = ({
   };
   const closeDropdownWrapper = () => onToggleDropdown(false);
 
+  const [width, setWidth] = useState(300);
+  const isResizing = useRef(false);
+
+  // 2. Hàm xử lý khi bắt đầu nhấn chuột
+  const startResizing = useCallback((e) => {
+    isResizing.current = true;
+    document.addEventListener("mousemove", handleMouseMove);
+    document.addEventListener("mouseup", stopResizing);
+    // Ngăn chặn việc chọn text khi đang kéo
+    document.body.style.userSelect = "none";
+    document.body.style.cursor = "col-resize";
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isResizing.current) return;
+
+    const newWidth = e.clientX;
+    if (newWidth > 200 && newWidth < 600) {
+      setWidth(newWidth);
+    }
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    isResizing.current = false;
+    document.removeEventListener("mousemove", handleMouseMove);
+    document.removeEventListener("mouseup", stopResizing);
+    document.body.style.userSelect = "auto";
+    document.body.style.cursor = "default";
+  }, [handleMouseMove]);
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", stopResizing);
+    };
+  }, [handleMouseMove, stopResizing]);
+
   return (
-    <aside className="sidebar" role="navigation">
+    <aside
+      className="sidebar"
+      role="navigation"
+      style={{ "--sidebar-width": `${width}px` }}
+    >
+      <div className="resizer-handle" onMouseDown={startResizing} />
       <div className="sidebar-header">
         <span
           className="icon icon-traffic"
@@ -199,7 +241,9 @@ const Sidebar = ({
                     {item.status === "low" && "Thông thoáng"}
                     {item.status === "no-connection" && "Mất kết nối"}
                   </div>
-                  <p className="intersection-details">{item.details}</p>
+                  <p className="intersection-details" title={item.details}>
+                    {item.details}
+                  </p>
                 </div>
                 <span className={`status-button ${statusClass}`}>
                   {statusText}
