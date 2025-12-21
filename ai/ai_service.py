@@ -7,8 +7,8 @@ import copy
 import os, yaml
 import numpy as np
 
-DEBUG_VIEW = True
-SHOW_DEBUG = True 
+DEBUG_VIEW = False
+SHOW_DEBUG = False 
 
 def get_distance(p1, p2):
     return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
@@ -55,7 +55,7 @@ def count_in_roi(dets, roi_pts):
     return count
 
 def load_config():
-    path = os.getenv("AI_CONFIG", "config_example.yaml")
+    path = os.getenv("AI_CONFIG", "config.yaml")
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
