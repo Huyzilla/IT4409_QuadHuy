@@ -75,15 +75,23 @@ def disconnect():
     print("[WS] Disconnected from backend")
 
 def connect_backend():
-    try:
-        sio.connect(
-            BACKEND_URL,
-            transports=["websocket"],
-            namespaces=[NAMESPACE],
-        )
-        print("[WS] sio.connected =", sio.connected)
-    except Exception as e:
-        print(f"[WS] Cannot connect to backend: {e}")
+    retry_count = 0
+    while True:
+        try:
+            print(f"[WS] Connecting to backend at {BACKEND_URL}...")
+            sio.connect(
+                BACKEND_URL,
+                transports=["websocket"],
+                namespaces=[NAMESPACE],
+                wait_timeout=10 
+            )
+            print("[WS] Connected successfully!")
+            break  # Kết nối thành công thì thoát vòng lặp
+        except Exception as e:
+            retry_count += 1
+            print(f"[WS] Connection failed (Attempt {retry_count}): {e}")
+            print("[WS] Retrying in 5 seconds...")
+            time.sleep(5) # Chờ 5s trước khi thử lại
 
 def send_traffic(road_id, vehicles, emergency_count):
     payload = {
@@ -113,7 +121,7 @@ def process_camera_shared(source_config, target_road_ids, detector):
 
     last_sent = 0.0
     send_interval = 1.0
-    frame_skip = 1
+    frame_skip = 2
     frame_count = 0
 
     minute_start_ts = int(time.time() // 60 * 60)
@@ -338,7 +346,7 @@ def process_camera(source_config, target_road_ids, detector):
     last_sent = 0.0
     send_interval = 1.0
 
-    frame_skip = 1
+    frame_skip = 4
     frame_count = 0
     # per-minute aggregation state
     minute_start_ts = int(time.time() // 60 * 60)
@@ -360,7 +368,7 @@ def process_camera(source_config, target_road_ids, detector):
     tracked_objects = {}
     next_id = 0
     MAX_DISAPPEARED = 10
-    MAX_DISTANCE = 80
+    MAX_DISTANCE = 180
 
     while True:
         ret, frame = cap.read()
