@@ -134,7 +134,13 @@ const CameraSettingsModal = ({ camera, onClose, onSave }) => {
   );
 };
 
-const DashboardSegmentCard = ({ camera, onLiveView, onSettings }) => {
+const DashboardSegmentCard = ({
+  camera,
+  onLiveView,
+  onSettings,
+  onEdit,
+  onDelete,
+}) => {
   const [stats] = useState(() => generateFakeStats(camera.id));
   const { density, status, trend, trendText } = stats;
 
@@ -352,7 +358,9 @@ const Dashboard = ({ onReload, onLiveGrid, onLiveView }) => {
     setIsCamModalOpen(true);
   };
   const handleDeleteCamera = (id) => {
-    deleteCamera(id);
+    if (activeIntersection) {
+      deleteCamera(id, activeIntersection.id);
+    }
   };
   const handleSaveCamera = (data) => {
     if (editingCamera) updateCamera(editingCamera.id, data);

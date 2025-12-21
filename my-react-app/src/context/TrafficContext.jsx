@@ -101,6 +101,15 @@ export const TrafficProvider = ({ children }) => {
     }
   };
 
+  //2. ĐỊNH NGHĨA HÀM refreshActiveDashboard TẠI ĐÂY (TRƯỚC KHI DÙNG)
+  const refreshActiveDashboard = async () => {
+    if (activeIntersection) {
+      await fetchIntersections(activeIntersection.id);
+    } else {
+      await fetchIntersections();
+    }
+  };
+
   useEffect(() => {
     if (user) {
       fetchIntersections(); //Tự tải lại khi user thay đổi (đăng nhập thành công)

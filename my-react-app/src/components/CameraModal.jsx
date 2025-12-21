@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import ReactDOM from "react-dom";
 
 export default function CameraModal({
   isOpen,
@@ -40,7 +41,7 @@ export default function CameraModal({
     onClose();
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div className="settings-modal-overlay">
       <div className="settings-modal-content" style={{ maxWidth: "500px" }}>
         <div className="settings-modal-header">
@@ -112,6 +113,7 @@ export default function CameraModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
