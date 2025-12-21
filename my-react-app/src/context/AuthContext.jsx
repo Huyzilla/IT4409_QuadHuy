@@ -115,6 +115,30 @@ export const AuthProvider = ({ children }) => {
       throw error;
     }
   };
+  // --- 7. Hàm Xác thực Email (OTP hoặc Token) ---
+  const verifyEmail = async (email, code, token) => {
+    try {
+      // Chuẩn bị dữ liệu gửi lên
+      const payload = { email };
+      if (code) payload.code = code;
+      if (token) payload.token = token;
+
+      // Gọi API
+      const res = await axios.post("/auth/verify-email", payload);
+
+      // Backend trả về user + token luôn -> Đăng nhập thành công ngay lập tức!
+      const userData = res.data.user || res.data;
+      setUser(userData);
+
+      return true;
+    } catch (error) {
+      console.error("Xác thực lỗi:", error);
+      throw new Error(
+        error.response?.data?.message ||
+          "Mã xác thực không đúng hoặc đã hết hạn."
+      );
+    }
+  };
 
   return (
     <AuthContext.Provider
@@ -127,6 +151,7 @@ export const AuthProvider = ({ children }) => {
         logout,
         updateUserProfile,
         isAuthenticated: !!user,
+        verifyEmail,
       }}
     >
       {children}

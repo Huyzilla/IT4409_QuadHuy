@@ -31,9 +31,9 @@ export default function Register() {
         formData.email,
         formData.password
       );
-
+      localStorage.setItem("pendingEmail", formData.email);
       alert("Đăng ký thành công! Vui lòng kiểm tra Email để lấy mã xác thực.");
-      navigate("/login"); // Chuyển hướng về trang đăng nhập
+      navigate("/verify-email");
     } catch (err) {
       setError(err.message || "Đăng ký thất bại");
     } finally {
