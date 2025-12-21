@@ -308,19 +308,46 @@ const AIChatbox = () => {
     };
   }, [isDragging, rel]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (!input.trim()) return;
-    setMessages((prev) => [...prev, { role: "user", text: input }]);
+    const userMessage = input; 
     setInput("");
-    setTimeout(() => {
-      setMessages((prev) => [
+    setMessages((prev) => [...prev, { role: "user", text: userMessage }]);
+    const loadingId = Date.now();
+    setMessages((prev) => [
         ...prev,
-        {
-          role: "bot",
-          text: "Tôi đang phân tích dữ liệu giao thông thực tế, vui lòng đợi giây lát...",
-        },
-      ]);
-    }, 1000);
+        { role: "bot", text: "...", isLoading: true, id: loadingId }
+    ]);
+
+    try {
+        const response = await fetch('http://localhost:3000/api/chat', { 
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ message: userMessage }),
+        });
+
+        const data = await response.json();
+
+        setMessages((prev) => {
+            const newMessages = prev.filter(msg => msg.id !== loadingId);
+            return [
+                ...newMessages,
+                { role: "bot", text: data.reply } 
+            ];
+        });
+
+    } catch (error) {
+        console.error("Lỗi chat:", error);
+        setMessages((prev) => {
+             const newMessages = prev.filter(msg => msg.id !== loadingId);
+             return [
+                 ...newMessages,
+                 { role: "bot", text: "Xin lỗi, tôi bị mất kết nối tới server." }
+             ];
+        });
+    }
   };
 
   return (

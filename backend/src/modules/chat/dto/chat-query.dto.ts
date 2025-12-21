@@ -1,7 +1,7 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, MinLength } from 'class-validator';
 
 export class ChatQueryDto {
     @IsString()
-    @IsNotEmpty()
+    @MinLength(1)
     message: string;
 }
