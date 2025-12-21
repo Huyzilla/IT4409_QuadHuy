@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useTraffic } from "../context/TrafficContext";
 import AlertPanel from "./AlertPanel.jsx";
+import CameraModal from "./CameraModal.jsx";
 
 const STATUS_MAP = {
   low: {
@@ -240,6 +241,24 @@ const DashboardSegmentCard = ({ camera, onLiveView, onSettings }) => {
         </div>
 
         <div style={{ display: "flex", gap: 8 }}>
+          {/* Nút Sửa */}
+          <button
+            className="quick-action-btn"
+            title="Sửa"
+            onClick={() => onEdit(camera)}
+          >
+            ✎
+          </button>
+
+          {/* Nút Xóa */}
+          <button
+            className="quick-action-btn"
+            title="Xóa"
+            style={{ color: "#ef4444" }}
+            onClick={() => onDelete(camera.id)}
+          >
+            🗑️
+          </button>
           <button
             className="quick-action-btn"
             aria-label="Cấu hình AI và Ngưỡng"
@@ -312,9 +331,33 @@ const DashboardSegmentCard = ({ camera, onLiveView, onSettings }) => {
 };
 
 const Dashboard = ({ onReload, onLiveGrid, onLiveView }) => {
-  const { activeIntersection, loading, unreadAlertCount } = useTraffic();
+  const {
+    activeIntersection,
+    loading,
+    unreadAlertCount,
+    addCamera,
+    updateCamera,
+    deleteCamera,
+  } = useTraffic();
   const [settingsCamera, setSettingsCamera] = useState(null);
   const [showAlertPanel, setShowAlertPanel] = useState(false);
+
+  //  2. thêm state quản lí thêm/sửa cam
+  const [isCamModalOpen, setIsCamModalOpen] = useState(false);
+  const [editingCamera, setEditingCamera] = useState(null);
+
+  // hàm xửa lí thêm sửa xóa cam
+  const handleEditCamera = (cam) => {
+    setEditingCamera(cam);
+    setIsCamModalOpen(true);
+  };
+  const handleDeleteCamera = (id) => {
+    deleteCamera(id);
+  };
+  const handleSaveCamera = (data) => {
+    if (editingCamera) updateCamera(editingCamera.id, data);
+    else if (activeIntersection) addCamera(activeIntersection.id, data);
+  };
 
   const alertRef = useRef(null);
 
@@ -367,6 +410,24 @@ const Dashboard = ({ onReload, onLiveGrid, onLiveView }) => {
       <header className="main-header">
         <h1 className="page-title">{title}</h1>
         <div className="header-actions">
+          {/*NÚT THÊM CAM*/}
+
+          {activeIntersection && (
+            <button
+              className="action-btn"
+              onClick={() => {
+                setEditingCamera(null);
+                setIsCamModalOpen(true);
+              }}
+              style={{
+                marginRight: 10,
+                borderColor: "#0ea5e9",
+                color: "#0ea5e9",
+              }}
+            >
+              + Thêm Camera
+            </button>
+          )}
           <div
             ref={alertRef}
             style={{ position: "relative", display: "inline-block" }}
@@ -449,6 +510,8 @@ const Dashboard = ({ onReload, onLiveGrid, onLiveView }) => {
               camera={cam}
               onLiveView={onLiveView}
               onSettings={handleOpenSettings}
+              onEdit={handleEditCamera}
+              onDelete={handleDeleteCamera}
             />
           ))
         )}
@@ -462,6 +525,14 @@ const Dashboard = ({ onReload, onLiveGrid, onLiveView }) => {
           onSave={handleSaveSettings}
         />
       )}
+
+      {/*modal thêm sửa CAM*/}
+      <CameraModal
+        isOpen={isCamModalOpen}
+        onClose={() => setIsCamModalOpen(false)}
+        onSubmit={handleSaveCamera}
+        initialData={editingCamera}
+      />
     </main>
   );
 };

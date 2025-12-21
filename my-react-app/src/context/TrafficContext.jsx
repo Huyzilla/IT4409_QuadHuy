@@ -221,6 +221,111 @@ export const TrafficProvider = ({ children }) => {
     }
   };
 
+  // --- quản lí camera ----------------------------------------------------
+
+  // 1. Thêm Camera vào Ngã tư
+  const addCamera = async (intersectionId, cameraData) => {
+    try {
+      const payload = {
+        name: cameraData.name,
+        videoSource: cameraData.videoSource,
+        latitude: parseFloat(cameraData.latitude),
+        longitude: parseFloat(cameraData.longitude),
+        intersectionId: parseInt(intersectionId), // Quan trọng: Gửi kèm ID ngã tư
+      };
+
+      // Gọi API POST /cameras
+      const res = await trafficAxios.post("/cameras", payload);
+
+      // Cập nhật State Frontend ngay lập tức (để UI tự hiện camera mới)
+      setIntersections((prev) =>
+        prev.map((i) => {
+          if (i.id === intersectionId) {
+            return {
+              ...i,
+              // Thêm camera mới vào mảng cameras của ngã tư đó
+              cameras: [res.data, ...(i.cameras || [])],
+            };
+          }
+          return i;
+        })
+      );
+
+      // Nếu đang xem ngã tư này thì refresh lại activeIntersection
+      if (activeIntersection && activeIntersection.id === intersectionId) {
+        refreshActiveDashboard();
+      }
+
+      alert("Thêm camera thành công!");
+      return true;
+    } catch (error) {
+      console.error("Lỗi thêm camera:", error);
+      alert("Lỗi: " + (error.response?.data?.message || error.message));
+      return false;
+    }
+  };
+
+  // 2. Sửa Camera
+  const updateCamera = async (cameraId, cameraData) => {
+    try {
+      const payload = {
+        name: cameraData.name,
+        videoSource: cameraData.videoSource,
+        latitude: parseFloat(cameraData.latitude),
+        longitude: parseFloat(cameraData.longitude),
+        // intersectionId: ... (Nếu muốn đổi ngã tư thì gửi thêm)
+      };
+
+      const res = await trafficAxios.put(`/cameras/${cameraId}`, payload);
+
+      // Cập nhật State local
+      setIntersections((prev) =>
+        prev.map((i) => ({
+          ...i,
+          cameras: (i.cameras || []).map((c) =>
+            c.id === cameraId ? { ...c, ...res.data } : c
+          ),
+        }))
+      );
+
+      if (activeIntersection) refreshActiveDashboard();
+      alert("Cập nhật thành công!");
+      return true;
+    } catch (error) {
+      console.error("Lỗi sửa camera:", error);
+      alert("Lỗi: " + error.message);
+      return false;
+    }
+  };
+
+  // 3. Xóa Camera
+  const deleteCamera = async (cameraId, intersectionId) => {
+    if (!window.confirm("Bạn có chắc muốn xóa camera này không?")) return;
+
+    try {
+      await trafficAxios.delete(`/cameras/${cameraId}`);
+
+      // Xóa khỏi State local
+      setIntersections((prev) =>
+        prev.map((i) => {
+          if (i.id === intersectionId) {
+            return {
+              ...i,
+              cameras: i.cameras.filter((c) => c.id !== cameraId),
+            };
+          }
+          return i;
+        })
+      );
+
+      if (activeIntersection) refreshActiveDashboard();
+    } catch (error) {
+      console.error("Lỗi xóa camera:", error);
+      alert("Xóa thất bại!");
+    }
+  };
+
+  // giả lập cảnh báo demo ---------------------------------------------------------------
   const [alerts, setAlerts] = useState([]);
   const unreadAlertCount = alerts.filter((a) => !a.isRead).length;
 
@@ -318,6 +423,9 @@ export const TrafficProvider = ({ children }) => {
     createIntersection,
     updateIntersection,
     deleteIntersection,
+    addCamera,
+    updateCamera,
+    deleteCamera,
     user, //: { role: "admin", username: "admin", fullName: "Quản trị viên" },
   };
 
