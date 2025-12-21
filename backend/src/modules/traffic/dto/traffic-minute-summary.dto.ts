@@ -14,4 +14,6 @@ export class TrafficMinuteSummaryDto {
     vehicles_max: number;
     @IsInt()
     samples: number;
+    @IsInt()
+    flow_count: number;
 }

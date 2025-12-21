@@ -129,6 +129,7 @@ export class TrafficRepository {
         vehiclesAvg: data.vehicles_avg,
         vehiclesMax: data.vehicles_max,
         samples: data.samples,
+        flowCount: data.flow_count,
       },
       create: {
         cameraId: data.cameraId,
@@ -137,6 +138,7 @@ export class TrafficRepository {
         vehiclesAvg: data.vehicles_avg,
         vehiclesMax: data.vehicles_max,
         samples: data.samples,
+        flowCount: data.flow_count,
       },
     });
   }
