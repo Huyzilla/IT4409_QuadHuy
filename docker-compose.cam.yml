@@ -16,7 +16,7 @@ services:
     volumes:
       - ./videos:/videos:ro
     command: >
-      -re -stream_loop -1 -fflags +genpts -i /videos/demo_10s_low.mp4
+      -re -stream_loop -1 -fflags +genpts -i /videos/main_video.mp4
       -an
       -c:v copy
       -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/north
@@ -30,7 +30,7 @@ services:
     volumes:
       - ./videos:/videos:ro
     command: >
-      -re -stream_loop -1 -fflags +genpts -i /videos/demo_10s_low.mp4
+      -re -stream_loop -1 -fflags +genpts -i /videos/main_video.mp4
       -an
       -c:v copy
       -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/east
@@ -44,7 +44,7 @@ services:
     volumes:
       - ./videos:/videos:ro
     command: >
-      -re -stream_loop -1 -fflags +genpts -i /videos/demo_10s_low.mp4
+      -re -stream_loop -1 -fflags +genpts -i /videos/main_video.mp4
       -an
       -c:v copy
       -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/south
@@ -58,7 +58,7 @@ services:
     volumes:
       - ./videos:/videos:ro
     command: >
-      -re -stream_loop -1 -fflags +genpts -i /videos/demo_10s_low.mp4
+      -re -stream_loop -1 -fflags +genpts -i /videos/main_video.mp4
       -an
       -c:v copy
       -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/west

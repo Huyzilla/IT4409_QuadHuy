@@ -75,6 +75,7 @@ model TrafficMinuteSummary {
   vehiclesAvg Float    @map("vehicles_avg")
   vehiclesMax Int      @map("vehicles_max")
   samples     Int
+  flowCount   Int      @default(0) @map("flow_count")
   createdAt   DateTime @default(now()) @map("created_at")
 
   camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
