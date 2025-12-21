@@ -6,12 +6,15 @@ export default function HlsVideo({ src, ...videoProps }) {
 
   const getBrowserFriendlyUrl = (originalUrl) => {
     if (!originalUrl) return "";
-    
+
     if (originalUrl.includes("rtsp://mediamtx:8554")) {
-      let newUrl = originalUrl.replace("rtsp://mediamtx:8554", "http://localhost:8888");
+      let newUrl = originalUrl.replace(
+        "rtsp://mediamtx:8554",
+        "http://localhost:8888"
+      );
       return `${newUrl}/index.m3u8`;
     }
-    
+
     return originalUrl;
   };
 
@@ -20,10 +23,9 @@ export default function HlsVideo({ src, ...videoProps }) {
     if (!video) return;
 
     const hlsUrl = getBrowserFriendlyUrl(src);
-    console.log("Playing URL:", hlsUrl); 
+    console.log("Playing URL:", hlsUrl);
 
     if (Hls.isSupported()) {
-
     }
 
     if (Hls.isSupported()) {
@@ -33,7 +35,7 @@ export default function HlsVideo({ src, ...videoProps }) {
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         video.play().catch((e) => console.log("Auto-play prevented:", e));
       });
-      
+
       return () => {
         hls.destroy();
       };

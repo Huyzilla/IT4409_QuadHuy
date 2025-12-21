@@ -1,24 +1,31 @@
-// src/socket.js
 import { io } from "socket.io-client";
 
-// Backend NestJS: TrafficGateway thường để namespace "/traffic"
-// => URL sẽ là http://localhost:3000/traffic
-// Nếu sau này anh đổi namespace thì sửa lại string này cho khớp.
-export const trafficSocket = io("http://localhost:3000/traffic", {
-    transports: ["websocket"],
-    autoConnect: true,
+const BASE_URL = "http://localhost:3001";
+
+// Kết nối Dashboard (đèn, xe hiện tại)
+export const trafficSocket = io(`${BASE_URL}/traffic`, {
+  transports: ["websocket"],
+  autoConnect: true,
 });
 
-// Log để debug
-trafficSocket.on("connect", () => {
-    console.log("[WS FE] Connected to /traffic, id =", trafficSocket.id);
+// Kết nối Ingest (thống kê phút từ AI)
+export const ingestSocket = io(`${BASE_URL}/ingest`, {
+  transports: ["websocket"],
+  autoConnect: true,
 });
 
-trafficSocket.on("disconnect", () => {
-    console.log("[WS FE] Disconnected from /traffic");
+ingestSocket.on("connect", () => {
+  console.log("[WS FE] Connected to /ingest, socket ID:", ingestSocket.id);
 });
 
-// Log mọi event để xem backend đang gửi gì
-trafficSocket.onAny((event, ...args) => {
-    console.log("[WS FE] event =", event, "args =", args);
+ingestSocket.on("new_minute_stats", (data) => {
+  console.log("📈 Received new_minute_stats:", data);
+});
+
+ingestSocket.onAny((eventName, ...args) => {
+  console.log(`[WS DEBUG] Event: ${eventName}`, args);
+});
+
+ingestSocket.on("disconnect", () => {
+  console.log("[WS FE] Disconnected from /ingest");
 });
