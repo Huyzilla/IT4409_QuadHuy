@@ -770,46 +770,106 @@ h3 {
 }
 
 .sidebar {
-    width: var(--sidebar-width, 250px);
-    background: linear-gradient(
-            180deg,
-            rgba(30, 41, 59, 0.95) 0%,
-            rgba(15, 23, 42, 0.95) 100%
-    );
+    position: relative;
+    z-index: 1000 !important;
+    width: var(--sidebar-width);
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
     backdrop-filter: blur(20px);
     padding: 30px 24px;
     border-right: 1px solid rgba(5, 150, 105, 0.2);
-    flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    position: relative;
     overflow: hidden;
 }
 
-.sidebar::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 2px;
-    height: 100%;
-    background: linear-gradient(
-            180deg,
-            transparent 0%,
-            var(--color-accent-blue) 30%,
-            var(--color-accent-purple) 70%,
-            transparent 100%
-    );
-    animation: pulse 3s ease-in-out infinite;
+.sidebar-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 25px 0 15px 0;
+    padding: 0 5px;
 }
 
-.sidebar-header {
-    position: relative;
+.sidebar-list-header .list-title {
+    margin-bottom: 0;
+    padding-left: 5px;
+    font-size: 12px;
+    letter-spacing: 1px;
+    color: var(--color-text-secondary);
+}
+
+.btn-add-new {
+    background-color: var(--color-accent-blue);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-add-new:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.resizer-handle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+}
+
+.item-actions-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-left: 8px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s;
+}
+
+.intersection-item:hover .item-actions-group {
+    opacity: 1;
+    visibility: visible;
+}
+
+.btn-icon-action {
+    width: 24px;
+    height: 24px;
     display: flex;
     align-items: center;
-    margin-bottom: 30px;
-    border-bottom: 1px solid var(--color-border);
-    padding-bottom: 20px;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.btn-icon-action.edit:hover {
+    border-color: var(--color-accent-blue);
+    color: var(--color-accent-blue);
+}
+
+.btn-icon-action.delete {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: var(--color-traffic-heavy);
+}
+
+.btn-icon-action.delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--color-traffic-heavy);
 }
 
 .icon-settings {
@@ -1239,6 +1299,47 @@ h3 {
     overflow: hidden;
     transform-origin: top right;
     animation: fadeIn 0.2s ease-out, slideInDownAlert 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.alert-panel-list::-webkit-scrollbar,
+.intersection-list::-webkit-scrollbar,
+.main-content::-webkit-scrollbar,
+.live-modal-content::-webkit-scrollbar,
+.ch-grid::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.alert-panel-list::-webkit-scrollbar-track,
+.intersection-list::-webkit-scrollbar-track,
+.main-content::-webkit-scrollbar-track,
+.live-modal-content::-webkit-scrollbar-track {
+    background: rgba(15, 23, 42, 0.1);
+    border-radius: 10px;
+}
+
+.alert-panel-list::-webkit-scrollbar-thumb,
+.intersection-list::-webkit-scrollbar-thumb,
+.main-content::-webkit-scrollbar-thumb,
+.live-modal-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+            180deg,
+            var(--color-accent-blue) 0%,
+            var(--color-accent-purple) 100%
+    );
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.alert-panel-list::-webkit-scrollbar-thumb:hover,
+.main-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent-cyan);
+    box-shadow: 0 0 8px var(--color-accent-cyan);
+}
+
+.alert-panel-list, .main-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-accent-blue) transparent;
 }
 
 @keyframes slideInDownAlert {
