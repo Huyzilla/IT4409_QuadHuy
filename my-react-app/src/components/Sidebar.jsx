@@ -3,7 +3,6 @@ import { useTraffic } from "../context/TrafficContext";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import IntersectionModal from "./IntersectionModal";
-import "./Sidebar.css";
 
 const UserDropdown = ({
                           onLogoutRequest,
@@ -201,23 +200,26 @@ const Sidebar = ({
                 </select>
 
                 <select
-                    aria-label="Lọc theo khu vực"
+                    aria-label="Lọc theo ngã tư"
                     value={areaFilter}
                     onChange={(e) => setAreaFilter(e.target.value)}
                     className="custom-select"
                 >
-                    <option value="all">Tất cả khu vực</option>
-                    <option value="Đống Đa">Đống Đa</option>
-                    <option value="Phương Mai, Đống Đa">Phương Mai, Đống Đa</option>
-                    <option value="Xuân Thủy">Xuân Thủy</option>
-                    <option value="quan3">Quận 3</option>
+                    <option value="all">Tất cả ngã tư</option>
+                    {intersections.map((item) => (
+                        <option key={item.id} value={item.label}>
+                            {item.label}
+                        </option>
+                    ))}
                 </select>
             </div>
 
-            <h3 className="list-title">DANH SÁCH NGÃ TƯ</h3>
-            <button className="btn-add-new" onClick={handleCreate}>
-                + Thêm
-            </button>
+            <div className="sidebar-list-header">
+                <h3 className="list-title">DANH SÁCH NGÃ TƯ</h3>
+                <button className="btn-add-new" onClick={handleCreate}>
+                    + Thêm
+                </button>
+            </div>
             <ul className="intersection-list">
                 {filteredIntersections.length > 0 ? (
                     filteredIntersections.map((item) => {

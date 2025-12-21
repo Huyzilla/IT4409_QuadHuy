@@ -87,7 +87,7 @@ const AlertPanel = ({ onClose, isDropdown = false }) => {
                     </button>
                 </div>
 
-                <div className="alert-panel-list" style={{ overflowY: 'auto', maxHeight: '280px' }}>
+                <div className="alert-panel-list" style={{ overflowY: 'auto', maxHeight: '280px', paddingRight: '4px' }}>
                     {filteredAlerts.length > 0 ? (
                         filteredAlerts.map(alert => (
                             <div
