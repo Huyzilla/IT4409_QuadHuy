@@ -8,6 +8,7 @@ import { IntersectionModule } from './modules/intersection/intersection.module';
 import { TrafficModule } from './modules/traffic/traffic.module';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { MailModule } from './modules/mail/mail.module';
 
 /**
  * AppModule is the root module of the application.
@@ -18,16 +19,16 @@ import { AuthModule } from './modules/auth/auth.module';
     // Core infrastructure modules (Global)
     PrismaModule,
     RedisModule,
-    
+
     // Feature modules
     AuthModule,
     CameraModule,
     IntersectionModule,
     TrafficModule,
     UsersModule,
+    //MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-
