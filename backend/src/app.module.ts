@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './modules/database/prisma.module';
@@ -7,6 +8,7 @@ import { CameraModule } from './modules/camera/camera.module';
 import { IntersectionModule } from './modules/intersection/intersection.module';
 import { TrafficModule } from './modules/traffic/traffic.module';
 import { UsersModule } from './users/users.module';
+import { ChatModule } from './modules/chat/chat.module';
 
 /**
  * AppModule is the root module of the application.
@@ -14,6 +16,10 @@ import { UsersModule } from './users/users.module';
  */
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
     // Core infrastructure modules (Global)
     PrismaModule,
     RedisModule,
@@ -23,6 +29,7 @@ import { UsersModule } from './users/users.module';
     IntersectionModule,
     TrafficModule,
     UsersModule,
+    ChatModule,
   ],
   controllers: [AppController],
   providers: [AppService],
