@@ -1,13 +1,17 @@
-import React from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
+import React, { Suspense, lazy } from "react";
+import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
-import MainApp from "./MainApp";
-import HistoryAnalysis from "./pages/HistoryAnalysis.jsx";
-import Register from "./pages/Register";
-import VerifyEmail from "./pages/VerifyEmail";
+import TrafficLayout from "./layouts/TrafficLayout";
+import Spinner from "./components/Spinner";
 
-function ProtectedRoute({ children }) {
+const MainApp = lazy(() => import("./MainApp"));
+const HistoryAnalysis = lazy(() => import("./pages/HistoryAnalysis.jsx"));
+const Register = lazy(() => import("./pages/Register"));
+const VerifyEmail = lazy(() => import("./pages/VerifyEmail"));
+const OAuthSuccess = lazy(() => import("./pages/oauth-success.jsx"));
+
+function ProtectedRoute() {
   const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
@@ -18,27 +22,32 @@ function ProtectedRoute({ children }) {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
 }
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
-      <Route path="/verify-email" element={<VerifyEmail />} />
-      <Route
-        path="/*"
-        element={
-          <ProtectedRoute>
-            <MainApp />
-          </ProtectedRoute>
-        }
-      />
+    <Suspense fallback={<Spinner small />}>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/oauth-success" element={<OAuthSuccess />} />
 
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        {/* Protected + Traffic layout nested */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<TrafficLayout />}>
+            <Route path="/" element={<MainApp />} />
+            <Route path="/dashboard" element={<MainApp />} />
+            <Route path="/history" element={<HistoryAnalysis />} />
+            <Route path="/*" element={<MainApp />} />
+          </Route>
+        </Route>
 
-      <Route path="/history" element={<HistoryAnalysis />} />
-    </Routes>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </Suspense>
   );
 }

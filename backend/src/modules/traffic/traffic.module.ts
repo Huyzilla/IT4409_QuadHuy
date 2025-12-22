@@ -7,6 +7,7 @@ import { IngestGateway } from './ingest.gateway';
 import { TrafficGateway } from './traffic.gateway';
 import { RedisModule } from '../redis/redis.module';
 import { PrismaModule } from '../database/prisma.module';
+import { AuthModule } from '../auth/auth.module';
 
 /**
  * TrafficModule encapsulates all traffic management features:
@@ -16,7 +17,7 @@ import { PrismaModule } from '../database/prisma.module';
  * - REST API for historical data
  */
 @Module({ 
-  imports: [PrismaModule, RedisModule],
+  imports: [PrismaModule, RedisModule, AuthModule],
   controllers: [TrafficController],
   providers: [
     TrafficService,

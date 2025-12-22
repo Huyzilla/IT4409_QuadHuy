@@ -9,6 +9,8 @@ import { IntersectionModule } from './modules/intersection/intersection.module';
 import { TrafficModule } from './modules/traffic/traffic.module';
 import { UsersModule } from './users/users.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { MailModule } from './modules/mail/mail.module';
 
 /**
  * AppModule is the root module of the application.
@@ -23,8 +25,10 @@ import { ChatModule } from './modules/chat/chat.module';
     // Core infrastructure modules (Global)
     PrismaModule,
     RedisModule,
-    
+
     // Feature modules
+    AuthModule,
+    MailModule,
     CameraModule,
     IntersectionModule,
     TrafficModule,
@@ -35,4 +39,3 @@ import { ChatModule } from './modules/chat/chat.module';
   providers: [AppService],
 })
 export class AppModule {}
-
