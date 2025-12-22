@@ -5,7 +5,16 @@ class RefreshTokenDto {
   @IsString()
   refreshToken: string;
 }
-import { Body, Controller, Post, Get, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Get,
+  Req,
+  Res,
+  UseGuards,
+  UnauthorizedException,
+} from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { AuthGuard } from '@nestjs/passport';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -20,18 +29,23 @@ import { ResendVerificationDto } from './dto/resend-verification.dto';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) { }
+  constructor(private readonly authService: AuthService) {}
 
   @Post('refresh')
   @ApiOperation({ summary: 'Refresh access token using refresh token' })
-  @ApiResponse({ status: 201, description: 'New accessToken and refreshToken issued' })
+  @ApiResponse({
+    status: 201,
+    description: 'New accessToken and refreshToken issued',
+  })
   @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   async refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refreshAccessToken(dto.userId, dto.refreshToken);
   }
 
   @Post('register')
-  @ApiOperation({ summary: 'Register with username/password and send email verification code' })
+  @ApiOperation({
+    summary: 'Register with username/password and send email verification code',
+  })
   @ApiResponse({ status: 201, description: 'Verification required (OTP sent)' })
   @ApiResponse({ status: 409, description: 'Username or email already exists' })
   async register(@Body() dto: RegisterDto) {
@@ -40,7 +54,10 @@ export class AuthController {
 
   @Post('verify-email')
   @ApiOperation({ summary: 'Verify email with OTP code and create account' })
-  @ApiResponse({ status: 201, description: 'Verified + user created + JWT issued' })
+  @ApiResponse({
+    status: 201,
+    description: 'Verified + user created + JWT issued',
+  })
   @ApiResponse({ status: 401, description: 'Invalid/expired code' })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmailCode(dto);
@@ -61,7 +78,6 @@ export class AuthController {
     return this.authService.loginLocal(dto);
   }
 
-
   // OAuth2 redirect: /auth/google
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -81,7 +97,11 @@ export class AuthController {
     const fullName = profile.displayName;
     const avatar = profile.photos?.[0]?.value;
     // Gọi AuthService để upsert user và sinh JWT
-    const result = await this.authService.loginOrRegisterGoogleOAuth({ email, fullName, avatar });
+    const result = await this.authService.loginOrRegisterGoogleOAuth({
+      email,
+      fullName,
+      avatar,
+    });
     // Set refresh token as httpOnly cookie (store both userId and token so server can verify)
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
     const cookieValue = `${result.user.id}:${result.refreshToken}`;
@@ -114,10 +134,14 @@ export class AuthController {
     const cookie = req.cookies?.refreshToken as string | undefined;
     if (!cookie) throw new UnauthorizedException('No refresh cookie');
     const [userId, refreshToken] = String(cookie).split(':');
-    if (!userId || !refreshToken) throw new UnauthorizedException('Invalid refresh cookie');
+    if (!userId || !refreshToken)
+      throw new UnauthorizedException('Invalid refresh cookie');
 
     // Use existing refresh logic to rotate tokens
-    const tokens = await this.authService.refreshAccessToken(userId, refreshToken);
+    const tokens = await this.authService.refreshAccessToken(
+      userId,
+      refreshToken,
+    );
 
     // Set new refresh cookie (rotate)
     const cookieValue = `${userId}:${tokens.refreshToken}`;

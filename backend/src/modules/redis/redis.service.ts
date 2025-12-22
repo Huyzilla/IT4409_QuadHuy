@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import Redis from 'ioredis';
 
 /**
@@ -61,7 +66,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Cache traffic state with TTL
    */
-  async cacheTrafficState(key: string, data: any, ttlSeconds: number = 60): Promise<void> {
+  async cacheTrafficState(
+    key: string,
+    data: any,
+    ttlSeconds: number = 60,
+  ): Promise<void> {
     await this.client.set(key, JSON.stringify(data), 'EX', ttlSeconds);
   }
 
@@ -83,7 +92,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   /**
    * Subscribe to a channel
    */
-  async subscribe(channel: string, callback: (message: any) => void): Promise<void> {
+  async subscribe(
+    channel: string,
+    callback: (message: any) => void,
+  ): Promise<void> {
     await this.subscriber.subscribe(channel);
     this.subscriber.on('message', (ch, msg) => {
       if (ch === channel) {

@@ -48,7 +48,9 @@ async function bootstrap() {
   // Setup Swagger documentation
   const config = new DocumentBuilder()
     .setTitle('AI-Based Adaptive Traffic Control System API')
-    .setDescription('Backend API for intelligent traffic light control system with AI camera integration')
+    .setDescription(
+      'Backend API for intelligent traffic light control system with AI camera integration',
+    )
     .setVersion('1.0')
     .addBearerAuth(
       {
@@ -62,7 +64,7 @@ async function bootstrap() {
     .addTag('intersections', 'Intersection management endpoints')
     .addTag('traffic', 'Traffic control and monitoring endpoints')
     .build();
-  
+
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api/docs', app, document, {
     customSiteTitle: 'Traffic Control API Documentation',
@@ -82,4 +84,3 @@ async function bootstrap() {
 }
 
 bootstrap();
-

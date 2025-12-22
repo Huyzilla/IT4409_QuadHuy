@@ -6,33 +6,34 @@ import { ApiProperty } from '@nestjs/swagger';
  * Matches the JSON structure sent by AI module
  */
 export class IngestTrafficDataDto {
-  @ApiProperty({ 
-    description: 'Camera ID that captured the traffic data', 
-    example: 1 
+  @ApiProperty({
+    description: 'Camera ID that captured the traffic data',
+    example: 1,
   })
   @IsNotEmpty()
   @IsInt()
   cameraId: number;
 
-  @ApiProperty({ 
-    description: 'Number of vehicles detected in the frame', 
-    example: 5 
+  @ApiProperty({
+    description: 'Number of vehicles detected in the frame',
+    example: 5,
   })
   @IsNotEmpty()
   @IsInt()
   vehicles: number;
 
-  @ApiProperty({ 
-    description: 'Whether an emergency vehicle (ambulance, fire truck) was detected', 
-    example: false 
+  @ApiProperty({
+    description:
+      'Whether an emergency vehicle (ambulance, fire truck) was detected',
+    example: false,
   })
   @IsNotEmpty()
   @IsBoolean()
   isEmergency: boolean;
 
-  @ApiProperty({ 
-    description: 'Unix timestamp when the data was captured', 
-    example: 1732500000 
+  @ApiProperty({
+    description: 'Unix timestamp when the data was captured',
+    example: 1732500000,
   })
   @IsNotEmpty()
   @IsNumber()

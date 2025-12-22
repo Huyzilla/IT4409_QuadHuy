@@ -1,5 +1,17 @@
-import { Controller, Get, Query, ParseIntPipe, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Query,
+  ParseIntPipe,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { TrafficService } from './traffic.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -18,13 +30,29 @@ export class TrafficController {
    * Get traffic signal logs with pagination
    */
   @Get('logs')
-  @ApiOperation({ 
-    summary: 'Get traffic signal logs', 
-    description: 'Retrieve paginated traffic signal change logs with timestamps and reasons' 
+  @ApiOperation({
+    summary: 'Get traffic signal logs',
+    description:
+      'Retrieve paginated traffic signal change logs with timestamps and reasons',
   })
-  @ApiQuery({ name: 'limit', type: 'number', required: false, description: 'Number of logs to return', example: 20 })
-  @ApiQuery({ name: 'offset', type: 'number', required: false, description: 'Offset for pagination', example: 0 })
-  @ApiResponse({ status: 200, description: 'Traffic logs retrieved successfully' })
+  @ApiQuery({
+    name: 'limit',
+    type: 'number',
+    required: false,
+    description: 'Number of logs to return',
+    example: 20,
+  })
+  @ApiQuery({
+    name: 'offset',
+    type: 'number',
+    required: false,
+    description: 'Offset for pagination',
+    example: 0,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Traffic logs retrieved successfully',
+  })
   async getTrafficLogs(
     @Query('limit', ParseIntPipe) limit: number = 20,
     @Query('offset', ParseIntPipe) offset: number = 0,
@@ -37,9 +65,10 @@ export class TrafficController {
    * Get current traffic state snapshot
    */
   @Get('snapshot')
-  @ApiOperation({ 
-    summary: 'Get current traffic state', 
-    description: 'Retrieve real-time snapshot of all road traffic states and light statuses' 
+  @ApiOperation({
+    summary: 'Get current traffic state',
+    description:
+      'Retrieve real-time snapshot of all road traffic states and light statuses',
   })
   @ApiResponse({ status: 200, description: 'Current traffic state snapshot' })
   async getSnapshot() {
@@ -51,14 +80,36 @@ export class TrafficController {
    * Get traffic statistics for a camera within a time range
    */
   @Get('stats')
-  @ApiOperation({ 
-    summary: 'Get traffic statistics', 
-    description: 'Retrieve aggregated traffic statistics for a specific camera and time range' 
+  @ApiOperation({
+    summary: 'Get traffic statistics',
+    description:
+      'Retrieve aggregated traffic statistics for a specific camera and time range',
   })
-  @ApiQuery({ name: 'cameraId', type: 'string', required: false, description: 'Camera ID to filter by', example: '1' })
-  @ApiQuery({ name: 'from', type: 'string', required: false, description: 'Start timestamp (ISO 8601)', example: '2025-11-25T00:00:00Z' })
-  @ApiQuery({ name: 'to', type: 'string', required: false, description: 'End timestamp (ISO 8601)', example: '2025-11-25T23:59:59Z' })
-  @ApiResponse({ status: 200, description: 'Traffic statistics retrieved successfully' })
+  @ApiQuery({
+    name: 'cameraId',
+    type: 'string',
+    required: false,
+    description: 'Camera ID to filter by',
+    example: '1',
+  })
+  @ApiQuery({
+    name: 'from',
+    type: 'string',
+    required: false,
+    description: 'Start timestamp (ISO 8601)',
+    example: '2025-11-25T00:00:00Z',
+  })
+  @ApiQuery({
+    name: 'to',
+    type: 'string',
+    required: false,
+    description: 'End timestamp (ISO 8601)',
+    example: '2025-11-25T23:59:59Z',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Traffic statistics retrieved successfully',
+  })
   async getStats(
     @Query('cameraId') cameraId?: string,
     @Query('from') from?: string,
@@ -69,7 +120,9 @@ export class TrafficController {
   }
 
   @Get('minute-stats')
-  @ApiOperation({ summary: 'Lấy thống kê lưu lượng theo phút cho nhiều camera' })
+  @ApiOperation({
+    summary: 'Lấy thống kê lưu lượng theo phút cho nhiều camera',
+  })
   async getMinuteStats(
     @Query('cameraIds') cameraIds?: string,
     @Query('from') from?: string,

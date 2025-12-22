@@ -28,12 +28,12 @@ import { MailModule } from './modules/mail/mail.module';
 
     // Feature modules
     AuthModule,
-    MailModule,
     CameraModule,
     IntersectionModule,
     TrafficModule,
     UsersModule,
     ChatModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

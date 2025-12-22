@@ -15,7 +15,7 @@ import { AuthService } from '../auth/auth.service';
 /**
  * TrafficGateway broadcasts real-time traffic state to frontend dashboard.
  * Sends updates every second and whenever traffic lights change.
- * 
+ *
  * Endpoint: ws://localhost:3000/traffic
  * Event: 'traffic_update' (server → client)
  */
@@ -23,7 +23,9 @@ import { AuthService } from '../auth/auth.service';
   namespace: '/traffic',
   cors: { origin: '*', credentials: true },
 })
-export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class TrafficGateway
+  implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect
+{
   @WebSocketServer()
   server: Server;
 
@@ -46,8 +48,10 @@ export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGat
     // Require JWT for /traffic namespace (keep /ingest unauthenticated)
     server.use((socket, next) => {
       try {
-        const tokenFromAuth = (socket.handshake as any)?.auth?.token as string | undefined;
-        const authHeader = socket.handshake.headers?.authorization as string | undefined;
+        const tokenFromAuth = (socket.handshake as any)?.auth?.token as
+          | string
+          | undefined;
+        const authHeader = socket.handshake.headers?.authorization;
         const tokenFromHeader = authHeader?.startsWith('Bearer ')
           ? authHeader.slice('Bearer '.length).trim()
           : undefined;
@@ -58,7 +62,7 @@ export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGat
         }
 
         const payload = this.authService.verifyAccessToken(token);
-        (socket.data as any).user = payload;
+        socket.data.user = payload;
         return next();
       } catch {
         return next(new Error('Unauthorized'));
@@ -82,7 +86,7 @@ export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGat
    * The frontend emits 'request-initial-stream' right after connect to
    * ask the server to send the latest frame/state immediately.
    */
-  // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+
   @SubscribeMessage('request-initial-stream')
   handleRequestInitialStream(client: Socket) {
     this.logger.log(`Client requested initial stream: ${client.id}`);
@@ -90,7 +94,7 @@ export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGat
       const currentState = this.trafficService.getCurrentState();
       client.emit('traffic_update', currentState);
     } catch (err) {
-      this.logger.error('Failed to send initial stream', err as any);
+      this.logger.error('Failed to send initial stream', err);
     }
   }
 
@@ -99,7 +103,7 @@ export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGat
    */
   handleConnection(client: Socket) {
     this.logger.log(`Frontend client connected: ${client.id}`);
-    
+
     // Send current state immediately on connection
     const currentState = this.trafficService.getCurrentState();
     client.emit('traffic_update', currentState);
@@ -114,7 +118,7 @@ export class TrafficGateway implements OnGatewayInit, OnGatewayConnection, OnGat
 
   /**
    * Broadcast current traffic state to all connected clients
-   * 
+   *
    * Emits:
    * {
    *   "north": { "vehicles": 3, "light": "RED", "remaining": 10 },

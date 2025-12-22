@@ -113,20 +113,29 @@ export class ChatService {
 
       if (intent.kind === 'general') {
         if (intent.topic === 'identity') return { reply: ASSISTANT_IDENTITY };
-        if (intent.topic === 'capabilities') return { reply: ASSISTANT_CAPABILITIES };
+        if (intent.topic === 'capabilities')
+          return { reply: ASSISTANT_CAPABILITIES };
 
         const resp = await this.openai.chat.completions.create({
           model: 'gpt-4o-mini',
           messages: [
-            { role: 'system', content: 'Bạn là trợ lý ảo của hệ thống giám sát giao thông. Trả lời ngắn gọn, thân thiện.' },
+            {
+              role: 'system',
+              content:
+                'Bạn là trợ lý ảo của hệ thống giám sát giao thông. Trả lời ngắn gọn, thân thiện.',
+            },
             { role: 'user', content: userMessage },
           ],
           temperature: 0.3,
         });
-        return { reply: resp.choices[0]?.message?.content ?? 'Mình có thể hỗ trợ bạn tra cứu số liệu giao thông và log hệ thống.' };
+        return {
+          reply:
+            resp.choices[0]?.message?.content ??
+            'Mình có thể hỗ trợ bạn tra cứu số liệu giao thông và log hệ thống.',
+        };
       }
 
-      // Execute DB query 
+      // Execute DB query
       const data = await this.executeIntent(intent);
       const composed = await this.composeAnswer(userMessage, intent, data);
       if (!composed) {
@@ -137,10 +146,16 @@ export class ChatService {
     } catch (error: any) {
       const status = error?.status;
       const msg = error?.message ?? String(error);
-      this.logger.error(`Chat error status=${status} message=${msg}`, error?.stack);
+      this.logger.error(
+        `Chat error status=${status} message=${msg}`,
+        error?.stack,
+      );
 
       if (status === 429) {
-        return { reply: 'OpenAI API đang hết quota / bị giới hạn. Bạn cần nạp credit hoặc đổi key.' };
+        return {
+          reply:
+            'OpenAI API đang hết quota / bị giới hạn. Bạn cần nạp credit hoặc đổi key.',
+        };
       }
       return { reply: `Lỗi: ${msg}` };
     }
@@ -162,8 +177,11 @@ export class ChatService {
     try {
       const parsed = JSON.parse(raw) as ChatIntent;
       if (parsed.kind === 'traffic') {
-        parsed.time ??= { preset: parsed.metric === 'current_vehicles' ? 'last_15m' : 'today' };
-        parsed.time.preset ??= parsed.metric === 'current_vehicles' ? 'last_15m' : 'today';
+        parsed.time ??= {
+          preset: parsed.metric === 'current_vehicles' ? 'last_15m' : 'today',
+        };
+        parsed.time.preset ??=
+          parsed.metric === 'current_vehicles' ? 'last_15m' : 'today';
       }
       return parsed;
     } catch {
@@ -171,7 +189,10 @@ export class ChatService {
     }
   }
 
-  private computeRangeSeconds(time: TrafficIntent['time']): { fromSec: number; toSec: number } {
+  private computeRangeSeconds(time: TrafficIntent['time']): {
+    fromSec: number;
+    toSec: number;
+  } {
     const now = new Date();
     const toSec = Math.floor(now.getTime() / 1000);
 
@@ -184,15 +205,23 @@ export class ChatService {
       const y0 = new Date(startOfToday);
       y0.setDate(y0.getDate() - 1);
       const y1 = new Date(startOfToday);
-      return { fromSec: Math.floor(y0.getTime() / 1000), toSec: Math.floor(y1.getTime() / 1000) };
+      return {
+        fromSec: Math.floor(y0.getTime() / 1000),
+        toSec: Math.floor(y1.getTime() / 1000),
+      };
     }
     if (time.preset === 'last_60m') return { fromSec: toSec - 60 * 60, toSec };
     if (time.preset === 'last_15m') return { fromSec: toSec - 15 * 60, toSec };
 
     // custom
-    const from = time.fromISO ? new Date(time.fromISO) : new Date(toSec * 1000 - 15 * 60 * 1000);
+    const from = time.fromISO
+      ? new Date(time.fromISO)
+      : new Date(toSec * 1000 - 15 * 60 * 1000);
     const to = time.toISO ? new Date(time.toISO) : now;
-    return { fromSec: Math.floor(from.getTime() / 1000), toSec: Math.floor(to.getTime() / 1000) };
+    return {
+      fromSec: Math.floor(from.getTime() / 1000),
+      toSec: Math.floor(to.getTime() / 1000),
+    };
   }
 
   private async resolveCameraIds(intent: TrafficIntent): Promise<number[]> {
@@ -207,7 +236,9 @@ export class ChatService {
     if (intent.scope === 'intersection' && intent.intersectionName) {
       const cams = await this.prisma.camera.findMany({
         where: {
-          intersection: { name: { contains: intent.intersectionName, mode: 'insensitive' } },
+          intersection: {
+            name: { contains: intent.intersectionName, mode: 'insensitive' },
+          },
         },
         select: { id: true },
       });
@@ -220,7 +251,8 @@ export class ChatService {
 
   private async executeIntent(intent: TrafficIntent): Promise<any> {
     const cameraIds = await this.resolveCameraIds(intent);
-    if (cameraIds.length === 0) return { error: 'Không tìm thấy camera phù hợp.' };
+    if (cameraIds.length === 0)
+      return { error: 'Không tìm thấy camera phù hợp.' };
 
     const { fromSec, toSec } = this.computeRangeSeconds(intent.time);
 
@@ -231,7 +263,12 @@ export class ChatService {
           const row = await this.prisma.trafficFrameStat.findFirst({
             where: { cameraId },
             orderBy: { capturedAt: 'desc' },
-            select: { vehicles: true, capturedAt: true, isEmergency: true, cameraId: true },
+            select: {
+              vehicles: true,
+              capturedAt: true,
+              isEmergency: true,
+              cameraId: true,
+            },
           });
           return row;
         }),
@@ -281,7 +318,8 @@ export class ChatService {
         take: 1,
       });
 
-      if (!top.length) return { error: 'Chưa có dữ liệu trong khoảng thời gian yêu cầu.' };
+      if (!top.length)
+        return { error: 'Chưa có dữ liệu trong khoảng thời gian yêu cầu.' };
 
       const peakMinuteStart = top[0].minuteStart;
       const peakFlow = top[0]._sum.flowCount ?? 0;
@@ -303,7 +341,11 @@ export class ChatService {
     return { error: 'Metric không hỗ trợ.' };
   }
 
-  private async composeAnswer(question: string, intent: TrafficIntent, data: any): Promise<string | null> {
+  private async composeAnswer(
+    question: string,
+    intent: TrafficIntent,
+    data: any,
+  ): Promise<string | null> {
     try {
       const resp = await this.openai.chat.completions.create({
         model: 'gpt-4o-mini',
@@ -325,7 +367,9 @@ export class ChatService {
   }
 
   private fmtVNFromEpochSeconds(sec: number): string {
-    return new Date(sec * 1000).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+    return new Date(sec * 1000).toLocaleString('vi-VN', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+    });
   }
 
   private formatResult(intent: TrafficIntent, result: any): string {

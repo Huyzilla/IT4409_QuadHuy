@@ -31,11 +31,19 @@ export class AuthService {
     const redis = this.getRedis();
     const refreshToken = randomUUID();
     const key = `auth:refresh:${userId}`;
-    await redis.set(key, refreshToken, 'EX', AuthService.REFRESH_TOKEN_TTL_SECONDS);
+    await redis.set(
+      key,
+      refreshToken,
+      'EX',
+      AuthService.REFRESH_TOKEN_TTL_SECONDS,
+    );
     return refreshToken;
   }
 
-  private async verifyAndConsumeRefreshToken(userId: string, refreshToken: string): Promise<boolean> {
+  private async verifyAndConsumeRefreshToken(
+    userId: string,
+    refreshToken: string,
+  ): Promise<boolean> {
     const redis = this.getRedis();
     const key = `auth:refresh:${userId}`;
     const stored = await redis.get(key);
@@ -63,14 +71,16 @@ export class AuthService {
     private readonly redisService: RedisService,
     private readonly mailService: MailService,
     private readonly rateLimitService: RateLimitService,
-  ) { }
+  ) {}
 
   private getRedis() {
     return this.redisService.getClient();
   }
 
   private normalizeEmail(email: string): string {
-    return String(email || '').trim().toLowerCase();
+    return String(email || '')
+      .trim()
+      .toLowerCase();
   }
 
   private normalizeUsername(username: string): string {
@@ -115,14 +125,13 @@ export class AuthService {
     email: string;
     password: string;
   }): Promise<{ verificationRequired: true; email: string }> {
-
     // Rate limit: 5 requests per 10 minutes per email
     await this.rateLimitService.check({
       key: `register:${this.normalizeEmail(input.email)}`,
       limit: 5,
       windowSeconds: 600,
       blockSeconds: 600,
-      blockMsg: 'Quá nhiều lần đăng ký, vui lòng thử lại sau.'
+      blockMsg: 'Quá nhiều lần đăng ký, vui lòng thử lại sau.',
     });
     this.ensureJwtSecretConfigured();
 
@@ -164,7 +173,12 @@ export class AuthService {
       AuthService.PENDING_REGISTER_TTL_SECONDS,
     );
 
-    await redis.set(codeKey, this.hashOtpCode(code), 'EX', AuthService.EMAIL_VERIFY_CODE_TTL_SECONDS);
+    await redis.set(
+      codeKey,
+      this.hashOtpCode(code),
+      'EX',
+      AuthService.EMAIL_VERIFY_CODE_TTL_SECONDS,
+    );
 
     // Compose verify link
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -175,7 +189,11 @@ export class AuthService {
     return { verificationRequired: true, email };
   }
 
-  async verifyEmailCode(input: { email: string; code?: string; token?: string }): Promise<{ accessToken: string; refreshToken: string; user: SafeUser }> {
+  async verifyEmailCode(input: {
+    email: string;
+    code?: string;
+    token?: string;
+  }): Promise<{ accessToken: string; refreshToken: string; user: SafeUser }> {
     this.ensureJwtSecretConfigured();
 
     const email = this.normalizeEmail(input.email);
@@ -190,7 +208,9 @@ export class AuthService {
     if (code) {
       const expectedHash = await redis.get(codeKey);
       if (!expectedHash) {
-        throw new UnauthorizedException('Verification code expired or not found');
+        throw new UnauthorizedException(
+          'Verification code expired or not found',
+        );
       }
       if (expectedHash !== this.hashOtpCode(code)) {
         throw new UnauthorizedException('Invalid verification code');
@@ -200,7 +220,9 @@ export class AuthService {
       // Xác thực qua link
       const pendingRaw = await redis.get(pendingKey);
       if (!pendingRaw) {
-        throw new UnauthorizedException('Registration session expired. Please register again.');
+        throw new UnauthorizedException(
+          'Registration session expired. Please register again.',
+        );
       }
       const pending = JSON.parse(pendingRaw);
       if (!pending.verifyToken || pending.verifyToken !== token) {
@@ -213,7 +235,9 @@ export class AuthService {
 
     const pendingRaw = await redis.get(pendingKey);
     if (!pendingRaw) {
-      throw new UnauthorizedException('Registration session expired. Please register again.');
+      throw new UnauthorizedException(
+        'Registration session expired. Please register again.',
+      );
     }
     const pending = JSON.parse(pendingRaw) as {
       username: string;
@@ -259,13 +283,15 @@ export class AuthService {
         avatar: user.avatar,
         provider: 'local',
       },
-      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS }
+      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
     );
     const refreshToken = await this.generateAndStoreRefreshToken(user.id);
     return { accessToken, refreshToken, user: this.toSafeUser(user) };
   }
 
-  async resendEmailVerification(input: { email: string }): Promise<{ ok: true }> {
+  async resendEmailVerification(input: {
+    email: string;
+  }): Promise<{ ok: true }> {
     const email = this.normalizeEmail(input.email);
     // Rate limit: 5 requests per 10 minutes per email
     await this.rateLimitService.check({
@@ -273,7 +299,7 @@ export class AuthService {
       limit: 5,
       windowSeconds: 600,
       blockSeconds: 600,
-      blockMsg: 'Quá nhiều lần gửi lại mã, vui lòng thử lại sau.'
+      blockMsg: 'Quá nhiều lần gửi lại mã, vui lòng thử lại sau.',
     });
     const redis = this.getRedis();
     const pendingKey = `auth:pending:register:${email}`;
@@ -286,20 +312,27 @@ export class AuthService {
     }
 
     const code = this.generateOtp6();
-    await redis.set(codeKey, this.hashOtpCode(code), 'EX', AuthService.EMAIL_VERIFY_CODE_TTL_SECONDS);
+    await redis.set(
+      codeKey,
+      this.hashOtpCode(code),
+      'EX',
+      AuthService.EMAIL_VERIFY_CODE_TTL_SECONDS,
+    );
     await this.mailService.sendEmailVerificationCode(email, code);
     return { ok: true };
   }
 
-  async loginLocal(input: { username: string; password: string }): Promise<{ accessToken: string; refreshToken: string; user: SafeUser }> {
-
+  async loginLocal(input: {
+    username: string;
+    password: string;
+  }): Promise<{ accessToken: string; refreshToken: string; user: SafeUser }> {
     // Rate limit: 10 requests per 10 minutes per username/email
     await this.rateLimitService.check({
       key: `login:${this.normalizeUsername(input.username)}`,
       limit: 10,
       windowSeconds: 600,
       blockSeconds: 600,
-      blockMsg: 'Quá nhiều lần đăng nhập, vui lòng thử lại sau.'
+      blockMsg: 'Quá nhiều lần đăng nhập, vui lòng thử lại sau.',
     });
     this.ensureJwtSecretConfigured();
 
@@ -334,13 +367,15 @@ export class AuthService {
         avatar: user.avatar,
         provider: 'local',
       },
-      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS }
+      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
     );
     const refreshToken = await this.generateAndStoreRefreshToken(user.id);
     return { accessToken, refreshToken, user: this.toSafeUser(user) };
   }
 
-  async exchangeGoogleCredential(credential: string): Promise<{ accessToken: string; refreshToken: string; user: SafeUser }> {
+  async exchangeGoogleCredential(
+    credential: string,
+  ): Promise<{ accessToken: string; refreshToken: string; user: SafeUser }> {
     const audiences = this.getGoogleClientIds();
     if (audiences.length === 0) {
       throw new InternalServerErrorException('GOOGLE_CLIENT_ID is not set');
@@ -369,24 +404,42 @@ export class AuthService {
     // Try to find existing user by email (normalized)
     let user = await this.prisma.user.findUnique({
       where: { email },
-      select: { id: true, username: true, fullName: true, email: true, avatar: true },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        email: true,
+        avatar: true,
+      },
     });
     if (user) {
       // Update profile fields
       user = await this.prisma.user.update({
         where: { id: user.id },
         data: { fullName, avatar },
-        select: { id: true, username: true, fullName: true, email: true, avatar: true },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          email: true,
+          avatar: true,
+        },
       });
     } else {
       // Create a safe unique username based on email local part
       const localPart = email.split('@')[0];
       let candidate = this.normalizeUsername(localPart);
       // Ensure username uniqueness
-      let exists = await this.prisma.user.findUnique({ where: { username: candidate }, select: { id: true } });
+      let exists = await this.prisma.user.findUnique({
+        where: { username: candidate },
+        select: { id: true },
+      });
       if (exists) {
         candidate = `${candidate}_${randomInt(1000, 9999)}`;
-        exists = await this.prisma.user.findUnique({ where: { username: candidate }, select: { id: true } });
+        exists = await this.prisma.user.findUnique({
+          where: { username: candidate },
+          select: { id: true },
+        });
         if (exists) {
           candidate = `${candidate}_${Date.now().toString().slice(-4)}`;
         }
@@ -399,7 +452,13 @@ export class AuthService {
           avatar,
           password: await bcrypt.hash(randomUUID(), 10),
         },
-        select: { id: true, username: true, fullName: true, email: true, avatar: true },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          email: true,
+          avatar: true,
+        },
       });
     }
 
@@ -411,7 +470,7 @@ export class AuthService {
         avatar: user.avatar,
         provider: 'google',
       },
-      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS }
+      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
     );
     const refreshToken = await this.generateAndStoreRefreshToken(user.id);
     return {
@@ -421,7 +480,11 @@ export class AuthService {
     };
   }
 
-  async loginOrRegisterGoogleOAuth(input: { email: string; fullName: string; avatar: string | null }): Promise<{ accessToken: string; refreshToken: string; user: SafeUser }> {
+  async loginOrRegisterGoogleOAuth(input: {
+    email: string;
+    fullName: string;
+    avatar: string | null;
+  }): Promise<{ accessToken: string; refreshToken: string; user: SafeUser }> {
     if (!input.email) {
       throw new UnauthorizedException('Google profile missing email');
     }
@@ -432,21 +495,62 @@ export class AuthService {
     const avatar = input.avatar ?? null;
 
     // Find existing user by normalized email
-    let user = await this.prisma.user.findUnique({ where: { email }, select: { id: true, username: true, fullName: true, email: true, avatar: true } });
+    let user = await this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        email: true,
+        avatar: true,
+      },
+    });
     if (user) {
       // Update profile
-      user = await this.prisma.user.update({ where: { id: user.id }, data: { fullName, avatar }, select: { id: true, username: true, fullName: true, email: true, avatar: true } });
+      user = await this.prisma.user.update({
+        where: { id: user.id },
+        data: { fullName, avatar },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          email: true,
+          avatar: true,
+        },
+      });
     } else {
       // Create unique username based on email local part
       const localPart = email.split('@')[0];
       let candidate = this.normalizeUsername(localPart);
-      let exists = await this.prisma.user.findUnique({ where: { username: candidate }, select: { id: true } });
+      let exists = await this.prisma.user.findUnique({
+        where: { username: candidate },
+        select: { id: true },
+      });
       if (exists) {
         candidate = `${candidate}_${randomInt(1000, 9999)}`;
-        exists = await this.prisma.user.findUnique({ where: { username: candidate }, select: { id: true } });
-        if (exists) candidate = `${candidate}_${Date.now().toString().slice(-4)}`;
+        exists = await this.prisma.user.findUnique({
+          where: { username: candidate },
+          select: { id: true },
+        });
+        if (exists)
+          candidate = `${candidate}_${Date.now().toString().slice(-4)}`;
       }
-      user = await this.prisma.user.create({ data: { username: candidate, email, fullName, avatar, password: await bcrypt.hash(randomUUID(), 10) }, select: { id: true, username: true, fullName: true, email: true, avatar: true } });
+      user = await this.prisma.user.create({
+        data: {
+          username: candidate,
+          email,
+          fullName,
+          avatar,
+          password: await bcrypt.hash(randomUUID(), 10),
+        },
+        select: {
+          id: true,
+          username: true,
+          fullName: true,
+          email: true,
+          avatar: true,
+        },
+      });
     }
     const accessToken = this.jwtService.sign(
       {
@@ -456,7 +560,7 @@ export class AuthService {
         avatar: user.avatar,
         provider: 'google',
       },
-      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS }
+      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
     );
     const refreshToken = await this.generateAndStoreRefreshToken(user.id);
     return {
@@ -466,10 +570,16 @@ export class AuthService {
     };
   }
 
-  async refreshAccessToken(userId: string, refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
+  async refreshAccessToken(
+    userId: string,
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
     // Xác thực refreshToken, cấp lại accessToken mới và refreshToken mới (rotate)
     const ok = await this.verifyAndConsumeRefreshToken(userId, refreshToken);
-    if (!ok) throw new UnauthorizedException('Refresh token không hợp lệ hoặc đã hết hạn');
+    if (!ok)
+      throw new UnauthorizedException(
+        'Refresh token không hợp lệ hoặc đã hết hạn',
+      );
     // Lấy user để cấp accessToken mới
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new UnauthorizedException('User không tồn tại');
@@ -481,7 +591,7 @@ export class AuthService {
         avatar: user.avatar,
         provider: 'local',
       },
-      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS }
+      { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
     );
     const newRefreshToken = await this.generateAndStoreRefreshToken(user.id);
     return { accessToken, refreshToken: newRefreshToken };
@@ -499,7 +609,13 @@ export class AuthService {
   async getSafeUserById(userId: string): Promise<SafeUser | null> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, username: true, fullName: true, email: true, avatar: true },
+      select: {
+        id: true,
+        username: true,
+        fullName: true,
+        email: true,
+        avatar: true,
+      },
     });
     if (!user) return null;
     return this.toSafeUser(user);

@@ -31,13 +31,18 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       DATABASE_URL: "postgresql://admin:admin123@postgres:5432/traffic_ai?schema=public"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       NODE_ENV: production
       JWT_SECRET: "dev_jwt_secret_change_me"
-      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
+      FRONTEND_URL: ${FRONTEND_URL:-}
     command: sh -c "npx prisma db push && node dist/src/main.js"
     depends_on:
       - postgres

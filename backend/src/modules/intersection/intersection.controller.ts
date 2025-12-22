@@ -20,7 +20,10 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { IntersectionService } from './intersection.service';
-import { CreateIntersectionDto, UpdateIntersectionDto } from './dto/intersection.dto';
+import {
+  CreateIntersectionDto,
+  UpdateIntersectionDto,
+} from './dto/intersection.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 /**
@@ -38,8 +41,14 @@ export class IntersectionController {
    * Get all intersections
    */
   @Get()
-  @ApiOperation({ summary: 'Get all intersections', description: 'Retrieve a list of all registered intersections' })
-  @ApiResponse({ status: 200, description: 'List of intersections retrieved successfully' })
+  @ApiOperation({
+    summary: 'Get all intersections',
+    description: 'Retrieve a list of all registered intersections',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of intersections retrieved successfully',
+  })
   async getAllIntersections() {
     return this.intersectionService.getAllIntersections();
   }
@@ -49,7 +58,10 @@ export class IntersectionController {
    * Get intersection by ID
    */
   @Get(':id')
-  @ApiOperation({ summary: 'Get intersection by ID', description: 'Retrieve detailed information about a specific intersection' })
+  @ApiOperation({
+    summary: 'Get intersection by ID',
+    description: 'Retrieve detailed information about a specific intersection',
+  })
   @ApiParam({ name: 'id', type: 'number', description: 'Intersection ID' })
   @ApiResponse({ status: 200, description: 'Intersection found' })
   @ApiResponse({ status: 404, description: 'Intersection not found' })
@@ -63,9 +75,15 @@ export class IntersectionController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new intersection', description: 'Register a new intersection in the system' })
+  @ApiOperation({
+    summary: 'Create a new intersection',
+    description: 'Register a new intersection in the system',
+  })
   @ApiBody({ type: CreateIntersectionDto })
-  @ApiResponse({ status: 201, description: 'Intersection created successfully' })
+  @ApiResponse({
+    status: 201,
+    description: 'Intersection created successfully',
+  })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
   async createIntersection(@Body() dto: CreateIntersectionDto) {
     return this.intersectionService.createIntersection(dto);
@@ -76,10 +94,16 @@ export class IntersectionController {
    * Update intersection
    */
   @Put(':id')
-  @ApiOperation({ summary: 'Update intersection', description: 'Update intersection information' })
+  @ApiOperation({
+    summary: 'Update intersection',
+    description: 'Update intersection information',
+  })
   @ApiParam({ name: 'id', type: 'number', description: 'Intersection ID' })
   @ApiBody({ type: UpdateIntersectionDto })
-  @ApiResponse({ status: 200, description: 'Intersection updated successfully' })
+  @ApiResponse({
+    status: 200,
+    description: 'Intersection updated successfully',
+  })
   @ApiResponse({ status: 404, description: 'Intersection not found' })
   async updateIntersection(
     @Param('id', ParseIntPipe) id: number,
@@ -94,9 +118,15 @@ export class IntersectionController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete intersection', description: 'Remove an intersection from the system' })
+  @ApiOperation({
+    summary: 'Delete intersection',
+    description: 'Remove an intersection from the system',
+  })
   @ApiParam({ name: 'id', type: 'number', description: 'Intersection ID' })
-  @ApiResponse({ status: 204, description: 'Intersection deleted successfully' })
+  @ApiResponse({
+    status: 204,
+    description: 'Intersection deleted successfully',
+  })
   @ApiResponse({ status: 404, description: 'Intersection not found' })
   async deleteIntersection(@Param('id', ParseIntPipe) id: number) {
     await this.intersectionService.deleteIntersection(id);

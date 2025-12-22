@@ -33,7 +33,9 @@ export class TrafficRepository {
   /**
    * Save traffic signal log
    */
-  async saveSignalLog(data: CreateTrafficSignalLogDto): Promise<TrafficSignalLog> {
+  async saveSignalLog(
+    data: CreateTrafficSignalLogDto,
+  ): Promise<TrafficSignalLog> {
     return this.prisma.trafficSignalLog.create({
       data: {
         timestamp: BigInt(data.timestamp),
@@ -51,7 +53,10 @@ export class TrafficRepository {
   /**
    * Get traffic logs with pagination
    */
-  async getTrafficLogs(limit: number = 20, offset: number = 0): Promise<TrafficSignalLog[]> {
+  async getTrafficLogs(
+    limit: number = 20,
+    offset: number = 0,
+  ): Promise<TrafficSignalLog[]> {
     return this.prisma.trafficSignalLog.findMany({
       take: limit,
       skip: offset,
@@ -68,11 +73,11 @@ export class TrafficRepository {
     to?: Date,
   ): Promise<TrafficFrameStat[]> {
     const where: any = {};
-    
+
     if (cameraId) {
       where.cameraId = cameraId;
     }
-    
+
     if (from || to) {
       where.capturedAt = {};
       if (from) where.capturedAt.gte = from;
@@ -96,7 +101,11 @@ export class TrafficRepository {
     });
   }
 
-  async getMinuteSummary(cameraIds: number[], from?: Date, to?: Date): Promise<any[]> {
+  async getMinuteSummary(
+    cameraIds: number[],
+    from?: Date,
+    to?: Date,
+  ): Promise<any[]> {
     const where: any = {};
 
     if (cameraIds.length > 0) {
@@ -112,7 +121,7 @@ export class TrafficRepository {
     return this.prisma.trafficMinuteSummary.findMany({
       where,
       orderBy: { minuteStart: 'asc' },
-      take: (from || to) ? 2000 : 100,
+      take: from || to ? 2000 : 100,
     });
   }
 

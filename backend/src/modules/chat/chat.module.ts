@@ -4,7 +4,7 @@ import { ChatService } from './chat.service';
 import { PrismaModule } from '../database/prisma.module'; // Import module chứa PrismaService
 
 @Module({
-  imports: [PrismaModule], 
+  imports: [PrismaModule],
   controllers: [ChatController],
   providers: [ChatService],
 })
