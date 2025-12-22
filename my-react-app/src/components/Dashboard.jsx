@@ -169,7 +169,6 @@ const DashboardSegmentCard = ({camera, realTimeData, onLiveView, onSettings}) =>
     const aiEnabled = camera.aiEnabled !== undefined ? camera.aiEnabled : true;
     const maxVehicles = camera.maxVehicles || 70;
 
-    // Tính density dựa trên số xe thực tế / số xe tối đa
     const density = maxVehicles > 0 ? vehicles / maxVehicles : 0;
 
     let status = "low";
@@ -354,6 +353,8 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
     const [settingsCamera, setSettingsCamera] = useState(null);
     const [showAlertPanel, setShowAlertPanel] = useState(false);
     const [realTimeStats, setRealTimeStats] = useState({});
+    const [lastDataRefresh, setLastDataRefresh] = useState(null);
+    const [isRefreshing, setIsRefreshing] = useState(false);
     const alertRef = useRef(null);
 
     const processDensityAlert = React.useCallback((data) => {
@@ -389,11 +390,14 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
         }
     }, [activeIntersection, addAlert]);
 
-    // Fetch dữ liệu lịch sử ban đầu (1 giờ gần nhất)
-    const fetchInitialData = React.useCallback(async () => {
+    const fetchInitialData = React.useCallback(async (silent = false) => {
         if (!activeIntersection?.cameras || activeIntersection.cameras.length === 0) return;
 
         const activeCamIds = activeIntersection.cameras.map(c => c.id);
+
+        if (silent) {
+            setIsRefreshing(true);
+        }
 
         try {
             const now = new Date();
@@ -405,8 +409,6 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                 to: now.toISOString(),
                 _t: Date.now()
             };
-
-            console.log("🔄 Fetching initial data for cameras:", activeCamIds);
 
             const response = await axios.get(`${API_URL}/traffic/minute-stats`, { params });
 
@@ -457,13 +459,10 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                 }
             });
 
-            console.log("✅ Initial data loaded:", cameraData);
             setRealTimeStats(cameraData);
+            setLastDataRefresh(new Date());
 
         } catch (err) {
-            console.error("❌ Error fetching initial data:", err);
-
-            // Fallback: khởi tạo với giá trị mặc định
             const initialStats = {};
             activeCamIds.forEach(camId => {
                 initialStats[camId] = {
@@ -477,30 +476,37 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                 };
             });
             setRealTimeStats(initialStats);
+        } finally {
+            if (silent) {
+                setIsRefreshing(false);
+            }
         }
     }, [activeIntersection]);
 
-    // Gọi fetch khi intersection thay đổi
     useEffect(() => {
         fetchInitialData();
     }, [fetchInitialData]);
 
-    // Socket listener cho real-time updates
+    useEffect(() => {
+        const refreshInterval = setInterval(() => {
+            fetchInitialData(true);
+        }, 60000);
+
+        return () => {
+            clearInterval(refreshInterval);
+        };
+    }, [fetchInitialData]);
+
     useEffect(() => {
         if (!activeIntersection) return;
 
         const activeCamIds = activeIntersection.cameras.map(c => c.id);
-        console.log("🎯 Dashboard mount/update - Active Intersection:", activeIntersection.id, "Cameras:", activeCamIds);
 
         const handleNewData = (data) => {
-            console.log("📨 Dashboard nhận socket data:", data);
-
             if (!activeCamIds.includes(Number(data.cameraId))) {
-                console.log("⏭️ Skip camera", data.cameraId, "- Not in active cams:", activeCamIds);
                 return;
             }
 
-            console.log("✅ Processing data for camera", data.cameraId);
             processDensityAlert(data);
 
             setRealTimeStats(prev => {
@@ -544,8 +550,6 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
             });
         };
 
-        console.log("Dashboard đăng ký socket cho cameras:", activeCamIds);
-
         ingestSocket.on("new_minute_stats", handleNewData);
         return () => {
             console.log("Dashboard hủy socket listener");
@@ -565,15 +569,12 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
 
     const handleSaveSettings = (cameraId, settings) => {
         console.log("Saving settings for cam:", cameraId, settings);
-        
-        // Cập nhật cấu hình qua context (không lưu database)
+
         updateCameraSettings(cameraId, settings);
-        
-        console.log("✅ Settings saved successfully to state");
+
         setSettingsCamera(null);
     };
 
-    // Traffic light countdown timer
     useEffect(() => {
         const timer = setInterval(() => {
             setRealTimeStats(prev => {
@@ -607,7 +608,6 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
         return () => clearInterval(timer);
     }, []);
 
-    // Signal decision handler
     useEffect(() => {
         const handleSignalChange = (data) => {
             console.log("Dashboard nhận signal_decision:", data);
@@ -649,6 +649,26 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
             <header className="main-header">
                 <h1 className="page-title">
                     {activeIntersection ? `${activeIntersection.name} — Trạng thái hiện tại` : "Vui lòng chọn một Ngã tư"}
+                    {lastDataRefresh && (
+                        <span style={{
+                            fontSize: "12px",
+                            color: "#64748b",
+                            marginLeft: "12px",
+                            fontWeight: "normal",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                        }}>
+                            <span style={{
+                                width: "6px",
+                                height: "6px",
+                                borderRadius: "50%",
+                                background: isRefreshing ? "#10b981" : "#64748b",
+                                animation: isRefreshing ? "pulse 1.5s ease-in-out infinite" : "none",
+                            }}></span>
+                            {isRefreshing ? "Đang cập nhật..." : `Cập nhật: ${lastDataRefresh.toLocaleTimeString("vi-VN")}`}
+                        </span>
+                    )}
                 </h1>
                 <div className="header-actions">
                     <div ref={alertRef} style={{position: 'relative', display: 'inline-block'}}>

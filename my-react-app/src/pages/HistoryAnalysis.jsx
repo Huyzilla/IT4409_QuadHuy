@@ -17,12 +17,14 @@ export default function HistoryAnalysis() {
     const { activeIntersection, intersections } = useTraffic();
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+    const [lastUpdate, setLastUpdate] = useState(null);
     const [isRealTime, setIsRealTime] = useState(true);
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedHour, setSelectedHour] = useState("all");
     const [selectedIntersections, setSelectedIntersections] = useState([]);
 
-    const fetchHistoryData = useCallback(async () => {
+    const fetchHistoryData = useCallback(async (silent = false) => {
         const camerasOfActive = activeIntersection?.cameras || [];
         if (camerasOfActive.length === 0) return;
 
@@ -34,7 +36,11 @@ export default function HistoryAnalysis() {
 
         const allIds = [...activeCamIds, ...compareCamIds];
 
-        setLoading(true);
+        if (silent) {
+            setRefreshing(true);
+        } else {
+            setLoading(true);
+        }
         try {
             const params = {
                 cameraIds: allIds.join(','),
@@ -52,7 +58,6 @@ export default function HistoryAnalysis() {
                     params.to = new Date(`${datePart}T${hour.toString().padStart(2, '0')}:59:59`).toISOString();
                 }
             } else {
-                // Chế độ realtime: lấy dữ liệu từ 1 giờ gần nhất đến hiện tại
                 const now = new Date();
                 const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
                 params.from = oneHourAgo.toISOString();
@@ -98,16 +103,30 @@ export default function HistoryAnalysis() {
             });
 
             setStats(finalStats);
+            setLastUpdate(new Date());
         } catch (err) {
             console.error("Lỗi fetch:", err);
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     }, [activeIntersection, isRealTime, selectedDate, selectedHour, selectedIntersections, intersections]);
 
     useEffect(() => {
         fetchHistoryData();
     }, [fetchHistoryData]);
+
+    useEffect(() => {
+        if (!isRealTime) return;
+
+        const refreshInterval = setInterval(() => {
+            fetchHistoryData(true);
+        }, 30000);
+
+        return () => {
+            clearInterval(refreshInterval);
+        };
+    }, [isRealTime, fetchHistoryData]);
 
     const handleToggleRealTime = () => {
         setIsRealTime(true);
@@ -302,6 +321,26 @@ export default function HistoryAnalysis() {
                     <span style={{ fontSize: "15px", color: "#94a3b8", marginLeft: "12px", fontWeight: "normal" }}>
                         {activeIntersection ? `— ${activeIntersection.label}` : "— Toàn mạng lưới"}
                     </span>
+                    {isRealTime && lastUpdate && (
+                        <span style={{
+                            fontSize: "12px",
+                            color: "#64748b",
+                            marginLeft: "12px",
+                            fontWeight: "normal",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: "4px"
+                        }}>
+                            <span style={{
+                                width: "6px",
+                                height: "6px",
+                                borderRadius: "50%",
+                                background: refreshing ? "#10b981" : "#64748b",
+                                animation: refreshing ? "pulse 1.5s ease-in-out infinite" : "none",
+                            }}></span>
+                            {refreshing ? "Đang cập nhật..." : `Cập nhật: ${lastUpdate.toLocaleTimeString("vi-VN")}`}
+                        </span>
+                    )}
                 </h1>
 
                 <div className="header-actions" style={{ display: 'flex', gap: '12px' }}>
