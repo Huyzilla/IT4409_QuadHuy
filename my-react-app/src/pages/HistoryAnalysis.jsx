@@ -6,10 +6,12 @@ import { useTraffic } from "../context/TrafficContext";
 import { ingestSocket } from "../socket";
 import { api } from "../api";
 import * as XLSX from 'xlsx';
+import { useNavigate } from "react-router-dom";
 
 const COLOR_PALETTE = ["#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4"];
 
 export default function HistoryAnalysis() {
+    const navigate = useNavigate();
     const { activeIntersection, intersections } = useTraffic();
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -33,11 +35,11 @@ export default function HistoryAnalysis() {
 
         const activeCamIds = camerasOfActive.map(c => c.id);
 
-        const compareCamIds = selectedIntersections.map(id =>
-            intersections.find(i => i.id === id)?.cameras?.[0]?.id
+        const allIntersectionCamIds = (intersections || []).map(inter => 
+            inter.cameras?.[0]?.id
         ).filter(Boolean);
 
-        const allIds = [...activeCamIds, ...compareCamIds];
+        const allIds = [...new Set([...activeCamIds, ...allIntersectionCamIds])];
 
         setLoading(true);
         try {
@@ -74,15 +76,16 @@ export default function HistoryAnalysis() {
                     };
                 }
 
+                const maxVehicles = getMaxVehiclesForCamera(item.cameraId);
+                const density = Math.min(1, (Number(item.vehiclesAvg) || 0) / (maxVehicles > 0 ? maxVehicles : 1));
+                
                 if (activeCamIds.includes(item.cameraId)) {
-                    const maxVehicles = getMaxVehiclesForCamera(item.cameraId);
-                    acc[timeKey].totalDensity += Math.min(1, (Number(item.vehiclesAvg) || 0) / (maxVehicles > 0 ? maxVehicles : 1));
+                    acc[timeKey].totalDensity += density;
                     acc[timeKey].totalVehicles += Math.round(item.vehiclesAvg) || 0;
                     acc[timeKey].activeCamCount += 1;
-                } else {
-                    const maxVehicles = getMaxVehiclesForCamera(item.cameraId);
-                    acc[timeKey][`density_${item.cameraId}`] = Math.min(1, (Number(item.vehiclesAvg) || 0) / (maxVehicles > 0 ? maxVehicles : 1));
                 }
+                
+                acc[timeKey][`density_${item.cameraId}`] = density;
                 return acc;
             }, {});
 
@@ -130,7 +133,6 @@ export default function HistoryAnalysis() {
             const total = (res.data || []).reduce((sum, row) => {
                 const v = Number(row.flowCount);
                 if (Number.isFinite(v) && v > 0) return sum + v;
-                // fallback if flowCount missing
                 const approx = Number(row.vehiclesAvg);
                 return sum + (Number.isFinite(approx) ? Math.round(approx) : 0);
             }, 0);
@@ -149,6 +151,20 @@ export default function HistoryAnalysis() {
     useEffect(() => {
         fetchTodayTotal();
     }, [fetchTodayTotal]);
+
+    useEffect(() => {
+        if (!isRealTime) return;
+        
+        const checkDate = () => {
+            const currentDate = new Date().toISOString().split('T')[0];
+            if (currentDate !== selectedDate) {
+                setSelectedDate(currentDate);
+            }
+        };
+        
+        const interval = setInterval(checkDate, 60000);
+        return () => clearInterval(interval);
+    }, [isRealTime, selectedDate]);
 
     const handleToggleRealTime = () => {
         setIsRealTime(true);
@@ -302,6 +318,23 @@ export default function HistoryAnalysis() {
     return (
         <main className="main-content">
             <header className="main-header">
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    className="action-btn"
+                    style={{
+                        background: 'var(--color-bg-tertiary)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-text-primary)',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                    }}
+                >
+                    ← Quay lại
+                </button>
                 <h1 className="page-title">
                     Lịch sử & Phân tích giao thông
                     <span style={{ fontSize: "15px", color: "#94a3b8", marginLeft: "12px", fontWeight: "normal" }}>
@@ -342,12 +375,18 @@ export default function HistoryAnalysis() {
                         type="date"
                         value={selectedDate}
                         onChange={(e) => { setSelectedDate(e.target.value); setIsRealTime(false); }}
-                        style={{ background: '#0f172a', color: 'white', border: '1px solid #334155', borderRadius: '6px', padding: '5px' }}
+                        style={{ 
+                                background: 'var(--color-bg-primary)',
+                                color: 'var(--color-text-primary)',
+                                border: '1px solid var(--color-border)', 
+                                borderRadius: '6px', 
+                                padding: '5px' 
+                            }}                    
                     />
                     <select
                         value={selectedHour}
                         onChange={(e) => { setSelectedHour(e.target.value); setIsRealTime(false); }}
-                        style={{ background: '#0f172a', color: 'white', border: '1px solid #334155', borderRadius: '6px', padding: '5px' }}
+                        style={{ background: 'var(--color-bg-primary)', color: 'var(--color-text-primary)', border: '1px solid var(--color-border)', borderRadius: '6px', padding: '5px' }}
                     >
                         <option value="all">Cả ngày</option>
                         {[...Array(24).keys()].map(h => (
@@ -416,6 +455,7 @@ export default function HistoryAnalysis() {
                                     dataKey={`density_${camId}`}
                                     stroke={COLOR_PALETTE[(index + 1) % COLOR_PALETTE.length]}
                                     strokeWidth={4}
+                                    strokeDasharray="5 5"
                                     dot={false}
                                     name={intersection?.label || id}
                                 />
@@ -492,7 +532,7 @@ export default function HistoryAnalysis() {
                     marginTop: 32,
                 }}
             >
-                <div className="stat-box heavy">
+                {/* <div className="stat-box heavy">
                     <div className="stat-value">18</div>
                     <div className="stat-label">Lần ùn tắc kéo dài</div>
                 </div>
@@ -503,7 +543,7 @@ export default function HistoryAnalysis() {
                 <div className="stat-box low">
                     <div className="stat-value">{todayTotalVehicles.toLocaleString('vi-VN')}</div>
                     <div className="stat-label">Tổng phương tiện hôm nay</div>
-                </div>
+                </div> */}
             </div>
         </main>
     );
