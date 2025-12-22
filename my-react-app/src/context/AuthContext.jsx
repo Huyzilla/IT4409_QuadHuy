@@ -12,11 +12,18 @@ export const useAuth = () => {
 
 const normalizeBackendUser = (backendUser, providerFallback) => {
   if (!backendUser) return null;
+
+  const roleIdRaw =
+    backendUser.roleId ?? backendUser.role_id ?? backendUser.roleID ?? null;
+  const roleId = Number.isFinite(Number(roleIdRaw)) ? Number(roleIdRaw) : null;
+  const role =
+    backendUser.role || (roleId === 0 ? "admin" : roleId === 1 ? "user" : "user");
   return {
     id: backendUser.id,
     username: backendUser.username,
     fullName: backendUser.fullName,
-    role: backendUser.role || "user",
+    role,
+    roleId: roleId ?? undefined,
     avatarUrl: backendUser.avatar || backendUser.avatarUrl || null,
     email: backendUser.email,
     provider: backendUser.provider || providerFallback || "local",

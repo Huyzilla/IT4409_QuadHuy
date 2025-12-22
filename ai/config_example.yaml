@@ -63,3 +63,67 @@ cameras:
       p1: [148, 159]
       p2: [237, 158]
     line_dir: null
+
+  - id: 5
+    name: "Road 5 (Bac - Intersection 2)"
+    rtsp: "rtsp://localhost:8554/north1"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+    roi:
+      - [205, 123]
+      - [251, 124]
+      - [213, 287]
+      - [1, 224]
+    count_line:
+      p1: [148, 159]
+      p2: [237, 158]
+    line_dir: null
+
+  - id: 6
+    name: "Road 6 (Dong - Intersection 2)"
+    rtsp: "rtsp://localhost:8554/east1"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+    roi:
+      - [205, 123]
+      - [251, 124]
+      - [213, 287]
+      - [1, 224]
+    count_line:
+      p1: [148, 159]
+      p2: [237, 158]
+    line_dir: null
+
+  - id: 7
+    name: "Road 7 (Nam - Intersection 2)"
+    rtsp: "rtsp://localhost:8554/south1"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+    roi:
+      - [205, 123]
+      - [251, 124]
+      - [213, 287]
+      - [1, 224]
+    count_line:
+      p1: [148, 159]
+      p2: [237, 158]
+    line_dir: null
+
+  - id: 8
+    name: "Road 8 (Tay - Intersection 2)"
+    rtsp: "rtsp://localhost:8554/west1"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+    roi:
+      - [205, 123]
+      - [251, 124]
+      - [213, 287]
+      - [1, 224]
+    count_line:
+      p1: [148, 159]
+      p2: [237, 158]
+    line_dir: null
