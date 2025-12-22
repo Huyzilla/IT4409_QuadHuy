@@ -36,6 +36,11 @@ export class CreateCameraDto {
   @IsNotEmpty()
   @IsNumber()
   longitude: number;
+
+  @ApiProperty({ description: 'ID Ngã tư', example: 1 })
+  @IsNotEmpty()
+  @IsNumber()
+  intersectionId: number;
 }
 
 /**
@@ -77,4 +82,9 @@ export class UpdateCameraDto {
   @IsOptional()
   @IsNumber()
   longitude?: number;
+
+  @ApiProperty({ description: 'ID Ngã tư', example: 1 })
+  @IsNotEmpty()
+  @IsNumber()
+  intersectionId: number;
 }
