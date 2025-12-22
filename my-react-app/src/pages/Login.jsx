@@ -4,17 +4,14 @@ import { useLocation, useNavigate } from "react-router-dom";
 
 
 export default function Login() {
-    const [isRegister, setIsRegister] = useState(false);
     const [formData, setFormData] = useState({
-        fullName: "",
         username: "",
-        email: "",
         password: "",
     });
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
-    const { login, register, isAuthenticated } = useAuth();
+    const { login, isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -37,22 +34,8 @@ export default function Login() {
         setLoading(true);
 
         try {
-            if (isRegister) {
-                await register(
-                    formData.fullName,
-                    formData.username,
-                    formData.email,
-                    formData.password
-                );
-
-                setIsRegister(false);
-                setFormData({ ...formData, fullName: "", email: "", password: "" });
-                navigate("/");
-            } else {
-                await login(formData.username, formData.password);
-
-                navigate("/");
-            }
+            await login(formData.username, formData.password);
+            navigate("/");
         } catch (err) {
             setError(err.message || "Đã có lỗi xảy ra");
         } finally {
@@ -81,43 +64,13 @@ export default function Login() {
                         </div>
                         <h1 className="login-title">Traffic Monitor</h1>
                         <p className="login-subtitle">
-                            {isRegister
-                                ? "Đăng ký tài khoản giám sát viên"
-                                : "Hệ thống giám sát giao thông thông minh"}
+                            Hệ thống giám sát giao thông thông minh
                         </p>
                     </div>
 
                     {error && <div className="login-error">⚠️ {error}</div>}
 
                     <form className="login-form" onSubmit={handleSubmit}>
-                        {isRegister && (
-                            <div className="form-group">
-                                <label>Họ và tên</label>
-                                <input
-                                    type="text"
-                                    name="fullName"
-                                    required
-                                    value={formData.fullName}
-                                    onChange={handleChange}
-                                    placeholder="Ví dụ: Nguyễn Văn A"
-                                />
-                            </div>
-                        )}
-
-                        {isRegister && (
-                            <div className="form-group">
-                                <label>Email</label>
-                                <input
-                                    type="email"
-                                    name="email"
-                                    required
-                                    value={formData.email}
-                                    onChange={handleChange}
-                                    placeholder="you@example.com"
-                                />
-                            </div>
-                        )}
-
                         <div className="form-group">
                             <label>Tên đăng nhập / Email</label>
                             <input
@@ -145,70 +98,53 @@ export default function Login() {
                         <button type="submit" className="login-submit" disabled={loading}>
                             {loading ? (
                                 <span className="loader"></span>
-                            ) : isRegister ? (
-                                "Tạo tài khoản"
                             ) : (
                                 "Truy cập hệ thống"
                             )}
                         </button>
                     </form>
 
-                    {!isRegister && (
-                        <div
-                            className="google-login-wrapper"
+                    <div
+                        className="google-login-wrapper"
+                        style={{
+                            marginTop: "20px",
+                            display: "flex",
+                            justifyContent: "center",
+                        }}
+                    >
+                        <button
+                            type="button"
+                            className="google-login-btn"
+                            onClick={handleGoogleRedirect}
                             style={{
-                                marginTop: "20px",
-                                display: "flex",
-                                justifyContent: "center",
+                                background: '#fff',
+                                border: '1px solid #ccc',
+                                borderRadius: 4,
+                                padding: '8px 16px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                                fontWeight: 500
                             }}
                         >
-                            <button
-                                type="button"
-                                className="google-login-btn"
-                                onClick={handleGoogleRedirect}
-                                style={{
-                                    background: '#fff',
-                                    border: '1px solid #ccc',
-                                    borderRadius: 4,
-                                    padding: '8px 16px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    cursor: 'pointer',
-                                    fontWeight: 500
-                                }}
-                            >
-                                <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style={{ width: 20, height: 20, marginRight: 8 }} />
-                                Đăng nhập với Google
-                            </button>
-                        </div>
-                    )}
+                            <img src="https://developers.google.com/identity/images/g-logo.png" alt="Google" style={{ width: 20, height: 20, marginRight: 8 }} />
+                            Đăng nhập với Google
+                        </button>
+                    </div>
 
                     <div className="login-footer">
-                        {isRegister ? (
-                            <p>
-                                Đã có tài khoản?{" "}
-                                <button
-                                    onClick={() => {
-                                        setIsRegister(false);
-                                        setError("");
-                                    }}
-                                >
-                                    Đăng nhập
-                                </button>
-                            </p>
-                        ) : (
-                            <p>
-                                Chưa có tài khoản?{" "}
-                                <button
-                                    onClick={() => {
-                                        setIsRegister(true);
-                                        setError("");
-                                    }}
-                                >
-                                    Đăng ký ngay
-                                </button>
-                            </p>
-                        )}
+                        <p>
+                            Chưa có tài khoản?{" "}
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setError("");
+                                    navigate("/register");
+                                }}
+                            >
+                                Đăng ký ngay
+                            </button>
+                        </p>
                     </div>
                 </div>
             </div>

@@ -610,13 +610,14 @@ export default function MainApp() {
     return (
       <div className="app-loading">
       <Spinner />
-        <div>Đang tải dữ liệu ngã tư...</div>
+      <div>Đang tải dữ liệu ngã tư...</div>
       </div>
     );
   }
 
   return (
-    <>
+    <Suspense fallback={<Spinner />}>
+      <>
       <div className="app-layout">
         <Sidebar
           currentUser={user}
@@ -681,6 +682,7 @@ export default function MainApp() {
           closeModal={closeSingleLiveView}
         />
       )}
-    </>
+      </>
+    </Suspense>
   );
 }

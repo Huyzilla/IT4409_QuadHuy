@@ -28,20 +28,6 @@ export const AuthProvider = ({ children }) => {
   const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const persistAuth = (token, backendUser, providerFallback) => {
-    if (token) {
-      setAccessToken(token);
-      localStorage.setItem("traffic-access-token", token);
-      connectTrafficSocket();
-    }
-
-    const normalized = normalizeBackendUser(backendUser, providerFallback);
-    if (normalized) {
-      setUser(normalized);
-      localStorage.setItem("traffic-user", JSON.stringify(normalized));
-    }
-  };
-
   const clearAuth = (redirectToLogin = false) => {
     setUser(null);
     setAccessToken(null);
@@ -49,13 +35,34 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("traffic-google-id-token");
     localStorage.removeItem("traffic-access-token");
     disconnectTrafficSocket();
+
     if (redirectToLogin && window.location?.pathname !== "/login") {
       window.location.assign("/login");
     }
   };
 
+  const persistAuth = (token, backendUser, providerFallback) => {
+    if (token) {
+      setAccessToken(token);
+      localStorage.setItem("traffic-access-token", token);
+      connectTrafficSocket();
+    }
+
+    const normalizedUser = normalizeBackendUser(backendUser, providerFallback);
+    if (normalizedUser) {
+      setUser(normalizedUser);
+      localStorage.setItem("traffic-user", JSON.stringify(normalizedUser));
+    }
+  };
+
   useEffect(() => {
     setOnUnauthorized(() => clearAuth(true));
+
+    const savedToken = localStorage.getItem("traffic-access-token");
+    if (savedToken) {
+      setAccessToken(savedToken);
+      connectTrafficSocket();
+    }
 
     const savedUser = localStorage.getItem("traffic-user");
     if (savedUser) {
@@ -66,70 +73,60 @@ export const AuthProvider = ({ children }) => {
       }
     }
 
-    const savedToken = localStorage.getItem("traffic-access-token");
-    if (savedToken) {
-      setAccessToken(savedToken);
-      connectTrafficSocket();
-    }
-
-    setLoading(false);
+    (async () => {
+      try {
+        if (savedToken && !savedUser) {
+          const res = await api.get("/auth/me");
+          persistAuth(savedToken, res.data, res.data?.provider);
+        }
+      } catch {
+        // Global 401 handler will take care.
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const register = async (fullName, username, email, password) => {
-    try {
-      const res = await api.post(`/auth/register`, {
-        fullName,
-        username,
-        email,
-        password,
-      });
+    const res = await api.post("/auth/register", {
+      fullName,
+      username,
+      email,
+      password,
+    });
 
-      const { accessToken: issuedToken, user: backendUser } = res.data || {};
-      if (issuedToken || backendUser) {
-        persistAuth(issuedToken, backendUser, "local");
-        try {
-          window.dispatchEvent(new Event("auth:login"));
-        } catch {
-          // ignore
-        }
-      }
-
-      return res.data;
-    } catch (error) {
-      const msg = error?.response?.data?.message;
-      throw new Error(Array.isArray(msg) ? msg[0] : msg || "Đăng ký thất bại");
+    // Backend flow: registration requires email verification (OTP/link).
+    // Response: { verificationRequired: true, email }
+    const verificationRequired = res.data?.verificationRequired;
+    const returnedEmail = res.data?.email || email;
+    if (!verificationRequired) {
+      throw new Error("Đăng ký thất bại: thiếu thông tin xác thực email.");
     }
+
+    if (returnedEmail) {
+      localStorage.setItem("pendingEmail", returnedEmail);
+    }
+    return res.data;
   };
 
   const login = async (usernameOrEmail, password) => {
-    try {
-      const res = await api.post(`/auth/login`, {
-        username: usernameOrEmail,
-        password,
-      });
+    const res = await api.post("/auth/login", {
+      username: usernameOrEmail,
+      password,
+    });
 
-      const { accessToken: issuedToken, user: backendUser } = res.data || {};
-      if (!issuedToken) {
-        throw new Error("Backend không trả về accessToken.");
-      }
-
-      persistAuth(issuedToken, backendUser, backendUser?.provider || "local");
-      try {
-        window.dispatchEvent(new Event("auth:login"));
-      } catch {
-        // ignore
-      }
-
-      return res.data;
-    } catch (error) {
-      const msg = error?.response?.data?.message;
-      throw new Error(Array.isArray(msg) ? msg[0] : msg || "Sai tài khoản hoặc mật khẩu");
+    const issuedToken = res.data?.accessToken;
+    const backendUser = res.data?.user;
+    if (!issuedToken || !backendUser) {
+      throw new Error("Backend không trả về accessToken/user.");
     }
+
+    persistAuth(issuedToken, backendUser, backendUser?.provider || "local");
+    try {
+      window.dispatchEvent(new Event("auth:login"));
+    } catch {}
   };
 
-  // Supports both:
-  // - googleLogin(googleIdTokenString)
-  // - googleLogin({ credential: googleIdTokenString })
   const googleLogin = async (credentialOrToken) => {
     const token =
       typeof credentialOrToken === "string"
@@ -137,38 +134,18 @@ export const AuthProvider = ({ children }) => {
         : credentialOrToken?.credential;
     if (!token) throw new Error("Không nhận được token từ Google");
 
-    const res = await api.post(`/auth/google`, { credential: token });
-    const { accessToken: issuedToken, user: backendUser } = res.data || {};
-    if (!issuedToken) {
-      throw new Error("Backend không trả về accessToken.");
+    const res = await api.post("/auth/google", { credential: token });
+    const issuedToken = res.data?.accessToken;
+    const backendUser = res.data?.user;
+    if (!issuedToken || !backendUser) {
+      throw new Error("Backend không trả về accessToken/user.");
     }
 
     localStorage.setItem("traffic-google-id-token", token);
     persistAuth(issuedToken, backendUser, "google");
     try {
       window.dispatchEvent(new Event("auth:login"));
-    } catch {
-      // ignore
-    }
-  };
-
-  const verifyEmail = async (email, code, token) => {
-    const payload = { email };
-    if (code) payload.code = code;
-    if (token) payload.token = token;
-
-    const res = await api.post("/auth/verify-email", payload);
-    const { accessToken: issuedToken, user: backendUser } = res.data || {};
-
-    // Some backends may return user without wrapping; handle both.
-    persistAuth(issuedToken, backendUser || res.data?.user, backendUser?.provider);
-    try {
-      window.dispatchEvent(new Event("auth:login"));
-    } catch {
-      // ignore
-    }
-
-    return true;
+    } catch {}
   };
 
   const logout = async () => {
@@ -181,24 +158,46 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // OAuth redirect helpers
+  const verifyEmail = async (email, code, token) => {
+    const payload = { email };
+    if (code) payload.code = code;
+    if (token) payload.token = token;
+
+    const res = await api.post("/auth/verify-email", payload);
+    const issuedToken = res.data?.accessToken;
+    const backendUser = res.data?.user;
+    if (issuedToken || backendUser) {
+      persistAuth(issuedToken, backendUser, backendUser?.provider);
+      try {
+        window.dispatchEvent(new Event("auth:login"));
+      } catch {}
+    }
+    return true;
+  };
+
   const setTokens = (token) => {
-    persistAuth(token, null);
+    if (!token) return;
+    setAccessToken(token);
+    localStorage.setItem("traffic-access-token", token);
+    connectTrafficSocket();
   };
 
   const setTokensAndFetchUser = async (token) => {
     setTokens(token);
-    try {
-      const res = await api.get("/auth/me");
-      persistAuth(token, res.data, res.data?.provider);
-    } catch {
-      // If fetching user fails, clear auth but don't hard redirect here.
-      clearAuth(false);
-    }
+    const res = await api.get("/auth/me");
+    persistAuth(token, res.data, res.data?.provider);
   };
 
   const setTokensAndSetUser = async (token, backendUser) => {
-    persistAuth(token, backendUser, backendUser?.provider);
+    setTokens(token);
+    if (backendUser) {
+      const normalizedUser = normalizeBackendUser(
+        backendUser,
+        backendUser?.provider
+      );
+      setUser(normalizedUser);
+      localStorage.setItem("traffic-user", JSON.stringify(normalizedUser));
+    }
   };
 
   return (

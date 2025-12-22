@@ -51,7 +51,7 @@ export const TrafficProvider = ({ children }) => {
   const fetchIntersections = async (preferredActiveId) => {
     setLoading(true);
     try {
-      const res = await api.get(`/intersections`);
+    const res = await api.get(`/intersections`);
 
       if (res.data && res.data.length > 0) {
         console.log("✅ Raw Data from DB:", res.data);
@@ -98,9 +98,6 @@ export const TrafficProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    // If the AuthProvider set token into localStorage but `accessToken` hasn't
-    // propagated yet to this provider (race during route mount), fall back to
-    // reading the token from localStorage so we still fetch intersections.
     const effectiveToken =
       accessToken || localStorage.getItem("traffic-access-token");
     if (!effectiveToken) {
@@ -109,8 +106,7 @@ export const TrafficProvider = ({ children }) => {
       setActiveIntersection(null);
       return;
     }
-    // Debug: log that we're fetching due to token available
-    console.debug("TrafficContext: fetching intersections (token present)");
+
     fetchIntersections();
   }, [accessToken]);
 
@@ -119,8 +115,8 @@ export const TrafficProvider = ({ children }) => {
     const onAuthLogin = () => {
       if (accessToken) fetchIntersections();
     };
-    window.addEventListener('auth:login', onAuthLogin);
-    return () => window.removeEventListener('auth:login', onAuthLogin);
+    window.addEventListener("auth:login", onAuthLogin);
+    return () => window.removeEventListener("auth:login", onAuthLogin);
   }, [accessToken]);
 
   // Re-fetch intersections when the traffic socket connects/reconnects
@@ -128,8 +124,8 @@ export const TrafficProvider = ({ children }) => {
     const onSocketConnect = () => {
       if (accessToken) fetchIntersections();
     };
-    window.addEventListener('socket:connect', onSocketConnect);
-    return () => window.removeEventListener('socket:connect', onSocketConnect);
+    window.addEventListener("socket:connect", onSocketConnect);
+    return () => window.removeEventListener("socket:connect", onSocketConnect);
   }, [accessToken]);
 
   const [theme, setTheme] = useState("theme-dark");
