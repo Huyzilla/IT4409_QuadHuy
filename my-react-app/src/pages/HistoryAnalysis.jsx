@@ -6,12 +6,14 @@ import { useTraffic } from "../context/TrafficContext";
 import { ingestSocket } from "../socket";
 import axios from "axios";
 import * as XLSX from 'xlsx';
+import { useNavigate } from "react-router-dom";
 
 const API_URL = "http://localhost:3001/api";
 
 const COLOR_PALETTE = ["#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4"];
 
 export default function HistoryAnalysis() {
+    const navigate = useNavigate();
     const { activeIntersection, intersections } = useTraffic();
     const [stats, setStats] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -49,6 +51,12 @@ export default function HistoryAnalysis() {
                     params.from = new Date(`${datePart}T${hour.toString().padStart(2, '0')}:00:00`).toISOString();
                     params.to = new Date(`${datePart}T${hour.toString().padStart(2, '0')}:59:59`).toISOString();
                 }
+            } else {
+                // Chế độ realtime: lấy dữ liệu từ 1 giờ gần nhất đến hiện tại
+                const now = new Date();
+                const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+                params.from = oneHourAgo.toISOString();
+                params.to = now.toISOString();
             }
 
             const response = await axios.get(`${API_URL}/traffic/minute-stats`, { params });
@@ -104,6 +112,11 @@ export default function HistoryAnalysis() {
     const handleToggleRealTime = () => {
         setIsRealTime(true);
         setSelectedHour("all");
+        // Cập nhật ngày hiện tại khi chuyển sang chế độ realtime
+        setSelectedDate(new Date().toISOString().split('T')[0]);
+        setTimeout(() => {
+            fetchHistoryData();
+        }, 100);
     };
 
     const handleHourChange = (e) => {
@@ -112,33 +125,51 @@ export default function HistoryAnalysis() {
     };
 
     useEffect(() => {
-        const handleNewData = (newData) => {
-            if (!isRealTime) return;
+        if (!isRealTime) return;
 
-            const currentCamId = activeIntersection?.cameras?.[0]?.id;
-            if (currentCamId && Number(newData.cameraId) === Number(currentCamId)) {
+        const activeCamIds = activeIntersection?.cameras?.map(c => c.id) || [];
+
+        const handleNewData = (newData) => {
+            console.log("Socket nhận data:", newData);
+
+            if (activeCamIds.includes(Number(newData.cameraId))) {
                 setStats(prev => {
                     const newTime = new Date(newData.minuteStart * 1000).toLocaleTimeString("vi-VN", {
                         hour: "2-digit", minute: "2-digit"
                     });
 
-                    if (prev.length > 0 && prev[prev.length - 1].time === newTime) return prev;
+                    const existingIndex = prev.findIndex(p => p.time === newTime);
 
                     const newPoint = {
                         time: newTime,
-                        density: newData.density,
-                        vehicles: Math.round(newData.vehicles_avg)
+                        density: Math.min(1, (Number(newData.vehicles_avg) || 0) / 100),
+                        vehicles: Math.round(newData.vehicles_avg || 0)
                     };
 
-                    const updated = [...prev, newPoint];
+                    let updated;
+                    if (existingIndex >= 0) {
+                        updated = [...prev];
+                        updated[existingIndex] = {
+                            ...updated[existingIndex],
+                            ...newPoint
+                        };
+                    } else {
+                        updated = [...prev, newPoint];
+                    }
+
                     return updated.slice(-60);
                 });
             }
         };
 
+        console.log("Đăng ký socket listener, cameras:", activeCamIds); // Debug log
         ingestSocket.on("new_minute_stats", handleNewData);
-        return () => ingestSocket.off("new_minute_stats");
-    }, [isRealTime, activeIntersection]);
+
+        return () => {
+            console.log("Hủy socket listener"); // Debug log
+            ingestSocket.off("new_minute_stats", handleNewData);
+        };
+    }, [isRealTime, activeIntersection?.cameras]);
 
     const handleCompare = (intersectionId) => {
         setSelectedIntersections(prev => {
@@ -253,6 +284,23 @@ export default function HistoryAnalysis() {
     return (
         <main className="main-content">
             <header className="main-header">
+                <button
+                    onClick={() => navigate('/dashboard')}
+                    className="action-btn"
+                    style={{
+                        background: 'var(--color-bg-tertiary)',
+                        border: '1px solid var(--color-border)',
+                        color: 'var(--color-text-primary)',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                    }}
+                >
+                    ← Quay lại
+                </button>
                 <h1 className="page-title">
                     Lịch sử & Phân tích giao thông
                     <span style={{ fontSize: "15px", color: "#94a3b8", marginLeft: "12px", fontWeight: "normal" }}>
@@ -336,48 +384,55 @@ export default function HistoryAnalysis() {
 
             <div className="chart-card" style={{ background: 'var(--color-bg-secondary)', padding: '25px', borderRadius: '16px' }}>
                 <h3 style={{ marginTop: 0, marginBottom: '20px' }}>Phân tích tương quan lưu lượng</h3>
-                <ResponsiveContainer width="100%" height={420}>
-                    <LineChart data={stats}>
-                        <CartesianGrid strokeDasharray="4 4" stroke="#334155" vertical={false} />
-                        <XAxis dataKey="time" stroke="#94a3b8" tick={{ fontSize: 12 }} />
-                        <YAxis stroke="#94a3b8" tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
-                        <Tooltip
-                            contentStyle={{ background: "#1e293b", border: "none", borderRadius: "12px", color: "#fff" }}
-                            formatter={(value, name) => [`${(value * 100).toFixed(1)}%`, name]}
-                        />
-                        <Legend verticalAlign="top" align="right" />
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+                        Đang tải dữ liệu...
+                    </div>
+                ) : (
+                    <ResponsiveContainer width="100%" height={420}>
+                        <LineChart data={stats}>
+                            <CartesianGrid strokeDasharray="4 4" stroke="#334155" vertical={false} />
+                            <XAxis dataKey="time" stroke="#94a3b8" tick={{ fontSize: 12 }} />
+                            <YAxis stroke="#94a3b8" tickFormatter={(v) => `${(v * 100).toFixed(0)}%`} />
+                            <Tooltip
+                                contentStyle={{ background: "#1e293b", border: "none", borderRadius: "12px", color: "#fff" }}
+                                formatter={(value, name) => [`${(value * 100).toFixed(1)}%`, name]}
+                            />
+                            <Legend verticalAlign="top" align="right" />
 
-                        <Line
-                            type="monotone"
-                            dataKey="density"
-                            stroke={COLOR_PALETTE[0]}
-                            strokeWidth={4}
-                            dot={false}
-                            name={activeIntersection?.label || "Chính"}
-                        />
+                            <Line
+                                type="monotone"
+                                dataKey="density"
+                                stroke={COLOR_PALETTE[0]}
+                                strokeWidth={4}
+                                dot={false}
+                                name={activeIntersection?.label || "Chính"}
+                            />
 
-                        {selectedIntersections.map((id, index) => {
-                            const intersection = intersections.find(i => i.id === id);
-                            const camId = intersection?.cameras?.[0]?.id;
+                            {selectedIntersections.map((id, index) => {
+                                const intersection = intersections.find(i => i.id === id);
+                                const camId = intersection?.cameras?.[0]?.id;
 
-                            return (
-                                <Line
-                                    key={id}
-                                    type="monotone"
-                                    dataKey={`density_${camId}`}
-                                    stroke={COLOR_PALETTE[(index + 1) % COLOR_PALETTE.length]}
-                                    strokeWidth={4}
-                                    dot={false}
-                                    name={intersection?.label || id}
-                                />
-                            );
-                        })}
-                    </LineChart>
-                </ResponsiveContainer>
+                                return (
+                                    <Line
+                                        key={id}
+                                        type="monotone"
+                                        dataKey={`density_${camId}`}
+                                        stroke={COLOR_PALETTE[(index + 1) % COLOR_PALETTE.length]}
+                                        strokeWidth={4}
+                                        strokeDasharray="5 5"
+                                        dot={false}
+                                        name={intersection?.label || id}
+                                    />
+                                );
+                            })}
+                        </LineChart>
+                    </ResponsiveContainer>
+                )}
             </div>
 
             <div className="ranking-section" style={{ marginTop: '40px' }}>
-                <h3 style={{ marginBottom: '20px' }}>🏆 Xếp hạng Điểm nóng Giao thông</h3>
+                <h3 style={{ marginBottom: '20px' }}>Xếp hạng Điểm nóng Giao thông</h3>
 
                 <div className="segment-card" style={{ padding: '0', overflow: 'hidden' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -395,7 +450,7 @@ export default function HistoryAnalysis() {
                             realRanking.map((item, index) => (
                                 <tr key={item.id} className="ranking-row" style={{ borderBottom: '1px solid var(--color-border)' }}>
                                     <td style={{ padding: '18px 20px', fontWeight: '800' }}>
-                                        {index === 0 ? '🥇' : index === 1 ? '🥈' : `#${index + 1}`}
+                                        {index === 0 ? '1' : index === 1 ? '2' : `#${index + 1}`}
                                     </td>
                                     <td style={{ fontWeight: '600' }}>{item.name}</td>
                                     <td style={{ color: 'var(--color-text-secondary)', fontSize: '14px' }}>
@@ -448,7 +503,7 @@ export default function HistoryAnalysis() {
                     <div className="stat-label">Lần ùn tắc kéo dài</div>
                 </div>
                 <div className="stat-box medium">
-                    <div className="stat-value">07:00 – 09:00</div>
+                    <div className="stat-value">07:00 — 09:00</div>
                     <div className="stat-label">Giờ cao điểm sáng</div>
                 </div>
                 <div className="stat-box low">

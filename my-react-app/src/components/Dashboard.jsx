@@ -2,6 +2,9 @@ import React, {useEffect, useRef, useState} from "react";
 import {useTraffic} from "../context/TrafficContext";
 import AlertPanel from "./AlertPanel.jsx";
 import {ingestSocket} from "../socket.js";
+import axios from "axios";
+
+const API_URL = "http://localhost:3001/api";
 
 const STATUS_MAP = {
     low: {label: "Ít đông", colorClass: "low-traffic", gradientClass: "low-gradient"},
@@ -71,12 +74,13 @@ const TrafficLight = ({ light = 'RED', remaining = 0 }) => {
 const CameraSettingsModal = ({camera, onClose, onSave}) => {
     const [threshold, setThreshold] = useState(camera.threshold || 0.7);
     const [aiEnabled, setAiEnabled] = useState(camera.aiEnabled !== undefined ? camera.aiEnabled : true);
+    const [maxVehicles, setMaxVehicles] = useState(camera.maxVehicles || 70);
     const [loading, setLoading] = useState(false);
 
     const handleSave = () => {
         setLoading(true);
         setTimeout(() => {
-            onSave(camera.id, {threshold, aiEnabled});
+            onSave(camera.id, {threshold, aiEnabled, maxVehicles});
             setLoading(false);
         }, 800);
     };
@@ -103,18 +107,31 @@ const CameraSettingsModal = ({camera, onClose, onSave}) => {
 
                 <div className="settings-form">
                     <div className="form-group">
-                        <label>Ngưỡng ùn tắc (Density)</label>
+                        <label>Số xe tối đa</label>
                         <input
                             type="number"
-                            step="0.05"
-                            min="0.5"
-                            max="1.0"
-                            value={threshold}
-                            onChange={(e) => setThreshold(parseFloat(e.target.value))}
+                            step="1"
+                            min="10"
+                            max="200"
+                            value={maxVehicles}
+                            onChange={(e) => setMaxVehicles(parseInt(e.target.value))}
                             disabled={loading}
                         />
-                        <small>Giá trị hiện tại: {threshold.toFixed(2)}. Mật độ vượt quá ngưỡng sẽ kích hoạt cảnh báo
-                            *Ùn tắc*.</small>
+                        <small>Số xe tối đa camera này có thể chứa. Dùng để tính mật độ thực tế.</small>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Ngưỡng ùn tắc (Density %)</label>
+                        <input
+                            type="number"
+                            step="5"
+                            min="50"
+                            max="100"
+                            value={Math.round(threshold * 100)}
+                            onChange={(e) => setThreshold(parseInt(e.target.value) / 100)}
+                            disabled={loading}
+                        />
+                        <small>Giá trị hiện tại: {Math.round(threshold * 100)}%. Mật độ vượt quá ngưỡng sẽ kích hoạt cảnh báo *Ùn tắc*.</small>
                     </div>
 
                     <div className="form-group checkbox-group">
@@ -144,13 +161,16 @@ const CameraSettingsModal = ({camera, onClose, onSave}) => {
 };
 
 const DashboardSegmentCard = ({camera, realTimeData, onLiveView, onSettings}) => {
-    const density = realTimeData?.density || 0;
     const vehicles = realTimeData?.flowCount || 0;
     const trend = realTimeData?.trend || "stable";
     const trendText = realTimeData?.trendText || "Xu hướng: Đang cập nhật...";
 
     const threshold = camera.threshold || 0.7;
     const aiEnabled = camera.aiEnabled !== undefined ? camera.aiEnabled : true;
+    const maxVehicles = camera.maxVehicles || 70;
+
+    // Tính density dựa trên số xe thực tế / số xe tối đa
+    const density = maxVehicles > 0 ? vehicles / maxVehicles : 0;
 
     let status = "low";
     if (density >= threshold) status = "heavy";
@@ -191,7 +211,6 @@ const DashboardSegmentCard = ({camera, realTimeData, onLiveView, onSettings}) =>
                     position: "relative",
                 }}
             >
-                {/*hiển thị camera*/}
                 {camera.videoSource ? (
                     <video
                         src={camera.videoSource}
@@ -322,7 +341,7 @@ const DashboardSegmentCard = ({camera, realTimeData, onLiveView, onSettings}) =>
                         padding: '2px 6px',
                         borderRadius: '4px'
                     }}>
-                        🚗 {vehicles} phương tiện
+                        {vehicles} phương tiện
                     </span>
                 )}
             </div>
@@ -331,16 +350,13 @@ const DashboardSegmentCard = ({camera, realTimeData, onLiveView, onSettings}) =>
 };
 
 const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
-    const {activeIntersection, loading, unreadAlertCount, addAlert} = useTraffic();
+    const {activeIntersection, loading, unreadAlertCount, addAlert, updateCameraSettings} = useTraffic();
     const [settingsCamera, setSettingsCamera] = useState(null);
     const [showAlertPanel, setShowAlertPanel] = useState(false);
     const [realTimeStats, setRealTimeStats] = useState({});
-
-    if (loading) return <div style={{padding: 30, color: "white"}}>⏳ Đang tải dữ liệu...</div>;
-
     const alertRef = useRef(null);
 
-    const processDensityAlert = (data) => {
+    const processDensityAlert = React.useCallback((data) => {
         if (!activeIntersection) return;
 
         const cam = activeIntersection.cameras.find(
@@ -348,13 +364,15 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
         );
         if (!cam) return;
 
-        const density = data.density;
+        const maxVehicles = cam.maxVehicles || 70;
+        const vehicles = Math.round(data.vehicles_avg);
+        const density = maxVehicles > 0 ? vehicles / maxVehicles : 0;
         const threshold = cam.threshold ?? 0.7;
 
         if (density >= threshold) {
             addAlert({
                 type: "heavy",
-                message: `🚨 Ùn tắc tại ${activeIntersection.name} (${cam.name})`,
+                message: `Ùn tắc tại ${activeIntersection.name} (${cam.name})`,
                 intersectionId: activeIntersection.id,
                 cameraId: cam.id,
                 timestamp: Date.now(),
@@ -363,32 +381,145 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
         else if (density >= threshold * 0.6) {
             addAlert({
                 type: "medium",
-                message: `⚠️ Mật độ cao tại ${activeIntersection.name} (${cam.name})`,
+                message: `Mật độ cao tại ${activeIntersection.name} (${cam.name})`,
                 intersectionId: activeIntersection.id,
                 cameraId: cam.id,
                 timestamp: Date.now(),
             });
         }
-    };
+    }, [activeIntersection, addAlert]);
 
+    // Fetch dữ liệu lịch sử ban đầu (1 giờ gần nhất)
+    const fetchInitialData = React.useCallback(async () => {
+        if (!activeIntersection?.cameras || activeIntersection.cameras.length === 0) return;
+
+        const activeCamIds = activeIntersection.cameras.map(c => c.id);
+
+        try {
+            const now = new Date();
+            const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+
+            const params = {
+                cameraIds: activeCamIds.join(','),
+                from: oneHourAgo.toISOString(),
+                to: now.toISOString(),
+                _t: Date.now()
+            };
+
+            console.log("🔄 Fetching initial data for cameras:", activeCamIds);
+
+            const response = await axios.get(`${API_URL}/traffic/minute-stats`, { params });
+
+            const cameraData = {};
+
+            activeCamIds.forEach(camId => {
+                const camStats = response.data
+                    .filter(item => item.cameraId === camId)
+                    .sort((a, b) => b.minuteStart - a.minuteStart)
+                    .slice(0, 2);
+
+                if (camStats.length > 0) {
+                    const latest = camStats[0];
+                    const previous = camStats[1];
+
+                    const currentDensity = Math.min(1, (Number(latest.vehiclesAvg) || 0) / 100);
+                    const currentVehicles = Math.round(latest.flowCount || 0);
+
+                    let trend = "stable";
+                    let trendText = "Xu hướng: Ổn định";
+
+                    if (previous) {
+                        const previousVehicles = Math.round(previous.flowCount || 0)
+
+                        if (currentVehicles !== previousVehicles && previousVehicles > 0) {
+                            const percentChange = ((currentVehicles - previousVehicles) / previousVehicles) * 100;
+                            const sign = percentChange > 0 ? "+" : "";
+
+                            if (currentVehicles > previousVehicles) {
+                                trend = "up";
+                                trendText = `Xu hướng: Tăng ${sign}${percentChange.toFixed(1)}%`;
+                            } else {
+                                trend = "down";
+                                trendText = `Xu hướng: Giảm ${percentChange.toFixed(1)}%`;
+                            }
+                        }
+                    }
+
+                    cameraData[camId] = {
+                        density: currentDensity,
+                        vehicles: currentVehicles,
+                        trend: trend,
+                        trendText: trendText,
+                        flowCount: currentVehicles,
+                        light: 'RED',
+                        remaining: 60
+                    };
+                }
+            });
+
+            console.log("✅ Initial data loaded:", cameraData);
+            setRealTimeStats(cameraData);
+
+        } catch (err) {
+            console.error("❌ Error fetching initial data:", err);
+
+            // Fallback: khởi tạo với giá trị mặc định
+            const initialStats = {};
+            activeCamIds.forEach(camId => {
+                initialStats[camId] = {
+                    density: 0,
+                    vehicles: 0,
+                    trend: "stable",
+                    trendText: "Xu hướng: Đang cập nhật...",
+                    flowCount: 0,
+                    light: 'RED',
+                    remaining: 60
+                };
+            });
+            setRealTimeStats(initialStats);
+        }
+    }, [activeIntersection]);
+
+    // Gọi fetch khi intersection thay đổi
     useEffect(() => {
+        fetchInitialData();
+    }, [fetchInitialData]);
+
+    // Socket listener cho real-time updates
+    useEffect(() => {
+        if (!activeIntersection) return;
+
+        const activeCamIds = activeIntersection.cameras.map(c => c.id);
+        console.log("🎯 Dashboard mount/update - Active Intersection:", activeIntersection.id, "Cameras:", activeCamIds);
+
         const handleNewData = (data) => {
+            console.log("📨 Dashboard nhận socket data:", data);
+
+            if (!activeCamIds.includes(Number(data.cameraId))) {
+                console.log("⏭️ Skip camera", data.cameraId, "- Not in active cams:", activeCamIds);
+                return;
+            }
+
+            console.log("✅ Processing data for camera", data.cameraId);
             processDensityAlert(data);
 
             setRealTimeStats(prev => {
                 const prevData = prev[data.cameraId];
+
+                const currentDensity = Math.min(1, (Number(data.vehicles_avg) || 0) / 100);
+                const currentVehicles = Math.round(data.flowCount || 0);
+
                 let trend = "stable";
                 let trendText = "Xu hướng: Ổn định";
 
-                if (prevData) {
+                if (prevData && prevData.vehicles !== undefined) {
                     const oldVehicles = prevData.vehicles;
-                    const newVehicles = Math.round(data.vehicles_avg);
 
-                    if (newVehicles !== oldVehicles && oldVehicles > 0) {
-                        const percentChange = ((newVehicles - oldVehicles) / oldVehicles) * 100;
+                    if (currentVehicles !== oldVehicles && oldVehicles > 0) {
+                        const percentChange = ((currentVehicles - oldVehicles) / oldVehicles) * 100;
                         const sign = percentChange > 0 ? "+" : "";
 
-                        if (newVehicles > oldVehicles) {
+                        if (currentVehicles > oldVehicles) {
                             trend = "up";
                             trendText = `Xu hướng: Tăng ${sign}${percentChange.toFixed(1)}%`;
                         } else {
@@ -401,23 +532,32 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                 return {
                     ...prev,
                     [data.cameraId]: {
-                        density: data.density,
-                        vehicles: Math.round(data.vehicles_avg),
+                        density: currentDensity,
+                        vehicles: currentVehicles,
                         trend: trend,
                         trendText: trendText,
-                        flowCount: data.flowCount,
+                        flowCount: currentVehicles,
+                        light: prev[data.cameraId]?.light || 'RED',
+                        remaining: prev[data.cameraId]?.remaining || 60
                     }
                 };
             });
         };
 
+        console.log("Dashboard đăng ký socket cho cameras:", activeCamIds);
+
         ingestSocket.on("new_minute_stats", handleNewData);
-        return () => ingestSocket.off("new_minute_stats");
-    }, [activeIntersection]);
+        return () => {
+            console.log("Dashboard hủy socket listener");
+            ingestSocket.off("new_minute_stats", handleNewData);
+        };
+    }, [activeIntersection, processDensityAlert]);
 
     useEffect(() => {
         const handleClickOutside = (e) => {
-            if (alertRef.current && !alertRef.current.contains(e.target)) setShowAlertPanel(false);
+            if (alertRef.current && !alertRef.current.contains(e.target)) {
+                setShowAlertPanel(false);
+            }
         };
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -425,20 +565,15 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
 
     const handleSaveSettings = (cameraId, settings) => {
         console.log("Saving settings for cam:", cameraId, settings);
-        const cam = activeIntersection.cameras.find(c => c.id === cameraId);
-        if (cam) {
-            cam.threshold = settings.threshold;
-            cam.aiEnabled = settings.aiEnabled;
-        }
+        
+        // Cập nhật cấu hình qua context (không lưu database)
+        updateCameraSettings(cameraId, settings);
+        
+        console.log("✅ Settings saved successfully to state");
         setSettingsCamera(null);
     };
 
-    if (loading) return <div style={{padding: 30, color: "white"}}>⏳ Đang tải dữ liệu...</div>;
-
-    const cameras = activeIntersection?.cameras || [];
-
-
-    // quản lý bộ đếm thời gian giả lập
+    // Traffic light countdown timer
     useEffect(() => {
         const timer = setInterval(() => {
             setRealTimeStats(prev => {
@@ -472,14 +607,15 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
         return () => clearInterval(timer);
     }, []);
 
-    // Cập nhật listener signal_change
+    // Signal decision handler
     useEffect(() => {
         const handleSignalChange = (data) => {
+            console.log("Dashboard nhận signal_decision:", data);
+
             const {greenRoadId, duration} = data.decision;
 
             setRealTimeStats(prev => {
                 const newState = {...prev};
-                // Tất cả các đường khác chuyển về Đỏ (giả định thời gian đỏ là 60s)
                 Object.keys(newState).forEach(id => {
                     newState[id] = {
                         ...newState[id],
@@ -487,24 +623,33 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                         remaining: 60
                     };
                 });
-                // Đường được chọn chuyển sang Xanh
-                newState[greenRoadId] = {
-                    ...newState[greenRoadId],
-                    light: 'GREEN',
-                    remaining: duration
-                };
+                if (newState[greenRoadId]) {
+                    newState[greenRoadId] = {
+                        ...newState[greenRoadId],
+                        light: 'GREEN',
+                        remaining: duration
+                    };
+                }
                 return newState;
             });
         };
 
         ingestSocket.on("signal_decision", handleSignalChange);
-        return () => ingestSocket.off("signal_decision");
+        return () => ingestSocket.off("signal_decision", handleSignalChange);
     }, []);
+
+    if (loading) {
+        return <div style={{padding: 30, color: "white"}}>Đang tải dữ liệu...</div>;
+    }
+
+    const cameras = activeIntersection?.cameras || [];
 
     return (
         <main className="main-content" role="main">
             <header className="main-header">
-                <h1 className="page-title">{activeIntersection ? `${activeIntersection.name} — Trạng thái hiện tại` : "Vui lòng chọn một Ngã tư"}</h1>
+                <h1 className="page-title">
+                    {activeIntersection ? `${activeIntersection.name} — Trạng thái hiện tại` : "Vui lòng chọn một Ngã tư"}
+                </h1>
                 <div className="header-actions">
                     <div ref={alertRef} style={{position: 'relative', display: 'inline-block'}}>
                         <button className="alert-btn action-btn" onClick={() => setShowAlertPanel(!showAlertPanel)}>

@@ -46,6 +46,7 @@ export const TrafficProvider = ({ children }) => {
     const [intersections, setIntersections] = useState([]);
     const [activeIntersection, setActiveIntersection] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [cameraSettings, setCameraSettings] = useState({});
 
     const fetchIntersections = async (preferredActiveId) => {
         setLoading(true);
@@ -60,10 +61,14 @@ export const TrafficProvider = ({ children }) => {
 
                     cameras: (item.cameras || []).map((cam) => {
                         const hls = rtspToHls(cam.videoSource);
+                        const savedSettings = cameraSettings[cam.id];
                         return {
                             ...cam,
                             rtspSource: cam.videoSource,
                             videoSource: hls || cam.videoSource,
+                            threshold: savedSettings?.threshold ?? cam.threshold ?? 0.7,
+                            aiEnabled: savedSettings?.aiEnabled ?? (cam.aiEnabled !== undefined ? cam.aiEnabled : true),
+                            maxVehicles: savedSettings?.maxVehicles ?? cam.maxVehicles ?? 70,
                         };
                     }),
 
@@ -244,6 +249,38 @@ export const TrafficProvider = ({ children }) => {
         setAlerts((prev) => prev.map((alert) => ({ ...alert, isRead: true })));
     };
 
+    const updateCameraSettings = (cameraId, settings) => {
+        setCameraSettings(prev => ({
+            ...prev,
+            [cameraId]: settings
+        }));
+
+        // Cập nhật trực tiếp object camera trong intersections
+        setIntersections(prevIntersections => 
+            prevIntersections.map(intersection => ({
+                ...intersection,
+                cameras: intersection.cameras.map(cam => 
+                    cam.id === cameraId 
+                        ? { ...cam, ...settings }
+                        : cam
+                )
+            }))
+        );
+
+        // Cập nhật activeIntersection nếu chứa camera này
+        setActiveIntersection(prev => {
+            if (!prev) return prev;
+            return {
+                ...prev,
+                cameras: prev.cameras.map(cam => 
+                    cam.id === cameraId 
+                        ? { ...cam, ...settings }
+                        : cam
+                )
+            };
+        });
+    };
+
     const contextValue = {
         theme,
         toggleTheme,
@@ -262,6 +299,7 @@ export const TrafficProvider = ({ children }) => {
         createIntersection,
         updateIntersection,
         deleteIntersection,
+        updateCameraSettings,
         user: { role: "admin", username: "admin", fullName: "Quản trị viên" },
     };
 

@@ -168,10 +168,10 @@ const Sidebar = ({
         >
             <div className="resizer-handle" onMouseDown={startResizing} />
             <div className="sidebar-header">
-        <span
-            className="icon icon-traffic"
-            style={{ color: "var(--color-accent-blue)" }}
-        ></span>
+        {/*<span*/}
+        {/*    className="icon icon-traffic"*/}
+        {/*    style={{ color: "var(--color-accent-blue)" }}*/}
+        {/*></span>*/}
                 <span className="logo-text">Traffic Monitor</span>
             </div>
 
