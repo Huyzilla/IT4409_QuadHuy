@@ -1,12 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import { useTraffic } from "./context/TrafficContext";
 import { useAuth } from "./context/AuthContext";
-import Sidebar from "./components/Sidebar";
-import Dashboard from "./components/Dashboard";
-import AccountSettings from "./pages/AccountSettings.jsx";
-import CameraGridWithModal from "./components/CameraGridWithModal";
+import Spinner from "./components/Spinner";
 import AIBotIcon from "./assets/chatbot1.png";
+
+const Sidebar = lazy(() => import("./components/Sidebar"));
+const Dashboard = lazy(() => import("./components/Dashboard"));
+const AccountSettings = lazy(() => import("./pages/AccountSettings.jsx"));
+const CameraGridWithModal = lazy(() => import("./components/CameraGridWithModal"));
+const HlsVideo = lazy(() => import("./components/HlsVideo.jsx"));
 
 const LogoutConfirmationModal = ({ onConfirm, onCancel }) => (
   <div
@@ -234,13 +237,13 @@ const SingleCameraModal = ({ liveCamera, closeModal }) => {
           </button>
         </div>
 
-        <video
+        <HlsVideo
           src={liveCamera.videoSource}
           poster={liveCamera.thumbnail || ""}
           controls
           autoPlay
           playsInline
-          muted={false}
+          muted
           className="live-modal-video"
           style={{ maxHeight: "80vh", maxWidth: "100%", objectFit: "contain" }}
           onError={(e) => {
@@ -606,6 +609,7 @@ export default function MainApp() {
   if (trafficLoading) {
     return (
       <div className="app-loading">
+      <Spinner />
         <div>Đang tải dữ liệu ngã tư...</div>
       </div>
     );

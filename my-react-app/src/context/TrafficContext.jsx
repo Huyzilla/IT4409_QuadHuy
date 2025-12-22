@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
-import axios from "axios";
+import { useAuth } from "./AuthContext";
+import { api } from "../api";
 
 const MOCK_ALERTS = [
   {
@@ -27,7 +28,6 @@ const MOCK_ALERTS = [
 ];
 
 const TrafficContext = createContext();
-const API_URL = "http://localhost:3000/api";
 
 const rtspToHls = (videoSource) => {
   if (!videoSource || typeof videoSource !== "string") return null;
@@ -43,6 +43,7 @@ const rtspToHls = (videoSource) => {
 };
 
 export const TrafficProvider = ({ children }) => {
+  const { accessToken, user } = useAuth();
   const [intersections, setIntersections] = useState([]);
   const [activeIntersection, setActiveIntersection] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,7 @@ export const TrafficProvider = ({ children }) => {
   const fetchIntersections = async (preferredActiveId) => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_URL}/intersections`);
+      const res = await api.get(`/intersections`);
 
       if (res.data && res.data.length > 0) {
         console.log("✅ Raw Data from DB:", res.data);
@@ -75,6 +76,9 @@ export const TrafficProvider = ({ children }) => {
 
         setIntersections(formattedData);
 
+        console.debug("TrafficContext: intersections updated", {
+          count: formattedData.length,
+        });
         const nextActive =
           (preferredActiveId
             ? formattedData.find((x) => x.id === preferredActiveId)
@@ -86,14 +90,47 @@ export const TrafficProvider = ({ children }) => {
       }
     } catch (err) {
       console.error("❌ Lỗi tải ngã tư:", err);
+      setIntersections([]);
+      setActiveIntersection(null);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    // If the AuthProvider set token into localStorage but `accessToken` hasn't
+    // propagated yet to this provider (race during route mount), fall back to
+    // reading the token from localStorage so we still fetch intersections.
+    const effectiveToken =
+      accessToken || localStorage.getItem("traffic-access-token");
+    if (!effectiveToken) {
+      setLoading(false);
+      setIntersections([]);
+      setActiveIntersection(null);
+      return;
+    }
+    // Debug: log that we're fetching due to token available
+    console.debug("TrafficContext: fetching intersections (token present)");
     fetchIntersections();
-  }, []);
+  }, [accessToken]);
+
+  // Also listen for an explicit login event (fired after OAuth redirect)
+  useEffect(() => {
+    const onAuthLogin = () => {
+      if (accessToken) fetchIntersections();
+    };
+    window.addEventListener('auth:login', onAuthLogin);
+    return () => window.removeEventListener('auth:login', onAuthLogin);
+  }, [accessToken]);
+
+  // Re-fetch intersections when the traffic socket connects/reconnects
+  useEffect(() => {
+    const onSocketConnect = () => {
+      if (accessToken) fetchIntersections();
+    };
+    window.addEventListener('socket:connect', onSocketConnect);
+    return () => window.removeEventListener('socket:connect', onSocketConnect);
+  }, [accessToken]);
 
   const [theme, setTheme] = useState("theme-dark");
   const toggleTheme = () => {
@@ -110,7 +147,7 @@ export const TrafficProvider = ({ children }) => {
   const createIntersection = async (data) => {
     try {
       // Gọi API POST /intersections
-      const res = await axios.post(`${API_URL}/intersections`, {
+      const res = await api.post(`/intersections`, {
         name: data.name,
         latitude: parseFloat(data.latitude),
         longitude: parseFloat(data.longitude),
@@ -140,7 +177,7 @@ export const TrafficProvider = ({ children }) => {
   const updateIntersection = async (id, data) => {
     try {
       // Gọi API PUT /intersections/:id
-      const res = await axios.put(`${API_URL}/intersections/${id}`, {
+      const res = await api.put(`/intersections/${id}`, {
         name: data.name,
         latitude: parseFloat(data.latitude),
         longitude: parseFloat(data.longitude),
@@ -189,7 +226,7 @@ export const TrafficProvider = ({ children }) => {
 
     try {
       // Gọi API DELETE /intersections/:id
-      await axios.delete(`${API_URL}/intersections/${id}`);
+      await api.delete(`/intersections/${id}`);
 
       // Xóa khỏi danh sách local
       setIntersections((prev) => prev.filter((item) => item.id !== id));
@@ -301,7 +338,7 @@ export const TrafficProvider = ({ children }) => {
     createIntersection,
     updateIntersection,
     deleteIntersection,
-    user: { role: "admin", username: "admin", fullName: "Quản trị viên" },
+    user,
   };
 
   return (
