@@ -430,11 +430,9 @@ const Dashboard = ({ onReload, onLiveGrid, onLiveView }) => {
               }}
               style={{
                 marginRight: 10,
-                borderColor: "#0ea5e9",
-                color: "#0ea5e9",
               }}
             >
-              + Thêm Camera
+              Thêm Camera
             </button>
           )}
           <div
