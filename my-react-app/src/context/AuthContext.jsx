@@ -1,14 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+import React, { createContext, useContext, useEffect, useState } from "react";
+import { api, setOnUnauthorized } from "../api";
+import { connectTrafficSocket, disconnectTrafficSocket } from "../socket";
 
 const AuthContext = createContext();
-
-// Kiểm tra kỹ Backend đang chạy Port 3000 hay 3001
-// Nếu Backend chạy port 3001 thì sửa số 3000 bên dưới thành 3001
-const API_URL = "http://localhost:3000/api";
-
-axios.defaults.baseURL = API_URL;
-axios.defaults.withCredentials = true; // Bắt buộc để dùng Cookie
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
@@ -16,127 +10,193 @@ export const useAuth = () => {
   return context;
 };
 
+const normalizeBackendUser = (backendUser, providerFallback) => {
+  if (!backendUser) return null;
+  return {
+    id: backendUser.id,
+    username: backendUser.username,
+    fullName: backendUser.fullName,
+    role: backendUser.role || "user",
+    avatarUrl: backendUser.avatar || backendUser.avatarUrl || null,
+    email: backendUser.email,
+    provider: backendUser.provider || providerFallback || "local",
+  };
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // --- 1. Tự động kiểm tra đăng nhập ---
+  const clearAuth = (redirectToLogin = false) => {
+    setUser(null);
+    setAccessToken(null);
+    localStorage.removeItem("traffic-user");
+    localStorage.removeItem("traffic-google-id-token");
+    localStorage.removeItem("traffic-access-token");
+    disconnectTrafficSocket();
+
+    if (redirectToLogin && window.location?.pathname !== "/login") {
+      window.location.assign("/login");
+    }
+  };
+
+  const persistAuth = (token, backendUser, providerFallback) => {
+    if (token) {
+      setAccessToken(token);
+      localStorage.setItem("traffic-access-token", token);
+      connectTrafficSocket();
+    }
+
+    const normalizedUser = normalizeBackendUser(backendUser, providerFallback);
+    if (normalizedUser) {
+      setUser(normalizedUser);
+      localStorage.setItem("traffic-user", JSON.stringify(normalizedUser));
+    }
+  };
+
   useEffect(() => {
-    const checkAuth = async () => {
+    setOnUnauthorized(() => clearAuth(true));
+
+    const savedToken = localStorage.getItem("traffic-access-token");
+    if (savedToken) {
+      setAccessToken(savedToken);
+      connectTrafficSocket();
+    }
+
+    const savedUser = localStorage.getItem("traffic-user");
+    if (savedUser) {
       try {
-        const res = await axios.get("/auth/me");
-        setUser(res.data);
-      } catch (error) {
-        setUser(null);
+        setUser(JSON.parse(savedUser));
+      } catch {
+        localStorage.removeItem("traffic-user");
+      }
+    }
+
+    (async () => {
+      try {
+        if (savedToken && !savedUser) {
+          const res = await api.get("/auth/me");
+          persistAuth(savedToken, res.data, res.data?.provider);
+        }
+      } catch {
+        // Global 401 handler will take care.
       } finally {
         setLoading(false);
       }
-    };
-    checkAuth();
+    })();
   }, []);
 
-  // --- 2. Hàm Đăng Ký---
   const register = async (fullName, username, email, password) => {
-    try {
-      // Gửi đúng 4 tham số lên Backend
-      await axios.post("/auth/register", {
-        fullName,
-        username,
-        email, // Email thực tế người dùng nhập
-        password,
-      });
+    const res = await api.post("/auth/register", {
+      fullName,
+      username,
+      email,
+      password,
+    });
 
-      return true;
-    } catch (error) {
-      console.error("Lỗi đăng ký:", error);
-      const msg = error.response?.data?.message;
-      throw new Error(Array.isArray(msg) ? msg[0] : msg || "Đăng ký thất bại");
+    // Backend flow: registration requires email verification (OTP/link).
+    // Response: { verificationRequired: true, email }
+    const verificationRequired = res.data?.verificationRequired;
+    const returnedEmail = res.data?.email || email;
+    if (!verificationRequired) {
+      throw new Error("Đăng ký thất bại: thiếu thông tin xác thực email.");
     }
+
+    if (returnedEmail) {
+      localStorage.setItem("pendingEmail", returnedEmail);
+    }
+    return res.data;
   };
 
-  // --- 3. Hàm Đăng Nhập ---
-  const login = async (username, password) => {
-    try {
-      const res = await axios.post("/auth/login", {
-        username,
-        password,
-      });
-      const userData = res.data.user || res.data;
-      setUser(userData);
-      return true;
-    } catch (error) {
-      console.error("Lỗi đăng nhập:", error);
-      throw new Error(
-        error.response?.data?.message || "Sai tài khoản hoặc mật khẩu"
-      );
+  const login = async (usernameOrEmail, password) => {
+    const res = await api.post("/auth/login", {
+      username: usernameOrEmail,
+      password,
+    });
+
+    const issuedToken = res.data?.accessToken;
+    const backendUser = res.data?.user;
+    if (!issuedToken || !backendUser) {
+      throw new Error("Backend không trả về accessToken/user.");
     }
+
+    persistAuth(issuedToken, backendUser, backendUser?.provider || "local");
+    try {
+      window.dispatchEvent(new Event("auth:login"));
+    } catch {}
   };
 
-  // --- 4. Hàm Đăng Nhập Google ---
-  const googleLogin = async (credentialResponse) => {
-    try {
-      const token = credentialResponse.credential;
-      if (!token) throw new Error("Không nhận được token từ Google");
+  const googleLogin = async (credentialOrToken) => {
+    const token =
+      typeof credentialOrToken === "string"
+        ? credentialOrToken
+        : credentialOrToken?.credential;
+    if (!token) throw new Error("Không nhận được token từ Google");
 
-      const res = await axios.post("/auth/google", {
-        credential: token,
-      });
-
-      const userData = res.data.user || res.data;
-      setUser(userData);
-    } catch (error) {
-      console.error("Lỗi Google Login:", error);
-      throw new Error(
-        error.response?.data?.message || "Đăng nhập Google thất bại"
-      );
+    const res = await api.post("/auth/google", { credential: token });
+    const issuedToken = res.data?.accessToken;
+    const backendUser = res.data?.user;
+    if (!issuedToken || !backendUser) {
+      throw new Error("Backend không trả về accessToken/user.");
     }
+
+    localStorage.setItem("traffic-google-id-token", token);
+    persistAuth(issuedToken, backendUser, "google");
+    try {
+      window.dispatchEvent(new Event("auth:login"));
+    } catch {}
   };
 
-  // --- 5. Hàm Đăng Xuất ---
   const logout = async () => {
     try {
-      await axios.post("/auth/logout");
-    } catch (error) {
-      console.warn("Lỗi logout server:", error);
+      await api.post("/auth/logout");
+    } catch {
+      // ignore
     } finally {
-      setUser(null);
-      delete axios.defaults.headers.common["Authorization"];
-      window.location.href = "/login";
+      clearAuth(true);
     }
   };
 
-  // --- 6. Cập nhật Profile ---
-  const updateUserProfile = async (data) => {
-    try {
-      const res = await axios.put("/users/profile", data);
-      setUser(res.data);
-      return res.data;
-    } catch (error) {
-      throw error;
-    }
-  };
-  // --- 7. Hàm Xác thực Email (OTP hoặc Token) ---
   const verifyEmail = async (email, code, token) => {
-    try {
-      // Chuẩn bị dữ liệu gửi lên
-      const payload = { email };
-      if (code) payload.code = code;
-      if (token) payload.token = token;
+    const payload = { email };
+    if (code) payload.code = code;
+    if (token) payload.token = token;
 
-      // Gọi API
-      const res = await axios.post("/auth/verify-email", payload);
+    const res = await api.post("/auth/verify-email", payload);
+    const issuedToken = res.data?.accessToken;
+    const backendUser = res.data?.user;
+    if (issuedToken || backendUser) {
+      persistAuth(issuedToken, backendUser, backendUser?.provider);
+      try {
+        window.dispatchEvent(new Event("auth:login"));
+      } catch {}
+    }
+    return true;
+  };
 
-      // Backend trả về user + token luôn -> Đăng nhập thành công ngay lập tức!
-      const userData = res.data.user || res.data;
-      setUser(userData);
+  const setTokens = (token) => {
+    if (!token) return;
+    setAccessToken(token);
+    localStorage.setItem("traffic-access-token", token);
+    connectTrafficSocket();
+  };
 
-      return true;
-    } catch (error) {
-      console.error("Xác thực lỗi:", error);
-      throw new Error(
-        error.response?.data?.message ||
-          "Mã xác thực không đúng hoặc đã hết hạn."
+  const setTokensAndFetchUser = async (token) => {
+    setTokens(token);
+    const res = await api.get("/auth/me");
+    persistAuth(token, res.data, res.data?.provider);
+  };
+
+  const setTokensAndSetUser = async (token, backendUser) => {
+    setTokens(token);
+    if (backendUser) {
+      const normalizedUser = normalizeBackendUser(
+        backendUser,
+        backendUser?.provider
       );
+      setUser(normalizedUser);
+      localStorage.setItem("traffic-user", JSON.stringify(normalizedUser));
     }
   };
 
@@ -144,14 +204,17 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
+        accessToken,
         loading,
-        login,
+        isAuthenticated: !!accessToken,
         register,
+        login,
         googleLogin,
-        logout,
-        updateUserProfile,
-        isAuthenticated: !!user,
         verifyEmail,
+        logout,
+        setTokens,
+        setTokensAndFetchUser,
+        setTokensAndSetUser,
       }}
     >
       {children}

@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Camera {
+  id             Int           @id @default(autoincrement())
+  name           String        @db.VarChar(255)
+  videoSource    String        @map("video_source") @db.VarChar(500)
+  latitude       Float
+  longitude      Float
+  intersectionId Int? // Có thể null (nếu camera chưa gán vào đâu)
+  intersection   Intersection? @relation(fields: [intersectionId], references: [id])
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+
+  frameStats      TrafficFrameStat[]
+  minuteSummaries TrafficMinuteSummary[]
+
+  @@map("cameras")
+}
+
+model TrafficFrameStat {
+  id          Int      @id @default(autoincrement())
+  cameraId    Int      @map("camera_id")
+  vehicles    Int
+  isEmergency Boolean  @default(false) @map("is_emergency")
+  capturedAt  DateTime @map("captured_at")
+
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@index([cameraId])
+  @@index([capturedAt])
+  @@map("traffic_frame_stats")
+}
+
+model TrafficSignalLog {
+  id            Int      @id @default(autoincrement())
+  timestamp     BigInt
+  readableTime  String   @map("readable_time") @db.VarChar(100)
+  event         String   @db.VarChar(100)
+  greenRoadId   Int      @map("green_road_id")
+  duration      Int
+  reason        String   @db.VarChar(255)
+  trafficStatus Json     @map("traffic_status") @db.JsonB
+  cycleQueue    Json     @map("cycle_queue") @db.JsonB
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([timestamp])
+  @@map("traffic_signal_logs")
+}
+
+model Intersection {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  latitude    Float
+  longitude   Float
+  description String?  @db.Text
+  cameras     Camera[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("intersections")
+}
+
+model TrafficMinuteSummary {
+  id          Int      @id @default(autoincrement())
+  cameraId    Int      @map("camera_id")
+  minuteStart Int      @map("minute_start")
+  minuteEnd   Int      @map("minute_end")
+  vehiclesAvg Float    @map("vehicles_avg")
+  vehiclesMax Int      @map("vehicles_max")
+  samples     Int
+  flowCount   Int      @default(0) @map("flow_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+
+  @@unique([cameraId, minuteStart]) // tránh insert trùng 1 phút/cam
+  @@index([minuteStart])
+  @@map("traffic_minute_summaries")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  fullName  String   @map("full_name") // Map sang tên cột trong DB (tùy chọn)
+  email     String   @unique
+  password  String
+  avatar    String? // Dấu ? nghĩa là có thể null
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users") // Tên bảng trong Database
+}
