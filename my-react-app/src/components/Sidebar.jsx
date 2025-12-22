@@ -72,7 +72,6 @@ const Sidebar = ({
   onToggleDropdown,
   isDropdownOpen,
 }) => {
-  const isAdmin = currentUser?.role === "admin" || currentUser?.roleId === 0;
   const {
     intersections,
     activeIntersection,
@@ -216,11 +215,9 @@ const Sidebar = ({
       </div>
 
       <h3 className="list-title">DANH SÁCH NGÃ TƯ</h3>
-      {isAdmin && (
-        <button className="btn-add-new" onClick={handleCreate}>
-          + Thêm
-        </button>
-      )}
+      <button className="btn-add-new" onClick={handleCreate}>
+        + Thêm
+      </button>
       <ul className="intersection-list">
         {filteredIntersections.length > 0 ? (
           filteredIntersections.map((item) => {
@@ -252,26 +249,24 @@ const Sidebar = ({
                   {statusText}
                 </span>
 
-                {isAdmin && (
-                  <div className="item-actions-group">
-                    {/*nút sửa ngã tư */}
-                    <button
-                      className="btn-icon-action edit"
-                      onClick={(e) => handleEdit(e, item)}
-                      title="Sửa thông tin"
-                    >
-                      ✎
-                    </button>
-                    {/*nút xóa ngã tư */}
-                    <button
-                      className="btn-icon-action delete"
-                      onClick={(e) => handleDelete(e, item.id)}
-                      title="Xóa ngã tư"
-                    >
-                      🗑
-                    </button>
-                  </div>
-                )}
+                <div className="item-actions-group">
+                  {/*nút sửa ngã tư */}
+                  <button
+                    className="btn-icon-action edit"
+                    onClick={(e) => handleEdit(e, item)}
+                    title="Sửa thông tin"
+                  >
+                    ✎
+                  </button>
+                  {/* nút xóa ngã tư */}
+                  <button
+                    className="btn-icon-action delete"
+                    onClick={(e) => handleDelete(e, item.id)}
+                    title="Xóa ngã tư"
+                  >
+                    ✕
+                  </button>
+                </div>
               </li>
             );
           })
