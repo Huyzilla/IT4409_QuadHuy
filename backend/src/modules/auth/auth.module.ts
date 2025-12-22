@@ -9,6 +9,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { RateLimitService } from './rate-limit.service';
 import { PassportModule } from '@nestjs/passport';
 import { GoogleStrategy } from './google.strategy';
+import { AdminGuard } from './admin.guard';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { GoogleStrategy } from './google.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, RateLimitService, GoogleStrategy],
-  exports: [AuthService, JwtAuthGuard, JwtModule, RateLimitService],
+  providers: [AuthService, JwtAuthGuard, AdminGuard, RateLimitService, GoogleStrategy],
+  exports: [AuthService, JwtAuthGuard, AdminGuard, JwtModule, RateLimitService],
 })
 export class AuthModule {}

@@ -19,6 +19,7 @@ async function main() {
       fullName: 'Quản trị viên Hệ thống',
       email: 'admin@traffic.ai',
       password: hashedPassword,
+      roleId: 0,
     }
   });
 

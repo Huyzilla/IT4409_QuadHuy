@@ -44,6 +44,7 @@ const rtspToHls = (videoSource) => {
 
 export const TrafficProvider = ({ children }) => {
   const { accessToken, user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.roleId === 0;
   const [intersections, setIntersections] = useState([]);
   const [activeIntersection, setActiveIntersection] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -141,6 +142,10 @@ export const TrafficProvider = ({ children }) => {
   };
   // Hàm tạo Ngã tư --------------------------------------------------------
   const createIntersection = async (data) => {
+    if (!isAdmin) {
+      alert('Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).');
+      return;
+    }
     try {
       // Gọi API POST /intersections
       const res = await api.post(`/intersections`, {
@@ -171,6 +176,10 @@ export const TrafficProvider = ({ children }) => {
 
   // Hàm sửa Ngã tư -------------------------------------------------------------
   const updateIntersection = async (id, data) => {
+    if (!isAdmin) {
+      alert('Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).');
+      return;
+    }
     try {
       // Gọi API PUT /intersections/:id
       const res = await api.put(`/intersections/${id}`, {
@@ -213,6 +222,10 @@ export const TrafficProvider = ({ children }) => {
 
   //Hàm xóa Ngã tư ---------------------------------------------------------------
   const deleteIntersection = async (id) => {
+    if (!isAdmin) {
+      alert('Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).');
+      return;
+    }
     if (
       !window.confirm(
         "Bạn chắc chắn muốn xóa ngã tư này? Dữ liệu camera liên quan có thể bị ảnh hưởng."
