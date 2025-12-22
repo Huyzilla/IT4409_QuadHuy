@@ -30,10 +30,13 @@ async function bootstrap() {
 
   // enable cookie parser so controllers can read cookies
   app.use(cookieParser());
-  app.use(json({ limit: '50mb' }));
-  app.use(urlencoded({ extended: true, limit: '50mb' }));
+
   // Set global API prefix
   app.setGlobalPrefix('api');
+  app.use(json({ limit: '50mb' }));
+
+  // ➕ 3. Tăng giới hạn cho URL encoded (nếu cần)
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // Enable global validation pipe
   app.useGlobalPipes(

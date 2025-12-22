@@ -15,6 +15,7 @@ export default function AccountSettings() {
   const [formData, setFormData] = useState({
     fullName: user?.fullName || "",
     username: user?.username || "",
+    email: user?.email || "",
     currentPassword: "",
     newPassword: "",
     confirmNewPassword: "",
@@ -33,6 +34,7 @@ export default function AccountSettings() {
       ...prev,
       fullName: user?.fullName || "",
       username: user?.username || "",
+      email: user?.email || "",
     }));
   }, [user]);
 
@@ -192,6 +194,17 @@ export default function AccountSettings() {
                 name="username"
                 disabled
                 value={formData.username}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Email (Không thể thay đổi)</label>
+              <input
+                type="email"
+                className="form-input"
+                disabled
+                value={formData.email}
+                title="Không thể thay đổi email"
               />
             </div>
 
