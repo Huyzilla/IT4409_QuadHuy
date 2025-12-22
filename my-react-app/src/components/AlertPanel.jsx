@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 const AlertPanel = ({ onClose, isDropdown = false }) => {
     const { alerts, unreadAlertCount, markAllAsRead, markAlertsAsRead, handleIntersectionSelect } = useTraffic();
-    const [filter, setFilter] = useState("all"); // 'all', 'heavy', 'medium', 'system'
+    const [filter, setFilter] = useState("all");
     const navigate = useNavigate();
 
     const handleAlertClick = (alert) => {

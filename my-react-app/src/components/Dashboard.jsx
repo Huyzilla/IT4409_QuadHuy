@@ -207,7 +207,6 @@ const DashboardSegmentCard = ({camera, realTimeData, onLiveView, onSettings}) =>
                     position: "relative",
                 }}
             >
-                {/*hiển thị camera*/}
                 {camera.videoSource ? (
                     <video
                         src={camera.videoSource}
@@ -356,9 +355,6 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
 
     const alertRef = useRef(null);
 
-    // Local countdown tick for traffic-light remaining seconds.
-    // We keep the server-provided values in `serverLight/serverRemaining` and derive the
-    // UI values `light/remaining` (with an extra 2s yellow between GREEN -> RED).
     useEffect(() => {
         const timer = setInterval(() => {
             setRealTimeStats((prev) => {
@@ -379,7 +375,6 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                         nextServerRemaining = Math.max(0, Math.floor(serverRemaining) - 1);
                     }
 
-                    // If we are in an injected yellow phase, tick that down.
                     const pendingLight = cur.pendingLight;
                     if (pendingLight) {
                         const remaining = Number(cur.remaining);
@@ -391,7 +386,6 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                             };
                             changed = true;
                         } else {
-                            // Yellow phase finished; switch to the pending light.
                             next[key] = {
                                 ...cur,
                                 serverRemaining: nextServerRemaining,
@@ -406,7 +400,6 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                         return;
                     }
 
-                    // Normal: UI follows server light, with UI remaining ticking locally.
                     const reachedZeroFromGreen =
                         serverLight === 'GREEN' &&
                         Number.isFinite(serverRemaining) &&
@@ -539,15 +532,12 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
         return () => ingestSocket.off("new_minute_stats");
     }, [activeIntersection]);
 
-    // Realtime traffic lights + remaining time from backend (/traffic)
     useEffect(() => {
         if (!activeIntersection?.id) return;
 
         const intersectionId = activeIntersection.id;
 
         const handleTrafficUpdate = (payload) => {
-            // New shape: { intersectionStates: { [id]: {north,east,south,west} } }
-            // Legacy shape: {north,east,south,west}
             const state = payload?.intersectionStates
                 ? payload.intersectionStates[intersectionId]
                 : payload;
@@ -586,12 +576,10 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                         prevServerLight === 'GREEN' &&
                         nextServerLight === 'RED';
 
-                    // Always update server fields; only update display fields if not in override.
                     const baseUpdate = {
                         ...prevCam,
                         serverLight: nextServerLight,
                         serverRemaining: nextServerRemaining,
-                        // Keep compatible with existing UI fields
                         vehicles: road.vehicles,
                         flowCount: road.vehicles,
                         isEmergency: road.isEmergency,
@@ -608,7 +596,6 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                     }
 
                     if (alreadyInInjectedYellow) {
-                        // Keep showing injected yellow until it finishes.
                         next[camId] = baseUpdate;
                         return;
                     }

@@ -40,6 +40,23 @@ export class TrafficService {
       this.intersectionStates[id].north.light = LightState.GREEN;
       this.intersectionStates[id].north.remaining = 10;
     });
+
+    // Start countdown timer for all intersections
+    this.startCountdownTimer();
+  }
+
+  private startCountdownTimer(): void {
+    setInterval(() => {
+      Object.values(this.intersectionStates).forEach((state) => {
+        (['north', 'east', 'south', 'west'] as Array<keyof TrafficState>).forEach(
+          (direction) => {
+            if (state[direction].remaining > 0) {
+              state[direction].remaining--;
+            }
+          },
+        );
+      });
+    }, 1000);
   }
 
   private static createDefaultIntersectionState(): TrafficState {

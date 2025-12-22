@@ -14,7 +14,6 @@ export default function CameraModal({
     longitude: "105.8542",
   });
 
-  // Load dữ liệu cũ nếu là chế độ Sửa
   useEffect(() => {
     if (initialData) {
       setFormData({

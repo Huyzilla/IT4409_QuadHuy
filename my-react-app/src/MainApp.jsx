@@ -469,7 +469,7 @@ const AIChatbox = () => {
                                     maxWidth: "85%",
                                     fontSize: "14px",
                                     alignSelf: msg.role === "bot" ? "flex-start" : "flex-end",
-                                    color: "white",
+                                    color: msg.role === "bot" ? "var(--color-text-primary)" : "white",
                                 }}
                             >
                                 {msg.text}
@@ -497,7 +497,7 @@ const AIChatbox = () => {
                                     borderRadius: "12px",
                                     border: "1px solid var(--color-border)",
                                     background: "var(--color-bg-primary)",
-                                    color: "white",
+                                    color: "var(--color-text-primary)",
                                     outline: "none",
                                 }}
                             />

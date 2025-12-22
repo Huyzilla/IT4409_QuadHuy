@@ -100,12 +100,12 @@ const Sidebar = ({
     const [editingItem, setEditingItem] = useState(null);
 
     const handleCreate = () => {
-        setEditingItem(null); // Mode tạo mới
+        setEditingItem(null);
         setIsModalOpen(true);
     };
 
     const handleEdit = (e, item) => {
-        e.stopPropagation(); // Chặn sự kiện click vào item cha (để không bị active ngã tư khi ấn sửa)
+        e.stopPropagation();
         setEditingItem(item);
         setIsModalOpen(true);
     };
@@ -127,12 +127,10 @@ const Sidebar = ({
     const [width, setWidth] = useState(300);
     const isResizing = useRef(false);
 
-    // 2. Hàm xử lý khi bắt đầu nhấn chuột
     const startResizing = useCallback((e) => {
         isResizing.current = true;
         document.addEventListener("mousemove", handleMouseMove);
         document.addEventListener("mouseup", stopResizing);
-        // Ngăn chặn việc chọn text khi đang kéo
         document.body.style.userSelect = 'none';
         document.body.style.cursor = 'col-resize';
     }, []);
@@ -168,11 +166,11 @@ const Sidebar = ({
             style={{ '--sidebar-width': `${width}px` }}
         >
             <div className="resizer-handle" onMouseDown={startResizing} />
-            <div className="sidebar-header">
-        <span
-            className="icon icon-traffic"
-            style={{ color: "var(--color-accent-blue)" }}
-        ></span>
+            <div className="sidebar-header" style={{ display: 'flex', alignItems: 'center'}}>
+                <span
+                    className="icon icon-traffic"
+                    style={{ color: "var(--color-accent-blue)", fontSize: '16px' }}
+                ></span>
                 <span className="logo-text">Traffic Monitor</span>
             </div>
 

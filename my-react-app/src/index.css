@@ -117,6 +117,28 @@
     color: var(--color-text-secondary);
 }
 
+.theme-light .ai-window {
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+.theme-light .ai-header {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+}
+
+.theme-light .msg.bot {
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-primary);
+}
+
+.theme-light .ai-input-area input {
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    border: 1px solid var(--color-border);
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -954,6 +976,7 @@ h3 {
 
 .search-box {
     margin-bottom: 30px;
+    margin-top: 50px;
     position: relative;
 }
 
