@@ -65,6 +65,62 @@ services:
     restart: unless-stopped
     networks: [traffic-net]
 
+  cam_north_1:
+    image: linuxserver/ffmpeg:latest
+    container_name: cam_north_1
+    depends_on: [mediamtx]
+    volumes:
+      - ./videos:/videos:ro
+    command: >
+      -re -stream_loop -1 -fflags +genpts -i /videos/two.mp4
+      -an
+      -c:v copy
+      -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/north1
+    restart: unless-stopped
+    networks: [traffic-net]
+
+  cam_east_1:
+    image: linuxserver/ffmpeg:latest
+    container_name: cam_east_1
+    depends_on: [mediamtx]
+    volumes:
+      - ./videos:/videos:ro
+    command: >
+      -re -stream_loop -1 -fflags +genpts -i /videos/two.mp4
+      -an
+      -c:v copy
+      -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/east1
+    restart: unless-stopped
+    networks: [traffic-net]
+
+  cam_south_1:
+    image: linuxserver/ffmpeg:latest
+    container_name: cam_south_1
+    depends_on: [mediamtx]
+    volumes:
+      - ./videos:/videos:ro
+    command: >
+      -re -stream_loop -1 -fflags +genpts -i /videos/two.mp4
+      -an
+      -c:v copy
+      -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/south1
+    restart: unless-stopped
+    networks: [traffic-net]
+
+  cam_west_1:
+    image: linuxserver/ffmpeg:latest
+    container_name: cam_west_1
+    depends_on: [mediamtx]
+    volumes:
+      - ./videos:/videos:ro
+    command: >
+      -re -stream_loop -1 -fflags +genpts -i /videos/two.mp4
+      -an
+      -c:v copy
+      -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/west1
+    restart: unless-stopped
+    networks: [traffic-net]
+
 networks:
   traffic-net:
     external: true  

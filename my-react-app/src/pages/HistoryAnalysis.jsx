@@ -7,7 +7,7 @@ import { ingestSocket } from "../socket";
 import axios from "axios";
 import * as XLSX from 'xlsx';
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = "http://localhost:3000/api";
 
 const COLOR_PALETTE = ["#8b5cf6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4"];
 
