@@ -4,6 +4,8 @@ import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import MainApp from "./MainApp";
 import HistoryAnalysis from "./pages/HistoryAnalysis.jsx";
+import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth();
@@ -23,7 +25,8 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-
+      <Route path="/register" element={<Register />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route
         path="/*"
         element={
