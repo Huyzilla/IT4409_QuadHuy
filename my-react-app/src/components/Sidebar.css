@@ -1,184 +1,184 @@
 /* src/components/Sidebar.css */
 .sidebar {
-  position: relative;
-  z-index: 1000 !important; /*Đảm bảo nút bấm nhận được click */
-  width: var(--sidebar-width);
+    position: relative;
+    z-index: 1000 !important; /* Quan trọng: Đảm bảo nút bấm nhận được click */
+    width: var(--sidebar-width);
 }
 
 /* Header chứa tiêu đề và nút Thêm */
 .sidebar-list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 10px;
-  padding-right: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-right: 5px;
 }
 
 .resizer-handle {
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 5px;
-  height: 100%;
-  cursor: col-resize;
-  z-index: 10;
-  transition: background-color 0.2s;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    transition: background-color 0.2s;
 }
 
 .resizer-handle:hover,
 .resizer-handle:active {
-  background-color: var(--color-accent-blue);
-  opacity: 0.5;
+    background-color: var(--color-accent-blue);
+    opacity: 0.5;
 }
 
 /* Nút Thêm mới (+) */
 .btn-add-new {
-  background-color: var(--color-accent-blue);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 4px 10px;
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  transition: opacity 0.2s;
+    background-color: var(--color-accent-blue);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: opacity 0.2s;
 }
 
 .btn-add-new:hover {
-  opacity: 0.9;
+    opacity: 0.9;
 }
 
 /* Nhóm nút Sửa/Xóa (ẩn đi khi chưa hover) */
 .item-actions-group {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-left: 8px;
-  opacity: 0;
-  transition: opacity 0.2s;
-  visibility: hidden; /* Giấu hẳn để không chiếm click */
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    visibility: hidden; /* Giấu hẳn để không chiếm click */
 }
 
 /* Hiện nút khi di chuột vào dòng ngã tư */
 .intersection-item:hover .item-actions-group {
-  opacity: 1;
-  visibility: visible;
+    opacity: 1;
+    visibility: visible;
 }
 
 /* Style chung cho nút icon nhỏ (Sửa/Xóa) */
 .btn-icon-action {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  cursor: pointer;
-  border: 1px solid var(--color-border);
-  background: var(--color-bg-tertiary);
-  color: var(--color-text-secondary);
-  font-size: 14px;
-  transition: all 0.2s;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-tertiary);
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    transition: all 0.2s;
 }
 
 /* Màu riêng cho nút Sửa */
 .btn-icon-action.edit:hover {
-  border-color: var(--color-accent-blue);
-  color: var(--color-accent-blue);
+    border-color: var(--color-accent-blue);
+    color: var(--color-accent-blue);
 }
 
 /* Màu riêng cho nút Xóa */
 .btn-icon-action.delete {
-  background: rgba(239, 68, 68, 0.1);
-  border-color: rgba(239, 68, 68, 0.2);
-  color: var(--color-traffic-heavy);
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+    color: var(--color-traffic-heavy);
 }
 
 .btn-icon-action.delete:hover {
-  background: rgba(239, 68, 68, 0.2);
-  border-color: var(--color-traffic-heavy);
+    background: rgba(239, 68, 68, 0.2);
+    border-color: var(--color-traffic-heavy);
 }
 
 .live-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.75); /* Màu nền tối mờ */
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999; /* Đảm bảo nổi lên trên cùng */
-  backdrop-filter: blur(2px); /* Hiệu ứng mờ nền phía sau cho đẹp */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75); /* Màu nền tối mờ */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Đảm bảo nổi lên trên cùng */
+    backdrop-filter: blur(2px); /* Hiệu ứng mờ nền phía sau cho đẹp */
 }
 
 .live-modal-content {
-  background-color: var(--color-bg-secondary, #1e293b);
-  border: 1px solid var(--color-border, #334155);
-  border-radius: 8px;
-  padding: 30px;
-  width: 90%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  color: white;
-  animation: modalFadeIn 0.2s ease-out;
+    background-color: var(--color-bg-secondary, #1e293b);
+    border: 1px solid var(--color-border, #334155);
+    border-radius: 8px;
+    padding: 30px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    color: white;
+    animation: modalFadeIn 0.2s ease-out;
 }
 
 /* Các class phụ trợ cho Form bên trong Modal */
 .live-modal-content .form-group {
-  margin-bottom: 15px;
+    margin-bottom: 15px;
 }
 
 .live-modal-content label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: 500;
-  color: var(--color-text-secondary, #cbd5e1);
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--color-text-secondary, #cbd5e1);
 }
 
 .live-modal-content input,
 .live-modal-content textarea {
-  width: 100%;
-  padding: 10px;
-  background-color: var(--color-bg-primary, #0f172a);
-  border: 1px solid var(--color-border, #334155);
-  color: white;
-  border-radius: 6px;
-  font-family: inherit;
+    width: 100%;
+    padding: 10px;
+    background-color: var(--color-bg-primary, #0f172a);
+    border: 1px solid var(--color-border, #334155);
+    color: white;
+    border-radius: 6px;
+    font-family: inherit;
 }
 
 .live-modal-content input:focus,
 .live-modal-content textarea:focus {
-  outline: none;
-  border-color: var(--color-accent-blue, #0ea5e9);
+    outline: none;
+    border-color: var(--color-accent-blue, #0ea5e9);
 }
 
 .live-modal-content .login-submit {
-  width: 100%;
-  padding: 12px;
-  background-color: var(--color-accent-blue, #0ea5e9);
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-  margin-top: 20px;
+    width: 100%;
+    padding: 12px;
+    background-color: var(--color-accent-blue, #0ea5e9);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
 }
 
 .live-modal-content .login-submit:hover {
-  opacity: 0.9;
+    opacity: 0.9;
 }
 
 @keyframes modalFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
