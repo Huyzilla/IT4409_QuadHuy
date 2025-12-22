@@ -3,9 +3,9 @@ services:
     image: bluenviron/mediamtx:latest
     container_name: mediamtx
     ports:
-      - "8554:8554"   # RTSP 
-      - "8888:8888"   # HLS
-      - "8889:8889"   # WebRTC
+      - "8554:8554" # RTSP
+      - "8888:8888" # HLS
+      - "8889:8889" # WebRTC
     restart: unless-stopped
     networks: [traffic-net]
 
@@ -72,7 +72,7 @@ services:
     volumes:
       - ./videos:/videos:ro
     command: >
-      -re -stream_loop -1 -fflags +genpts -i /videos/veo_test.mp4
+      -re -stream_loop -1 -fflags +genpts -i /videos/new.mp4
       -an
       -c:v copy
       -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/north1
@@ -86,7 +86,7 @@ services:
     volumes:
       - ./videos:/videos:ro
     command: >
-      -re -stream_loop -1 -fflags +genpts -i /videos/veo_test.mp4
+      -re -stream_loop -1 -fflags +genpts -i /videos/new.mp4
       -an
       -c:v copy
       -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/east1
@@ -100,7 +100,7 @@ services:
     volumes:
       - ./videos:/videos:ro
     command: >
-      -re -stream_loop -1 -fflags +genpts -i /videos/veo_test.mp4
+      -re -stream_loop -1 -fflags +genpts -i /videos/new.mp4
       -an
       -c:v copy
       -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/south1
@@ -114,7 +114,7 @@ services:
     volumes:
       - ./videos:/videos:ro
     command: >
-      -re -stream_loop -1 -fflags +genpts -i /videos/veo_test.mp4
+      -re -stream_loop -1 -fflags +genpts -i /videos/new.mp4
       -an
       -c:v copy
       -f rtsp -rtsp_transport tcp rtsp://mediamtx:8554/west1
@@ -123,4 +123,4 @@ services:
 
 networks:
   traffic-net:
-    external: true  
+    external: true

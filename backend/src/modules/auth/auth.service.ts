@@ -1,4 +1,3 @@
-// ...existing code...
 import {
   ConflictException,
   Injectable,
@@ -20,6 +19,7 @@ type SafeUser = {
   fullName: string;
   email: string;
   avatar: string | null;
+  roleId: number;
 };
 
 @Injectable()
@@ -116,6 +116,7 @@ export class AuthService {
       fullName: user.fullName,
       email: user.email,
       avatar: user.avatar ?? null,
+      roleId: typeof user.roleId === 'number' ? user.roleId : 1,
     };
   }
 
@@ -261,6 +262,7 @@ export class AuthService {
         fullName: pending.fullName,
         email: pending.email,
         password: pending.passwordHash,
+        roleId: 1,
       },
       select: {
         id: true,
@@ -268,6 +270,7 @@ export class AuthService {
         fullName: true,
         email: true,
         avatar: true,
+        roleId: true,
       },
     });
 
@@ -281,6 +284,7 @@ export class AuthService {
         email: user.email,
         name: user.fullName,
         avatar: user.avatar,
+        roleId: user.roleId,
         provider: 'local',
       },
       { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
@@ -346,6 +350,7 @@ export class AuthService {
         fullName: true,
         email: true,
         avatar: true,
+        roleId: true,
         password: true,
       },
     });
@@ -365,6 +370,7 @@ export class AuthService {
         email: user.email,
         name: user.fullName,
         avatar: user.avatar,
+        roleId: user.roleId,
         provider: 'local',
       },
       { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
@@ -410,6 +416,7 @@ export class AuthService {
         fullName: true,
         email: true,
         avatar: true,
+        roleId: true,
       },
     });
     if (user) {
@@ -423,6 +430,7 @@ export class AuthService {
           fullName: true,
           email: true,
           avatar: true,
+          roleId: true,
         },
       });
     } else {
@@ -451,6 +459,7 @@ export class AuthService {
           fullName,
           avatar,
           password: await bcrypt.hash(randomUUID(), 10),
+          roleId: 1,
         },
         select: {
           id: true,
@@ -458,6 +467,7 @@ export class AuthService {
           fullName: true,
           email: true,
           avatar: true,
+          roleId: true,
         },
       });
     }
@@ -468,6 +478,7 @@ export class AuthService {
         email: user.email,
         name: user.fullName,
         avatar: user.avatar,
+        roleId: user.roleId,
         provider: 'google',
       },
       { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
@@ -503,6 +514,7 @@ export class AuthService {
         fullName: true,
         email: true,
         avatar: true,
+        roleId: true,
       },
     });
     if (user) {
@@ -516,6 +528,7 @@ export class AuthService {
           fullName: true,
           email: true,
           avatar: true,
+          roleId: true,
         },
       });
     } else {
@@ -542,6 +555,7 @@ export class AuthService {
           fullName,
           avatar,
           password: await bcrypt.hash(randomUUID(), 10),
+          roleId: 1,
         },
         select: {
           id: true,
@@ -549,6 +563,7 @@ export class AuthService {
           fullName: true,
           email: true,
           avatar: true,
+          roleId: true,
         },
       });
     }
@@ -558,6 +573,7 @@ export class AuthService {
         email: user.email,
         name: user.fullName,
         avatar: user.avatar,
+        roleId: user.roleId,
         provider: 'google',
       },
       { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
@@ -589,6 +605,7 @@ export class AuthService {
         email: user.email,
         name: user.fullName,
         avatar: user.avatar,
+        roleId: user.roleId,
         provider: 'local',
       },
       { expiresIn: AuthService.ACCESS_TOKEN_TTL_SECONDS },
@@ -615,6 +632,7 @@ export class AuthService {
         fullName: true,
         email: true,
         avatar: true,
+        roleId: true,
       },
     });
     if (!user) return null;

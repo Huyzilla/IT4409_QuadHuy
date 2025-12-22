@@ -22,6 +22,7 @@ import {
 import { CameraService } from './camera.service';
 import { CreateCameraDto, UpdateCameraDto } from './dto/camera.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../auth/admin.guard';
 
 /**
  * CameraController handles HTTP requests for camera management
@@ -71,6 +72,7 @@ export class CameraController {
    * Create a new camera
    */
   @Post()
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Create a new camera',
@@ -88,6 +90,7 @@ export class CameraController {
    * Update camera
    */
   @Put(':id')
+  @UseGuards(AdminGuard)
   @ApiOperation({
     summary: 'Update camera',
     description: 'Update camera information',
@@ -108,6 +111,7 @@ export class CameraController {
    * Delete camera
    */
   @Delete(':id')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete camera',

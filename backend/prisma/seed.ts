@@ -19,18 +19,39 @@ async function main() {
       fullName: 'Quản trị viên Hệ thống',
       email: 'admin@traffic.ai',
       password: hashedPassword,
-    }
+      roleId: 0,
+    },
   });
 
   const locations = [
-    { name: "Ngã tư Chùa Bộc - Phạm Ngọc Thạch", lat: 21.0074, lng: 105.8288, area: "Đống Đa" },
-    { name: "Ngã tư Nguyễn Chí Thanh - Láng", lat: 21.0234, lng: 105.8061, area: "Đống Đa" },
-    { name: "Ngã tư Xuân Thủy - Trần Thái Tông", lat: 21.0366, lng: 105.7831, area: "Cầu Giấy" },
-    { name: "Ngã tư Giải Phóng - Đại Cồ Việt", lat: 21.0063, lng: 105.8427, area: "Hai Bà Trưng" }
+    {
+      name: 'Ngã tư Chùa Bộc - Phạm Ngọc Thạch',
+      lat: 21.0074,
+      lng: 105.8288,
+      area: 'Đống Đa',
+    },
+    {
+      name: 'Ngã tư Nguyễn Chí Thanh - Láng',
+      lat: 21.0234,
+      lng: 105.8061,
+      area: 'Đống Đa',
+    },
+    {
+      name: 'Ngã tư Xuân Thủy - Trần Thái Tông',
+      lat: 21.0366,
+      lng: 105.7831,
+      area: 'Cầu Giấy',
+    },
+    {
+      name: 'Ngã tư Giải Phóng - Đại Cồ Việt',
+      lat: 21.0063,
+      lng: 105.8427,
+      area: 'Hai Bà Trưng',
+    },
   ];
 
   console.log('--- 🚦 Đang tạo 4 Ngã tư & 16 Camera... ---');
-  const directions = ["North", "South", "East", "West"];
+  const directions = ['North', 'South', 'East', 'West'];
   const now = new Date();
 
   for (const loc of locations) {
@@ -66,17 +87,19 @@ async function main() {
     const signalLogs = Array.from({ length: 5 }).map((_, i) => ({
       timestamp: BigInt(Math.floor((now.getTime() - i * 300000) / 1000)),
       readableTime: new Date(now.getTime() - i * 300000).toISOString(),
-      event: "signal_change",
+      event: 'signal_change',
       greenRoadId: (i % 4) + 1,
       duration: 30,
-      reason: "NORMAL_ADAPTIVE",
-      trafficStatus: { "flow": "stable" },
-      cycleQueue: { "next": directions[(i + 1) % 4] }
+      reason: 'NORMAL_ADAPTIVE',
+      trafficStatus: { flow: 'stable' },
+      cycleQueue: { next: directions[(i + 1) % 4] },
     }));
     await prisma.trafficSignalLog.createMany({ data: signalLogs });
   }
 
-  console.log('Đã seed thành công: 4 Ngã tư, 16 Camera, 160 FrameStats và 20 SignalLogs!');
+  console.log(
+    'Đã seed thành công: 4 Ngã tư, 16 Camera, 160 FrameStats và 20 SignalLogs!',
+  );
 }
 
 main()
