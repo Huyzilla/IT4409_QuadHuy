@@ -112,11 +112,7 @@ export default function HistoryAnalysis() {
     const handleToggleRealTime = () => {
         setIsRealTime(true);
         setSelectedHour("all");
-        // Cập nhật ngày hiện tại khi chuyển sang chế độ realtime
         setSelectedDate(new Date().toISOString().split('T')[0]);
-        setTimeout(() => {
-            fetchHistoryData();
-        }, 100);
     };
 
     const handleHourChange = (e) => {
