@@ -18,13 +18,16 @@ import {
 export class TrafficService {
   private readonly logger = new Logger(TrafficService.name);
 
-  // Current traffic state for all roads
   private currentState: TrafficState = {
     north: { vehicles: 0, light: LightState.RED, remaining: 0 },
     east: { vehicles: 0, light: LightState.RED, remaining: 0 },
     south: { vehicles: 0, light: LightState.RED, remaining: 0 },
     west: { vehicles: 0, light: LightState.RED, remaining: 0 },
   };
+
+  private emergencyActive = new Map<number, boolean>();
+  private lastEmergencyWriteAt = new Map<number, number>();
+  private readonly EMERGENCY_COOLDOWN_MS = 10000;
 
   constructor(
     private readonly trafficRepository: TrafficRepository,
@@ -41,22 +44,22 @@ export class TrafficService {
    *
    * Steps:
    * 1. Validate DTO
-   * 2. Save to traffic_frame_stats table
-   * 3. Update current state
-   * 4. Cache in Redis
+   * 2. Update current state
+   * 3. Cache in Redis
+   * 4. Save to DB ONLY if emergency (cooldown)
    * 5. Broadcast to frontend (handled by gateway)
    */
   async processIncomingData(dto: IngestTrafficDataDto): Promise<TrafficState> {
     this.logger.log(`Processing traffic data from camera ${dto.cameraId}`);
 
-    // Step 1: Save to database
-    await this.trafficRepository.saveFrameStat(dto);
-
-    // Step 2: Update current state based on camera ID
+    // Step 1: Update current state based on camera ID
     this.updateTrafficState(dto);
 
-    // Step 3: Cache state in Redis
+    // Step 2: Cache state in Redis
     await this.cacheCurrentState();
+
+    // Step 3: Save to database ONLY when emergency (with anti-spam cooldown)
+    await this.saveFrameStatIfEmergency(dto);
 
     return this.currentState;
   }
@@ -96,10 +99,6 @@ export class TrafficService {
     return this.currentState;
   }
 
-  /**
-   * Update traffic state based on camera input
-   * Camera IDs map to directions: 1=North, 2=East, 3=South, 4=West
-   */
   private updateTrafficState(dto: IngestTrafficDataDto): void {
     const directionMap: { [key: number]: keyof TrafficState } = {
       1: 'north',
@@ -115,9 +114,38 @@ export class TrafficService {
     }
   }
 
-  /**
-   * Apply light change to current state
-   */
+  // Save frame stat to DB ONLY when emergency.
+  // Ghi khi: lần đầu emergency (false->true) hoặc đã quá cooldown
+  // Không emergency: reset trạng thái để lần sau phát hiện lại ghi được ngay
+  private async saveFrameStatIfEmergency(dto: IngestTrafficDataDto): Promise<void> {
+    const cameraId = dto.cameraId;
+    const isEmergency = Boolean(dto.isEmergency);
+
+    if (!isEmergency) {
+      this.emergencyActive.set(cameraId, false);
+      return;
+    }
+
+    const now = Date.now();
+    const wasActive = this.emergencyActive.get(cameraId) === true;
+    const lastWrite = this.lastEmergencyWriteAt.get(cameraId) ?? 0;
+
+    const shouldWrite =
+      !wasActive || now - lastWrite >= this.EMERGENCY_COOLDOWN_MS;
+
+    if (!shouldWrite) return;
+
+    this.emergencyActive.set(cameraId, true);
+    this.lastEmergencyWriteAt.set(cameraId, now);
+
+    await this.trafficRepository.saveFrameStat(dto);
+
+    this.logger.warn(
+      `Emergency saved (camera=${cameraId}, vehicles=${dto.vehicles}, cooldown=${this.EMERGENCY_COOLDOWN_MS}ms)`,
+    );
+  }
+
+  // Apply light change to current state
   private applyLightChange(greenRoadId: number, duration: number): void {
     const directionMap: { [key: number]: keyof TrafficState } = {
       1: 'north',
@@ -141,9 +169,7 @@ export class TrafficService {
     }
   }
 
-  /**
-   * Save traffic signal log to database
-   */
+  // Save traffic signal log to database
   private async saveSignalLog(decision: any): Promise<void> {
     const logDto: CreateTrafficSignalLogDto = {
       timestamp: Math.floor(Date.now() / 1000),
@@ -163,9 +189,7 @@ export class TrafficService {
     await this.trafficRepository.upsertMinuteSummary(dto);
   }
 
-  /**
-   * Cache current state in Redis
-   */
+  // Cache current state in Redis
   private async cacheCurrentState(): Promise<void> {
     await this.redisService.cacheTrafficState(
       'traffic:state',
@@ -174,32 +198,24 @@ export class TrafficService {
     );
   }
 
-  /**
-   * Get current traffic state (for API endpoints)
-   */
+  // Get current traffic state (for API endpoints)
   getCurrentState(): TrafficState {
     return { ...this.currentState };
   }
 
-  /**
-   * Get traffic logs with pagination
-   */
+  // Get traffic logs with pagination
   async getTrafficLogs(limit: number = 20, offset: number = 0) {
     return this.trafficRepository.getTrafficLogs(limit, offset);
   }
 
-  /**
-   * Get traffic snapshot (current state from Redis or memory)
-   */
+  // Get traffic snapshot (current state from Redis or memory)  
   async getSnapshot(): Promise<TrafficState> {
     const cachedState =
       await this.redisService.getTrafficState('traffic:state');
     return cachedState || this.currentState;
   }
 
-  /**
-   * Get traffic statistics
-   */
+  // Get traffic statistics
   async getStats(cameraId?: number, from?: string, to?: string) {
     const fromDate = from ? new Date(from) : undefined;
     const toDate = to ? new Date(to) : undefined;
