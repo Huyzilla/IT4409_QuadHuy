@@ -327,16 +327,11 @@ traffic_state = {
 }
 state_lock = threading.Lock()
 
-def calculate_adjusted_time(num_vehicles, max_vehicles=30, default_time=42):
-    if num_vehicles >= max_vehicles:
-        percentage_diff = ((num_vehicles - max_vehicles) / max_vehicles) * 100
-        adjusted_time = default_time * (1 + percentage_diff / 100)
-    elif num_vehicles < max_vehicles:
-        percentage_diff = ((max_vehicles - num_vehicles) / max_vehicles) * 100
-        adjusted_time = default_time * (1 - percentage_diff / 100)
-    else:
-        adjusted_time = default_time
-    return max(10, min(80, round(adjusted_time)))
+def calculate_adjusted_time(num_vehicles: int, max_vehicles: int, default_time: int) -> int:
+    if max_vehicles <= 0:
+        return max(10, min(80, int(round(default_time))))
+    adjusted_time = default_time * (num_vehicles / max_vehicles)
+    return max(10, min(80, int(round(adjusted_time))))
 
 def process_camera(source_config, target_road_ids, detector):
     video_path = config["path"]

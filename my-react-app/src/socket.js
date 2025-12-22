@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-const BASE_URL = "http://localhost:3001";
+const BASE_URL = "http://localhost:3000";
 
 // Kết nối Dashboard (đèn, xe hiện tại)
 export const trafficSocket = io(`${BASE_URL}/traffic`, {
