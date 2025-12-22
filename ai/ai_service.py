@@ -320,10 +320,8 @@ cam_config = {
 }
 
 traffic_state = {
-    1: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0},
-    2: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0},
-    3: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0},
-    4: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0}
+    cam_id: {"vehicles": 0, "emergency": 0, "light": "RED", "time_left": 0}
+    for cam_id in cam_config.keys()
 }
 state_lock = threading.Lock()
 
@@ -519,13 +517,20 @@ def process_camera(source_config, target_road_ids, detector):
             minute_counts.append(vehicle_count)
             minute_max = max(minute_max, vehicle_count)
     
-def traffic_control_loop():
+def traffic_control_loop(road_ids, intersection_id: int):
     time.sleep(2)
-    roads_cycle = [1, 2, 3, 4]
+    road_ids = list(road_ids)
+    roads_cycle = road_ids.copy()
 
     while True:
         with state_lock:
-            current_data = copy.deepcopy(traffic_state)
+            current_data = {rid: copy.deepcopy(traffic_state.get(rid)) for rid in road_ids}
+            current_data = {rid: v for rid, v in current_data.items() if v is not None}
+
+        # If we don't have any data yet for this intersection, wait a bit.
+        if not current_data:
+            time.sleep(0.2)
+            continue
 
         sorted_roads = sorted(
             current_data.items(),
@@ -536,16 +541,21 @@ def traffic_control_loop():
 
         if selected_road is None:
             if not roads_cycle:
-                roads_cycle = [1, 2, 3, 4]
+                roads_cycle = road_ids.copy()
             for r_id, info in sorted_roads:
                 if r_id in roads_cycle:
                     selected_road = r_id
                     break
-        if selected_road is None and roads_cycle:
-            selected_road = roads_cycle[0]
+        if selected_road is None:
+            # Fallback to a valid road id present in current_data
+            selected_road = next(iter(current_data.keys()))
 
         if selected_road is not None:
-            road_info = current_data[selected_road]
+            road_info = current_data.get(selected_road)
+            if road_info is None:
+                # Data changed while selecting; retry next loop.
+                time.sleep(0.1)
+                continue
             road_cfg = cam_config.get(selected_road, {})
 
             max_v = road_cfg.get("max_vehicles", 5)
@@ -580,7 +590,7 @@ def traffic_control_loop():
                 }
 
             payload = {
-                "intersectionId": 1,
+                "intersectionId": int(intersection_id),
                 "timestamp": time.time(),
                 "readableTime": time.strftime(
                     "%Y-%m-%d %H:%M:%S", time.localtime()),
@@ -633,20 +643,27 @@ if __name__ == "__main__":
     DEMO_OPTIMIZED = True
     
     if DEMO_OPTIMIZED:
-        print(">>> STARTING DEMO MODE: 1 VIDEO SOURCE FOR 4 ROADS <<<")
-        source_id = 1
-        source_config = cam_config.get(source_id)
-        all_road_ids = list(cam_config.keys()) 
-        
-        if source_config:
+        print(">>> STARTING DEMO MODE: 2 VIDEO SOURCES (2 INTERSECTIONS) <<<")
+        # Group camera IDs by blocks of 4: [1-4] uses main_video stream, [5-8] uses veo_test stream.
+        camera_ids = sorted(list(cam_config.keys()))
+        groups = [camera_ids[i:i + 4] for i in range(0, len(camera_ids), 4)]
+
+        for group in groups:
+            if not group:
+                continue
+            source_id = group[0]
+            source_config = cam_config.get(source_id)
+            if not source_config:
+                print(f"Error: Config for camera {source_id} not found!")
+                continue
+
+            print(f"[DEMO] Infer source cam {source_id} ({source_config['path']}) -> targets {group}")
             t = threading.Thread(
-                target=process_camera_shared, 
-                args=(source_config, all_road_ids, detector)
+                target=process_camera_shared,
+                args=(source_config, group, detector),
             )
             t.daemon = True
             t.start()
-        else:
-            print("Error: Config for camera not found!")
     else:
         print("Run with full 4 camera (High CPU usage)....")
         for r_id, config in cam_config.items():
@@ -654,8 +671,22 @@ if __name__ == "__main__":
             t.daemon = True
             t.start()
 
-    # Thread thuật toán điều khiển đèn
-    threading.Thread(target=traffic_control_loop, daemon=True).start()
+    # Traffic signal control for 2 intersections (1-4 and 5-8)
+    intersection1_roads = [rid for rid in [1, 2, 3, 4] if rid in traffic_state]
+    intersection2_roads = [rid for rid in [5, 6, 7, 8] if rid in traffic_state]
+
+    if intersection1_roads:
+        threading.Thread(
+            target=traffic_control_loop,
+            args=(intersection1_roads, 1),
+            daemon=True,
+        ).start()
+    if intersection2_roads:
+        threading.Thread(
+            target=traffic_control_loop,
+            args=(intersection2_roads, 2),
+            daemon=True,
+        ).start()
     print("AI traffic service is running...")
     while True:
         time.sleep(10)
