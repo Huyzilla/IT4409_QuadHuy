@@ -1,7 +1,8 @@
 import React, {useEffect, useRef, useState} from "react";
 import {useTraffic} from "../context/TrafficContext";
 import AlertPanel from "./AlertPanel.jsx";
-import {ingestSocket} from "../socket.js";
+import {ingestSocket, getTrafficSocket} from "../socket.js";
+import { api } from "../api";
 
 const STATUS_MAP = {
     low: {label: "Ít đông", colorClass: "low-traffic", gradientClass: "low-gradient"},
@@ -70,15 +71,16 @@ const TrafficLight = ({ light = 'RED', remaining = 0 }) => {
 
 const CameraSettingsModal = ({camera, onClose, onSave}) => {
     const [threshold, setThreshold] = useState(camera.threshold || 0.7);
+    const [maxVehicles, setMaxVehicles] = useState(
+        Number.isFinite(Number(camera.maxVehicles)) ? Number(camera.maxVehicles) : 5
+    );
     const [aiEnabled, setAiEnabled] = useState(camera.aiEnabled !== undefined ? camera.aiEnabled : true);
     const [loading, setLoading] = useState(false);
 
     const handleSave = () => {
         setLoading(true);
-        setTimeout(() => {
-            onSave(camera.id, {threshold, aiEnabled});
-            setLoading(false);
-        }, 800);
+        Promise.resolve(onSave(camera.id, {threshold, maxVehicles, aiEnabled}))
+            .finally(() => setLoading(false));
     };
 
     return (
@@ -115,6 +117,20 @@ const CameraSettingsModal = ({camera, onClose, onSave}) => {
                         />
                         <small>Giá trị hiện tại: {threshold.toFixed(2)}. Mật độ vượt quá ngưỡng sẽ kích hoạt cảnh báo
                             *Ùn tắc*.</small>
+                    </div>
+
+                    <div className="form-group">
+                        <label>Số phương tiện tối đa</label>
+                        <input
+                            type="number"
+                            step="1"
+                            min="1"
+                            max="999"
+                            value={maxVehicles}
+                            onChange={(e) => setMaxVehicles(parseInt(e.target.value || '0', 10) || 0)}
+                            disabled={loading}
+                        />
+                        <small>Dùng để quy đổi mật độ: density = vehicles / maxVehicles.</small>
                     </div>
 
                     <div className="form-group checkbox-group">
@@ -340,6 +356,97 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
 
     const alertRef = useRef(null);
 
+    // Local countdown tick for traffic-light remaining seconds.
+    // We keep the server-provided values in `serverLight/serverRemaining` and derive the
+    // UI values `light/remaining` (with an extra 2s yellow between GREEN -> RED).
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setRealTimeStats((prev) => {
+                const next = { ...prev };
+                let changed = false;
+                Object.keys(next).forEach((key) => {
+                    const cur = next[key];
+                    if (!cur) return;
+
+                    const serverRemainingRaw =
+                        cur.serverRemaining ??
+                        cur.remaining;
+                    const serverRemaining = Number(serverRemainingRaw);
+                    const serverLight = cur.serverLight ?? cur.light;
+
+                    let nextServerRemaining = serverRemaining;
+                    if (Number.isFinite(serverRemaining) && serverRemaining > 0) {
+                        nextServerRemaining = Math.max(0, Math.floor(serverRemaining) - 1);
+                    }
+
+                    // If we are in an injected yellow phase, tick that down.
+                    const pendingLight = cur.pendingLight;
+                    if (pendingLight) {
+                        const remaining = Number(cur.remaining);
+                        if (Number.isFinite(remaining) && remaining > 0) {
+                            next[key] = {
+                                ...cur,
+                                serverRemaining: nextServerRemaining,
+                                remaining: Math.max(0, Math.floor(remaining) - 1),
+                            };
+                            changed = true;
+                        } else {
+                            // Yellow phase finished; switch to the pending light.
+                            next[key] = {
+                                ...cur,
+                                serverRemaining: nextServerRemaining,
+                                light: pendingLight,
+                                remaining: Number.isFinite(nextServerRemaining)
+                                    ? nextServerRemaining
+                                    : 0,
+                                pendingLight: null,
+                            };
+                            changed = true;
+                        }
+                        return;
+                    }
+
+                    // Normal: UI follows server light, with UI remaining ticking locally.
+                    const reachedZeroFromGreen =
+                        serverLight === 'GREEN' &&
+                        Number.isFinite(serverRemaining) &&
+                        serverRemaining === 1 &&
+                        nextServerRemaining === 0;
+
+                    if (reachedZeroFromGreen) {
+                        next[key] = {
+                            ...cur,
+                            serverRemaining: nextServerRemaining,
+                            light: 'YELLOW',
+                            remaining: 2,
+                            pendingLight: 'RED',
+                        };
+                        changed = true;
+                        return;
+                    }
+
+                    if (
+                        cur.serverRemaining !== nextServerRemaining ||
+                        cur.remaining !== nextServerRemaining ||
+                        cur.light !== serverLight
+                    ) {
+                        next[key] = {
+                            ...cur,
+                            serverRemaining: nextServerRemaining,
+                            light: serverLight,
+                            remaining: Number.isFinite(nextServerRemaining)
+                                ? nextServerRemaining
+                                : 0,
+                        };
+                        changed = true;
+                    }
+                });
+                return changed ? next : prev;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
     const processDensityAlert = (data) => {
         if (!activeIntersection) return;
 
@@ -347,6 +454,9 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
             (c) => c.id === data.cameraId
         );
         if (!cam) return;
+
+        const aiEnabled = cam.aiEnabled !== undefined ? cam.aiEnabled : true;
+        if (!aiEnabled) return;
 
         const density = data.density;
         const threshold = cam.threshold ?? 0.7;
@@ -373,10 +483,23 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
 
     useEffect(() => {
         const handleNewData = (data) => {
-            processDensityAlert(data);
+            if (!activeIntersection) return;
+
+            const cam = activeIntersection.cameras.find((c) => c.id === data.cameraId);
+            const aiEnabled = cam?.aiEnabled !== undefined ? cam.aiEnabled : true;
+            const maxVehicles = cam?.maxVehicles ?? 5;
+            const vehiclesAvg = Number(data.vehicles_avg) || 0;
+            const density = maxVehicles > 0 ? Math.min(1, vehiclesAvg / maxVehicles) : 0;
+
+            const computed = {
+                ...data,
+                density,
+            };
+
+            processDensityAlert(computed);
 
             setRealTimeStats(prev => {
-                const prevData = prev[data.cameraId];
+                const prevData = prev[data.cameraId] || {};
                 let trend = "stable";
                 let trendText = "Xu hướng: Ổn định";
 
@@ -401,11 +524,12 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
                 return {
                     ...prev,
                     [data.cameraId]: {
-                        density: data.density,
-                        vehicles: Math.round(data.vehicles_avg),
+                        ...prevData,
+                        density: density,
+                        vehicles: Math.round(vehiclesAvg),
                         trend: trend,
                         trendText: trendText,
-                        flowCount: data.flowCount,
+                        flowCount: aiEnabled ? data.flowCount : 0,
                     }
                 };
             });
@@ -415,6 +539,110 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
         return () => ingestSocket.off("new_minute_stats");
     }, [activeIntersection]);
 
+    // Realtime traffic lights + remaining time from backend (/traffic)
+    useEffect(() => {
+        if (!activeIntersection?.id) return;
+
+        const intersectionId = activeIntersection.id;
+
+        const handleTrafficUpdate = (payload) => {
+            // New shape: { intersectionStates: { [id]: {north,east,south,west} } }
+            // Legacy shape: {north,east,south,west}
+            const state = payload?.intersectionStates
+                ? payload.intersectionStates[intersectionId]
+                : payload;
+
+            if (!state?.north || !state?.east || !state?.south || !state?.west) return;
+
+            const base = intersectionId === 2 ? 4 : 0;
+            const camByDir = {
+                north: 1 + base,
+                east: 2 + base,
+                south: 3 + base,
+                west: 4 + base,
+            };
+
+            setRealTimeStats((prev) => {
+                const next = { ...prev };
+                Object.keys(camByDir).forEach((dir) => {
+                    const camId = camByDir[dir];
+                    const road = state[dir];
+                    if (!road) return;
+
+                    const remaining =
+                        road.remaining ??
+                        road.remainingSeconds ??
+                        road.remaining_seconds ??
+                        0;
+
+                    const prevCam = next[camId] || {};
+                    const prevServerLight = prevCam.serverLight ?? prevCam.light;
+                    const nextServerLight = road.light;
+                    const nextServerRemaining = Math.max(0, Math.floor(Number(remaining) || 0));
+
+                    const alreadyInInjectedYellow = Boolean(prevCam.pendingLight);
+                    const shouldInjectYellow =
+                        !alreadyInInjectedYellow &&
+                        prevServerLight === 'GREEN' &&
+                        nextServerLight === 'RED';
+
+                    // Always update server fields; only update display fields if not in override.
+                    const baseUpdate = {
+                        ...prevCam,
+                        serverLight: nextServerLight,
+                        serverRemaining: nextServerRemaining,
+                        // Keep compatible with existing UI fields
+                        vehicles: road.vehicles,
+                        flowCount: road.vehicles,
+                        isEmergency: road.isEmergency,
+                    };
+
+                    if (shouldInjectYellow) {
+                        next[camId] = {
+                            ...baseUpdate,
+                            light: 'YELLOW',
+                            remaining: 2,
+                            pendingLight: 'RED',
+                        };
+                        return;
+                    }
+
+                    if (alreadyInInjectedYellow) {
+                        // Keep showing injected yellow until it finishes.
+                        next[camId] = baseUpdate;
+                        return;
+                    }
+
+                    next[camId] = {
+                        ...baseUpdate,
+                        light: nextServerLight,
+                        remaining: nextServerRemaining,
+                        pendingLight: null,
+                    };
+                });
+                return next;
+            });
+        };
+
+        const attach = () => {
+            const socket = getTrafficSocket();
+            if (!socket) return;
+            socket.off("traffic_update", handleTrafficUpdate);
+            socket.on("traffic_update", handleTrafficUpdate);
+            try {
+                socket.emit("request-initial-stream");
+            } catch {}
+        };
+
+        attach();
+        window.addEventListener("socket:connect", attach);
+        return () => {
+            window.removeEventListener("socket:connect", attach);
+            const socket = getTrafficSocket();
+            if (socket) socket.off("traffic_update", handleTrafficUpdate);
+        };
+    }, [activeIntersection?.id]);
+
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (alertRef.current && !alertRef.current.contains(e.target)) setShowAlertPanel(false);
@@ -423,83 +651,25 @@ const Dashboard = ({onReload, onLiveGrid, onLiveView}) => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
-    const handleSaveSettings = (cameraId, settings) => {
-        console.log("Saving settings for cam:", cameraId, settings);
-        const cam = activeIntersection.cameras.find(c => c.id === cameraId);
-        if (cam) {
-            cam.threshold = settings.threshold;
-            cam.aiEnabled = settings.aiEnabled;
+    const handleSaveSettings = async (cameraId, settings) => {
+        try {
+            await api.put(`/cameras/${cameraId}`, {
+                threshold: settings.threshold,
+                maxVehicles: settings.maxVehicles,
+                aiEnabled: settings.aiEnabled,
+            });
+            if (onReload) await onReload();
+        } catch (error) {
+            console.error('Failed to save camera settings:', error);
+            alert('Lưu cấu hình thất bại: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setSettingsCamera(null);
         }
-        setSettingsCamera(null);
     };
 
     if (loading) return <div style={{padding: 30, color: "white"}}>⏳ Đang tải dữ liệu...</div>;
 
     const cameras = activeIntersection?.cameras || [];
-
-
-    // quản lý bộ đếm thời gian giả lập
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setRealTimeStats(prev => {
-                const nextState = {...prev};
-                let hasChange = false;
-
-                Object.keys(nextState).forEach(camId => {
-                    const camData = nextState[camId];
-                    if (!camData || camData.remaining === undefined) return;
-
-                    hasChange = true;
-                    let {light, remaining} = camData;
-
-                    if (remaining > 0) {
-                        remaining -= 1;
-                        if (light === 'GREEN' && remaining <= 2) {
-                            light = 'YELLOW';
-                        }
-                    } else {
-                        light = 'RED';
-                        remaining = 0;
-                    }
-
-                    nextState[camId] = {...camData, light, remaining};
-                });
-
-                return hasChange ? nextState : prev;
-            });
-        }, 1000);
-
-        return () => clearInterval(timer);
-    }, []);
-
-    // Cập nhật listener signal_change
-    useEffect(() => {
-        const handleSignalChange = (data) => {
-            const {greenRoadId, duration} = data.decision;
-
-            setRealTimeStats(prev => {
-                const newState = {...prev};
-                // Tất cả các đường khác chuyển về Đỏ (giả định thời gian đỏ là 60s)
-                Object.keys(newState).forEach(id => {
-                    newState[id] = {
-                        ...newState[id],
-                        light: 'RED',
-                        remaining: 60
-                    };
-                });
-                // Đường được chọn chuyển sang Xanh
-                newState[greenRoadId] = {
-                    ...newState[greenRoadId],
-                    light: 'GREEN',
-                    remaining: duration
-                };
-                return newState;
-            });
-        };
-
-        ingestSocket.on("signal_decision", handleSignalChange);
-        return () => ingestSocket.off("signal_decision");
-    }, []);
 
     return (
         <main className="main-content" role="main">

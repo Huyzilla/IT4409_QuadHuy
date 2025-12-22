@@ -17,6 +17,15 @@ export default function HistoryAnalysis() {
     const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
     const [selectedHour, setSelectedHour] = useState("all");
     const [selectedIntersections, setSelectedIntersections] = useState([]);
+    const [todayTotalVehicles, setTodayTotalVehicles] = useState(0);
+
+    const getMaxVehiclesForCamera = useCallback((cameraId) => {
+        for (const inter of intersections || []) {
+            const cam = (inter.cameras || []).find((c) => Number(c.id) === Number(cameraId));
+            if (cam) return Number(cam.maxVehicles) || 5;
+        }
+        return 5;
+    }, [intersections]);
 
     const fetchHistoryData = useCallback(async () => {
         const camerasOfActive = activeIntersection?.cameras || [];
@@ -66,11 +75,13 @@ export default function HistoryAnalysis() {
                 }
 
                 if (activeCamIds.includes(item.cameraId)) {
-                    acc[timeKey].totalDensity += Math.min(1, (Number(item.vehiclesAvg) || 0) / 100);
+                    const maxVehicles = getMaxVehiclesForCamera(item.cameraId);
+                    acc[timeKey].totalDensity += Math.min(1, (Number(item.vehiclesAvg) || 0) / (maxVehicles > 0 ? maxVehicles : 1));
                     acc[timeKey].totalVehicles += Math.round(item.vehiclesAvg) || 0;
                     acc[timeKey].activeCamCount += 1;
                 } else {
-                    acc[timeKey][`density_${item.cameraId}`] = Math.min(1, (Number(item.vehiclesAvg) || 0) / 100);
+                    const maxVehicles = getMaxVehiclesForCamera(item.cameraId);
+                    acc[timeKey][`density_${item.cameraId}`] = Math.min(1, (Number(item.vehiclesAvg) || 0) / (maxVehicles > 0 ? maxVehicles : 1));
                 }
                 return acc;
             }, {});
@@ -93,11 +104,51 @@ export default function HistoryAnalysis() {
         } finally {
             setLoading(false);
         }
-    }, [activeIntersection, isRealTime, selectedDate, selectedHour, selectedIntersections, intersections]);
+    }, [activeIntersection, isRealTime, selectedDate, selectedHour, selectedIntersections, intersections, getMaxVehiclesForCamera]);
+
+    const fetchTodayTotal = useCallback(async () => {
+        const camerasOfActive = activeIntersection?.cameras || [];
+        if (camerasOfActive.length === 0) {
+            setTodayTotalVehicles(0);
+            return;
+        }
+
+        const activeCamIds = camerasOfActive.map(c => c.id);
+        try {
+            const from = new Date(`${selectedDate}T00:00:00`).toISOString();
+            const to = new Date(`${selectedDate}T23:59:59`).toISOString();
+
+            const res = await api.get('/traffic/minute-stats', {
+                params: {
+                    cameraIds: activeCamIds.join(','),
+                    from,
+                    to,
+                    _t: Date.now(),
+                }
+            });
+
+            const total = (res.data || []).reduce((sum, row) => {
+                const v = Number(row.flowCount);
+                if (Number.isFinite(v) && v > 0) return sum + v;
+                // fallback if flowCount missing
+                const approx = Number(row.vehiclesAvg);
+                return sum + (Number.isFinite(approx) ? Math.round(approx) : 0);
+            }, 0);
+
+            setTodayTotalVehicles(total);
+        } catch (err) {
+            console.error('Lỗi fetch tổng phương tiện hôm nay:', err);
+            setTodayTotalVehicles(0);
+        }
+    }, [activeIntersection, selectedDate]);
 
     useEffect(() => {
         fetchHistoryData();
     }, [fetchHistoryData]);
+
+    useEffect(() => {
+        fetchTodayTotal();
+    }, [fetchTodayTotal]);
 
     const handleToggleRealTime = () => {
         setIsRealTime(true);
@@ -450,7 +501,7 @@ export default function HistoryAnalysis() {
                     <div className="stat-label">Giờ cao điểm sáng</div>
                 </div>
                 <div className="stat-box low">
-                    <div className="stat-value">4.821</div>
+                    <div className="stat-value">{todayTotalVehicles.toLocaleString('vi-VN')}</div>
                     <div className="stat-label">Tổng phương tiện hôm nay</div>
                 </div>
             </div>

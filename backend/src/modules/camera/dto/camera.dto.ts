@@ -1,4 +1,13 @@
-import { IsNotEmpty, IsString, IsNumber, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  IsBoolean,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
@@ -77,4 +86,35 @@ export class UpdateCameraDto {
   @IsOptional()
   @IsNumber()
   longitude?: number;
+
+  @ApiProperty({
+    description: 'Congestion threshold (density) used by frontend alerts',
+    example: 0.7,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(1)
+  threshold?: number;
+
+  @ApiProperty({
+    description: 'Max vehicles capacity used to normalize density (vehicles / maxVehicles)',
+    example: 5,
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(999)
+  maxVehicles?: number;
+
+  @ApiProperty({
+    description: 'Enable/disable AI counting and alerts for this camera',
+    example: true,
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  aiEnabled?: boolean;
 }

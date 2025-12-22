@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-VIDEO_PATH = "demo_10s_low.mp4" 
+VIDEO_PATH = "new.mp4" 
 
 # Kích thước chuẩn mà AI đang dùng (quan trọng, không đổi)
 TARGET_W, TARGET_H = 512, 288

@@ -18,11 +18,11 @@ import {
 export class TrafficService {
   private readonly logger = new Logger(TrafficService.name);
 
-  private currentState: TrafficState = {
-    north: { vehicles: 0, light: LightState.RED, remaining: 0 },
-    east: { vehicles: 0, light: LightState.RED, remaining: 0 },
-    south: { vehicles: 0, light: LightState.RED, remaining: 0 },
-    west: { vehicles: 0, light: LightState.RED, remaining: 0 },
+  // Realtime state for each intersection.
+  // Key: intersectionId (number)
+  private intersectionStates: Record<number, TrafficState> = {
+    1: TrafficService.createDefaultIntersectionState(),
+    2: TrafficService.createDefaultIntersectionState(),
   };
 
   private emergencyActive = new Map<number, boolean>();
@@ -34,9 +34,55 @@ export class TrafficService {
     private readonly trafficControlService: TrafficControlService,
     private readonly redisService: RedisService,
   ) {
-    // Initialize with first road green
-    this.currentState.north.light = LightState.GREEN;
-    this.currentState.north.remaining = 10;
+    // Initialize with first road green for each intersection
+    Object.keys(this.intersectionStates).forEach((key) => {
+      const id = Number(key);
+      this.intersectionStates[id].north.light = LightState.GREEN;
+      this.intersectionStates[id].north.remaining = 10;
+    });
+  }
+
+  private static createDefaultIntersectionState(): TrafficState {
+    return {
+      north: { vehicles: 0, light: LightState.RED, remaining: 0 },
+      east: { vehicles: 0, light: LightState.RED, remaining: 0 },
+      south: { vehicles: 0, light: LightState.RED, remaining: 0 },
+      west: { vehicles: 0, light: LightState.RED, remaining: 0 },
+    };
+  }
+
+  private getOrCreateIntersectionState(intersectionId: number): TrafficState {
+    if (!this.intersectionStates[intersectionId]) {
+      this.intersectionStates[intersectionId] =
+        TrafficService.createDefaultIntersectionState();
+      this.intersectionStates[intersectionId].north.light = LightState.GREEN;
+      this.intersectionStates[intersectionId].north.remaining = 10;
+    }
+    return this.intersectionStates[intersectionId];
+  }
+
+  private resolveIntersectionAndDirection(cameraId: number): {
+    intersectionId: number;
+    direction: keyof TrafficState;
+    localRoadId: 1 | 2 | 3 | 4;
+  } {
+    // Current demo mapping:
+    // - Intersection 1 uses camera IDs 1-4
+    // - Intersection 2 uses camera IDs 5-8
+    // Each intersection uses 4 directions north/east/south/west.
+    const intersectionId = cameraId >= 5 ? 2 : 1;
+    const localRoadId = (((cameraId - 1) % 4) + 1) as 1 | 2 | 3 | 4;
+    const directionMap: Record<1 | 2 | 3 | 4, keyof TrafficState> = {
+      1: 'north',
+      2: 'east',
+      3: 'south',
+      4: 'west',
+    };
+    return {
+      intersectionId,
+      direction: directionMap[localRoadId],
+      localRoadId,
+    };
   }
 
   /**
@@ -50,7 +96,13 @@ export class TrafficService {
    * 5. Broadcast to frontend (handled by gateway)
    */
   async processIncomingData(dto: IngestTrafficDataDto): Promise<TrafficState> {
-    this.logger.log(`Processing traffic data from camera ${dto.cameraId}`);
+    const { intersectionId, direction } = this.resolveIntersectionAndDirection(
+      dto.cameraId,
+    );
+
+    this.logger.log(
+      `Processing traffic data from camera ${dto.cameraId} (intersection=${intersectionId}, direction=${direction})`,
+    );
 
     // Step 1: Update current state based on camera ID
     this.updateTrafficState(dto);
@@ -61,7 +113,7 @@ export class TrafficService {
     // Step 3: Save to database ONLY when emergency (with anti-spam cooldown)
     await this.saveFrameStatIfEmergency(dto);
 
-    return this.currentState;
+    return this.getOrCreateIntersectionState(intersectionId);
   }
 
   async applySignalDecision(payload: any): Promise<TrafficState> {
@@ -74,12 +126,16 @@ export class TrafficService {
     const duration = decision.duration;
     const reason = decision.reason ?? 'AI_DECISION';
 
+    const { intersectionId, localRoadId } = this.resolveIntersectionAndDirection(
+      greenRoadId,
+    );
+
     this.logger.log(
-      `[AI] Apply signal decision: greenRoadId=${greenRoadId}, duration=${duration}, reason=${reason}`,
+      `[AI] Apply signal decision: greenRoadId=${greenRoadId} (intersection=${intersectionId}), duration=${duration}, reason=${reason}`,
     );
 
     // 1. Apply light change to current state
-    this.applyLightChange(greenRoadId, duration);
+    this.applyLightChange(intersectionId, localRoadId, duration);
     // 2. Save signal log to db
     await this.saveSignalLog({
       greenRoadId,
@@ -92,26 +148,22 @@ export class TrafficService {
     //4. Publish light change event
     await this.redisService.publish('traffic:light-change', {
       greenRoadId,
+      intersectionId,
       duration,
       reason,
-      state: this.currentState,
+      states: this.getAllCurrentStates(),
     });
-    return this.currentState;
+    return this.getOrCreateIntersectionState(intersectionId);
   }
 
   private updateTrafficState(dto: IngestTrafficDataDto): void {
-    const directionMap: { [key: number]: keyof TrafficState } = {
-      1: 'north',
-      2: 'east',
-      3: 'south',
-      4: 'west',
-    };
+    const { intersectionId, direction } = this.resolveIntersectionAndDirection(
+      dto.cameraId,
+    );
 
-    const direction = directionMap[dto.cameraId];
-    if (direction) {
-      this.currentState[direction].vehicles = dto.vehicles;
-      this.currentState[direction].isEmergency = dto.isEmergency;
-    }
+    const state = this.getOrCreateIntersectionState(intersectionId);
+    state[direction].vehicles = dto.vehicles;
+    state[direction].isEmergency = dto.isEmergency;
   }
 
   // Save frame stat to DB ONLY when emergency.
@@ -146,8 +198,13 @@ export class TrafficService {
   }
 
   // Apply light change to current state
-  private applyLightChange(greenRoadId: number, duration: number): void {
-    const directionMap: { [key: number]: keyof TrafficState } = {
+  private applyLightChange(
+    intersectionId: number,
+    localRoadId: 1 | 2 | 3 | 4,
+    duration: number,
+  ): void {
+    const state = this.getOrCreateIntersectionState(intersectionId);
+    const directionMap: Record<1 | 2 | 3 | 4, keyof TrafficState> = {
       1: 'north',
       2: 'east',
       3: 'south',
@@ -155,22 +212,22 @@ export class TrafficService {
     };
 
     // Set all to RED
-    Object.keys(this.currentState).forEach((key) => {
-      const direction = key as keyof TrafficState;
-      this.currentState[direction].light = LightState.RED;
-      this.currentState[direction].remaining = 0;
+    (Object.keys(state) as Array<keyof TrafficState>).forEach((direction) => {
+      state[direction].light = LightState.RED;
+      state[direction].remaining = 0;
     });
 
     // Set green road to GREEN
-    const greenDirection = directionMap[greenRoadId];
-    if (greenDirection) {
-      this.currentState[greenDirection].light = LightState.GREEN;
-      this.currentState[greenDirection].remaining = duration;
-    }
+    const greenDirection = directionMap[localRoadId];
+    state[greenDirection].light = LightState.GREEN;
+    state[greenDirection].remaining = duration;
   }
 
   // Save traffic signal log to database
   private async saveSignalLog(decision: any): Promise<void> {
+    const { intersectionId } = this.resolveIntersectionAndDirection(
+      decision.greenRoadId,
+    );
     const logDto: CreateTrafficSignalLogDto = {
       timestamp: Math.floor(Date.now() / 1000),
       readableTime: new Date().toISOString(),
@@ -178,7 +235,10 @@ export class TrafficService {
       greenRoadId: decision.greenRoadId,
       duration: decision.duration,
       reason: decision.reason,
-      trafficStatus: this.currentState,
+      trafficStatus: {
+        intersectionId,
+        state: this.getOrCreateIntersectionState(intersectionId),
+      },
       cycleQueue: decision.nextQueue,
     };
 
@@ -191,16 +251,32 @@ export class TrafficService {
 
   // Cache current state in Redis
   private async cacheCurrentState(): Promise<void> {
-    await this.redisService.cacheTrafficState(
-      'traffic:state',
-      this.currentState,
-      60,
+    const states = this.getAllCurrentStates();
+    await this.redisService.cacheTrafficState('traffic:state:all', states, 60);
+    await Promise.all(
+      Object.entries(states).map(([intersectionId, state]) =>
+        this.redisService.cacheTrafficState(
+          `traffic:state:${intersectionId}`,
+          state,
+          60,
+        ),
+      ),
     );
   }
 
-  // Get current traffic state (for API endpoints)
-  getCurrentState(): TrafficState {
-    return { ...this.currentState };
+  // Get current traffic state for a single intersection
+  getCurrentState(intersectionId: number = 1): TrafficState {
+    const state = this.getOrCreateIntersectionState(intersectionId);
+    return { ...state };
+  }
+
+  // Get traffic states for all intersections
+  getAllCurrentStates(): Record<number, TrafficState> {
+    const result: Record<number, TrafficState> = {};
+    for (const [key, value] of Object.entries(this.intersectionStates)) {
+      result[Number(key)] = { ...value };
+    }
+    return result;
   }
 
   // Get traffic logs with pagination
@@ -209,10 +285,9 @@ export class TrafficService {
   }
 
   // Get traffic snapshot (current state from Redis or memory)  
-  async getSnapshot(): Promise<TrafficState> {
-    const cachedState =
-      await this.redisService.getTrafficState('traffic:state');
-    return cachedState || this.currentState;
+  async getSnapshot(): Promise<Record<number, TrafficState>> {
+    const cached = await this.redisService.getTrafficState('traffic:state:all');
+    return cached || this.getAllCurrentStates();
   }
 
   // Get traffic statistics

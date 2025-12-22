@@ -91,8 +91,8 @@ export class TrafficGateway
   handleRequestInitialStream(client: Socket) {
     this.logger.log(`Client requested initial stream: ${client.id}`);
     try {
-      const currentState = this.trafficService.getCurrentState();
-      client.emit('traffic_update', currentState);
+      const states = this.trafficService.getAllCurrentStates();
+      client.emit('traffic_update', { intersectionStates: states });
     } catch (err) {
       this.logger.error('Failed to send initial stream', err);
     }
@@ -105,8 +105,8 @@ export class TrafficGateway
     this.logger.log(`Frontend client connected: ${client.id}`);
 
     // Send current state immediately on connection
-    const currentState = this.trafficService.getCurrentState();
-    client.emit('traffic_update', currentState);
+    const states = this.trafficService.getAllCurrentStates();
+    client.emit('traffic_update', { intersectionStates: states });
   }
 
   /**
@@ -128,8 +128,8 @@ export class TrafficGateway
    * }
    */
   private broadcastTrafficState(): void {
-    const currentState = this.trafficService.getCurrentState();
-    this.server.emit('traffic_update', currentState);
+    const states = this.trafficService.getAllCurrentStates();
+    this.server.emit('traffic_update', { intersectionStates: states });
   }
 
   /**
