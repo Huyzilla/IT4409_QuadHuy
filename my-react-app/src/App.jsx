@@ -2,9 +2,9 @@ import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
-import TrafficLayout from "./layouts/TrafficLayout";
 import Spinner from "./components/Spinner";
 
+const TrafficLayout = lazy(() => import("./layouts/TrafficLayout"));
 const MainApp = lazy(() => import("./MainApp"));
 const HistoryAnalysis = lazy(() => import("./pages/HistoryAnalysis.jsx"));
 const Register = lazy(() => import("./pages/Register"));
