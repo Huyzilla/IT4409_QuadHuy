@@ -1,13 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useAuth } from "./AuthContext";
 import { api } from "../api";
-<<<<<<< HEAD
 import axios from "axios";
 
 const API_URL = "http://localhost:3000/api";
-=======
-
->>>>>>> origin/backupCode
 const MOCK_ALERTS = [
   {
     id: 1,
@@ -34,7 +30,6 @@ const MOCK_ALERTS = [
 ];
 
 const TrafficContext = createContext();
-<<<<<<< HEAD
 const trafficAxios = axios.create({
   baseURL: API_URL,
   withCredentials: true, // : Cho phép gửi/nhận Cookie
@@ -51,8 +46,6 @@ trafficAxios.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
-=======
->>>>>>> origin/backupCode
 
 const rtspToHls = (videoSource) => {
   if (!videoSource || typeof videoSource !== "string") return null;
@@ -69,10 +62,7 @@ const rtspToHls = (videoSource) => {
 
 export const TrafficProvider = ({ children }) => {
   const { accessToken, user } = useAuth();
-<<<<<<< HEAD
-=======
-  const isAdmin = user?.role === 'admin' || user?.roleId === 0;
->>>>>>> origin/backupCode
+  const isAdmin = user?.role === "admin" || user?.roleId === 0;
   const [intersections, setIntersections] = useState([]);
   const [activeIntersection, setActiveIntersection] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -80,11 +70,7 @@ export const TrafficProvider = ({ children }) => {
   const fetchIntersections = async (preferredActiveId) => {
     setLoading(true);
     try {
-<<<<<<< HEAD
       const res = await api.get(`/intersections`);
-=======
-    const res = await api.get(`/intersections`);
->>>>>>> origin/backupCode
 
       if (res.data && res.data.length > 0) {
         console.log("✅ Raw Data from DB:", res.data);
@@ -129,7 +115,6 @@ export const TrafficProvider = ({ children }) => {
       setLoading(false);
     }
   };
-<<<<<<< HEAD
   // ĐỊNH NGHĨA HÀM refreshActiveDashboard-------------------
   const refreshActiveDashboard = async () => {
     if (activeIntersection) {
@@ -138,9 +123,6 @@ export const TrafficProvider = ({ children }) => {
       await fetchIntersections();
     }
   };
-=======
-
->>>>>>> origin/backupCode
   useEffect(() => {
     const effectiveToken =
       accessToken || localStorage.getItem("traffic-access-token");
@@ -185,13 +167,10 @@ export const TrafficProvider = ({ children }) => {
   };
   // Hàm tạo Ngã tư --------------------------------------------------------
   const createIntersection = async (data) => {
-<<<<<<< HEAD
-=======
     if (!isAdmin) {
-      alert('Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).');
+      alert("Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).");
       return;
     }
->>>>>>> origin/backupCode
     try {
       // Gọi API POST /intersections
       const res = await api.post(`/intersections`, {
@@ -222,13 +201,10 @@ export const TrafficProvider = ({ children }) => {
 
   // Hàm sửa Ngã tư -------------------------------------------------------------
   const updateIntersection = async (id, data) => {
-<<<<<<< HEAD
-=======
     if (!isAdmin) {
-      alert('Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).');
+      alert("Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).");
       return;
     }
->>>>>>> origin/backupCode
     try {
       // Gọi API PUT /intersections/:id
       const res = await api.put(`/intersections/${id}`, {
@@ -271,13 +247,10 @@ export const TrafficProvider = ({ children }) => {
 
   //Hàm xóa Ngã tư ---------------------------------------------------------------
   const deleteIntersection = async (id) => {
-<<<<<<< HEAD
-=======
     if (!isAdmin) {
-      alert('Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).');
+      alert("Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).");
       return;
     }
->>>>>>> origin/backupCode
     if (
       !window.confirm(
         "Bạn chắc chắn muốn xóa ngã tư này? Dữ liệu camera liên quan có thể bị ảnh hưởng."
@@ -302,7 +275,6 @@ export const TrafficProvider = ({ children }) => {
     }
   };
 
-<<<<<<< HEAD
   // --- quản lí camera ----------------------------------------------------
 
   // 1. Thêm Camera vào Ngã tư
@@ -407,8 +379,6 @@ export const TrafficProvider = ({ children }) => {
     }
   };
 
-=======
->>>>>>> origin/backupCode
   const [alerts, setAlerts] = useState([]);
   const unreadAlertCount = alerts.filter((a) => !a.isRead).length;
 
@@ -506,12 +476,9 @@ export const TrafficProvider = ({ children }) => {
     createIntersection,
     updateIntersection,
     deleteIntersection,
-<<<<<<< HEAD
     addCamera,
     updateCamera,
     deleteCamera,
-=======
->>>>>>> origin/backupCode
     user,
   };
 

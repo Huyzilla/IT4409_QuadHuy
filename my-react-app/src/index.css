@@ -2196,3 +2196,201 @@ h3 {
 .settings-modal-footer .action-btn.primary:hover {
   background-color: var(--color-accent-blue-dark);
 }
+
+/* --- ACCOUNT SETTINGS PAGE --- */
+
+/* Wrapper chính giới hạn chiều rộng và căn giữa */
+.account-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 0 20px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Card chứa form */
+.settings-card {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+}
+
+.settings-header {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.settings-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+}
+
+.settings-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+/* --- Avatar Upload Style --- */
+.avatar-upload-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid var(--color-border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.3s;
+  background-color: var(--color-bg-primary);
+}
+
+.avatar-wrapper:hover {
+  border-color: var(--color-accent-blue);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Lớp phủ icon camera khi hover */
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.icon-camera {
+  font-size: 24px;
+  color: white;
+}
+
+/* --- Form Elements --- */
+.form-section-divider {
+  margin: 32px 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.section-label {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* Input Styles (Đã có trong file cũ nhưng tinh chỉnh thêm) */
+.settings-form input {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.settings-form input:focus {
+  outline: none;
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2); /* Dựa trên màu accent-blue */
+}
+
+.settings-form input:disabled {
+  background-color: var(--color-bg-tertiary);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Button */
+.btn-save {
+  width: 100%;
+  padding: 14px;
+  background-color: var(--color-accent-blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 10px;
+}
+
+.btn-save:hover {
+  background-color: var(--color-accent-blue-dark);
+}
+
+.btn-save:disabled {
+  background-color: var(--color-border);
+  cursor: wait;
+}
+
+/* Alert Messages */
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.alert-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #34d399; /* traffic-low/success color */
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.alert-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #f87171; /* traffic-heavy/error color */
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
