@@ -13,7 +13,7 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - traffic-net
-
+ 
   redis:
     image: redis:7
     container_name: redis
@@ -22,7 +22,7 @@ services:
       - "6379:6379"
     networks:
       - traffic-net
-
+ 
   backend:
     build:
       context: .
@@ -39,17 +39,21 @@ services:
       REDIS_PORT: 6379
       NODE_ENV: production
       JWT_SECRET: "dev_jwt_secret_change_me"
-      GOOGLE_CLIENT_ID: ""
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-}
+      FRONTEND_URL: ${FRONTEND_URL:-}
     command: sh -c "npx prisma db push && node dist/src/main.js"
     depends_on:
       - postgres
       - redis
     networks:
       - traffic-net
-
+ 
 volumes:
   pgdata:
-
+ 
 networks:
   traffic-net:
     external: true
+ 

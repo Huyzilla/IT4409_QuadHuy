@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { IntersectionRepository } from './intersection.repository';
-import { CreateIntersectionDto, UpdateIntersectionDto } from './dto/intersection.dto';
+import {
+  CreateIntersectionDto,
+  UpdateIntersectionDto,
+} from './dto/intersection.dto';
 import { Intersection } from '@prisma/client';
 
 /**
@@ -8,7 +11,9 @@ import { Intersection } from '@prisma/client';
  */
 @Injectable()
 export class IntersectionService {
-  constructor(private readonly intersectionRepository: IntersectionRepository) {}
+  constructor(
+    private readonly intersectionRepository: IntersectionRepository,
+  ) {}
 
   /**
    * Get all intersections
@@ -38,7 +43,10 @@ export class IntersectionService {
   /**
    * Update intersection
    */
-  async updateIntersection(id: number, dto: UpdateIntersectionDto): Promise<Intersection> {
+  async updateIntersection(
+    id: number,
+    dto: UpdateIntersectionDto,
+  ): Promise<Intersection> {
     await this.getIntersectionById(id); // Validate existence
     return this.intersectionRepository.update(id, dto);
   }

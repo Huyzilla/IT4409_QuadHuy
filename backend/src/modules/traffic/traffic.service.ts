@@ -4,7 +4,11 @@ import { TrafficControlService } from './traffic.control.service';
 import { RedisService } from '../redis/redis.service';
 import { IngestTrafficDataDto } from './dto/ingest-traffic-data.dto';
 import { CreateTrafficSignalLogDto } from './dto/create-traffic-signal-log.dto';
-import { TrafficState, LightState, RoadTrafficStatus } from './entities/traffic.entity';
+import {
+  TrafficState,
+  LightState,
+  RoadTrafficStatus,
+} from './entities/traffic.entity';
 
 /**
  * TrafficService orchestrates traffic management logic.
@@ -13,7 +17,7 @@ import { TrafficState, LightState, RoadTrafficStatus } from './entities/traffic.
 @Injectable()
 export class TrafficService {
   private readonly logger = new Logger(TrafficService.name);
-  
+
   // Current traffic state for all roads
   private currentState: TrafficState = {
     north: { vehicles: 0, light: LightState.RED, remaining: 0 },
@@ -34,7 +38,7 @@ export class TrafficService {
 
   /**
    * Process incoming traffic data from AI camera
-   * 
+   *
    * Steps:
    * 1. Validate DTO
    * 2. Save to traffic_frame_stats table
@@ -59,7 +63,7 @@ export class TrafficService {
 
   async applySignalDecision(payload: any): Promise<TrafficState> {
     const decision = payload?.decision;
-    if(!decision) {
+    if (!decision) {
       throw new Error('Invalid signal decision payload');
     }
 
@@ -123,7 +127,7 @@ export class TrafficService {
     };
 
     // Set all to RED
-    Object.keys(this.currentState).forEach(key => {
+    Object.keys(this.currentState).forEach((key) => {
       const direction = key as keyof TrafficState;
       this.currentState[direction].light = LightState.RED;
       this.currentState[direction].remaining = 0;
@@ -163,7 +167,11 @@ export class TrafficService {
    * Cache current state in Redis
    */
   private async cacheCurrentState(): Promise<void> {
-    await this.redisService.cacheTrafficState('traffic:state', this.currentState, 60);
+    await this.redisService.cacheTrafficState(
+      'traffic:state',
+      this.currentState,
+      60,
+    );
   }
 
   /**
@@ -184,7 +192,8 @@ export class TrafficService {
    * Get traffic snapshot (current state from Redis or memory)
    */
   async getSnapshot(): Promise<TrafficState> {
-    const cachedState = await this.redisService.getTrafficState('traffic:state');
+    const cachedState =
+      await this.redisService.getTrafficState('traffic:state');
     return cachedState || this.currentState;
   }
 
@@ -202,7 +211,10 @@ export class TrafficService {
     const toDate = to ? new Date(to) : undefined;
 
     const idsArray = cameraIds
-      ? cameraIds.split(',').map(id => parseInt(id, 10)).filter(id => !isNaN(id))
+      ? cameraIds
+          .split(',')
+          .map((id) => parseInt(id, 10))
+          .filter((id) => !isNaN(id))
       : [];
 
     return this.trafficRepository.getMinuteSummary(idsArray, fromDate, toDate);

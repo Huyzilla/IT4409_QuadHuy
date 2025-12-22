@@ -16,7 +16,7 @@ import { AuthModule } from '../auth/auth.module';
  * - Traffic control algorithm
  * - REST API for historical data
  */
-@Module({ 
+@Module({
   imports: [PrismaModule, RedisModule, AuthModule],
   controllers: [TrafficController],
   providers: [

@@ -54,10 +54,38 @@ export class DatabaseSeedService implements OnModuleInit {
 
     await this.prisma.camera.createMany({
       data: [
-        { id: 1, name: 'North', videoSource: 'rtsp://mediamtx:8554/north', latitude: 21.0, longitude: 105.8, intersectionId: i1.id },
-        { id: 2, name: 'East',  videoSource: 'rtsp://mediamtx:8554/east',  latitude: 21.0, longitude: 105.8, intersectionId: i1.id },
-        { id: 3, name: 'South', videoSource: 'rtsp://mediamtx:8554/south', latitude: 21.0, longitude: 105.8, intersectionId: i1.id },
-        { id: 4, name: 'West',  videoSource: 'rtsp://mediamtx:8554/west',  latitude: 21.0, longitude: 105.8, intersectionId: i1.id },
+        {
+          id: 1,
+          name: 'North',
+          videoSource: 'rtsp://mediamtx:8554/north',
+          latitude: 21.0,
+          longitude: 105.8,
+          intersectionId: i1.id,
+        },
+        {
+          id: 2,
+          name: 'East',
+          videoSource: 'rtsp://mediamtx:8554/east',
+          latitude: 21.0,
+          longitude: 105.8,
+          intersectionId: i1.id,
+        },
+        {
+          id: 3,
+          name: 'South',
+          videoSource: 'rtsp://mediamtx:8554/south',
+          latitude: 21.0,
+          longitude: 105.8,
+          intersectionId: i1.id,
+        },
+        {
+          id: 4,
+          name: 'West',
+          videoSource: 'rtsp://mediamtx:8554/west',
+          latitude: 21.0,
+          longitude: 105.8,
+          intersectionId: i1.id,
+        },
       ],
       skipDuplicates: true,
     });
@@ -76,10 +104,38 @@ export class DatabaseSeedService implements OnModuleInit {
 
     await this.prisma.camera.createMany({
       data: [
-        { id: 5, name: 'North 1', videoSource: 'rtsp://mediamtx:8554/north1', latitude: 21.001, longitude: 105.801, intersectionId: i2.id },
-        { id: 6, name: 'East 1',  videoSource: 'rtsp://mediamtx:8554/east1',  latitude: 21.001, longitude: 105.801, intersectionId: i2.id },
-        { id: 7, name: 'South 1', videoSource: 'rtsp://mediamtx:8554/south1', latitude: 21.001, longitude: 105.801, intersectionId: i2.id },
-        { id: 8, name: 'West 1',  videoSource: 'rtsp://mediamtx:8554/west1',  latitude: 21.001, longitude: 105.801, intersectionId: i2.id },
+        {
+          id: 5,
+          name: 'North 1',
+          videoSource: 'rtsp://mediamtx:8554/north1',
+          latitude: 21.001,
+          longitude: 105.801,
+          intersectionId: i2.id,
+        },
+        {
+          id: 6,
+          name: 'East 1',
+          videoSource: 'rtsp://mediamtx:8554/east1',
+          latitude: 21.001,
+          longitude: 105.801,
+          intersectionId: i2.id,
+        },
+        {
+          id: 7,
+          name: 'South 1',
+          videoSource: 'rtsp://mediamtx:8554/south1',
+          latitude: 21.001,
+          longitude: 105.801,
+          intersectionId: i2.id,
+        },
+        {
+          id: 8,
+          name: 'West 1',
+          videoSource: 'rtsp://mediamtx:8554/west1',
+          latitude: 21.001,
+          longitude: 105.801,
+          intersectionId: i2.id,
+        },
       ],
       skipDuplicates: true,
     });

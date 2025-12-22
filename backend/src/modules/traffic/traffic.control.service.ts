@@ -1,9 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { TrafficState, TrafficControlDecision, LightState, RoadTrafficStatus } from './entities/traffic.entity';
+import {
+  TrafficState,
+  TrafficControlDecision,
+  LightState,
+  RoadTrafficStatus,
+} from './entities/traffic.entity';
 
 /**
  * TrafficControlService implements the adaptive traffic light control algorithm.
- * 
+ *
  * Algorithm Rules:
  * 1. Emergency vehicles get immediate priority (green light)
  * 2. If no emergency, choose the road with the most vehicles
@@ -14,23 +19,23 @@ import { TrafficState, TrafficControlDecision, LightState, RoadTrafficStatus } f
 @Injectable()
 export class TrafficControlService {
   private readonly logger = new Logger(TrafficControlService.name);
-  
+
   // Current cycle queue (road IDs in order)
   private cycleQueue: number[] = [1, 2, 3, 4]; // North, East, South, West
-  
+
   // Current green road
   private currentGreenRoadId: number = 1;
-  
+
   // Time remaining for current green light
   private timeRemaining: number = 10;
-  
+
   // Minimum and maximum green light duration
   private readonly MIN_GREEN_DURATION = 8;
   private readonly MAX_GREEN_DURATION = 15;
 
   /**
    * Calculate the optimal traffic light decision based on current state
-   * 
+   *
    * @param currentState - Current traffic status for all roads
    * @returns Traffic control decision with green road, duration, and reason
    */
@@ -43,9 +48,11 @@ export class TrafficControlService {
     ];
 
     // Rule 1: Check for emergency vehicles
-    const emergencyRoad = roads.find(road => road.status.isEmergency);
+    const emergencyRoad = roads.find((road) => road.status.isEmergency);
     if (emergencyRoad) {
-      this.logger.warn(`Emergency vehicle detected on ${emergencyRoad.direction}!`);
+      this.logger.warn(
+        `Emergency vehicle detected on ${emergencyRoad.direction}!`,
+      );
       return this.createDecision(
         emergencyRoad.id,
         this.MAX_GREEN_DURATION,
@@ -54,7 +61,9 @@ export class TrafficControlService {
     }
 
     // Rule 2: If no emergency, check if current green light should continue
-    const currentGreenRoad = roads.find(road => road.id === this.currentGreenRoadId);
+    const currentGreenRoad = roads.find(
+      (road) => road.id === this.currentGreenRoadId,
+    );
     if (currentGreenRoad && this.timeRemaining > 0) {
       // Continue current green light
       return this.createDecision(
@@ -65,13 +74,15 @@ export class TrafficControlService {
     }
 
     // Rule 3: Time to switch - choose next road with highest vehicle count
-    const sortedByVehicles = [...roads].sort((a, b) => b.status.vehicles - a.status.vehicles);
-    
+    const sortedByVehicles = [...roads].sort(
+      (a, b) => b.status.vehicles - a.status.vehicles,
+    );
+
     // Get next road from cycle queue that has vehicles
     const nextInQueue = this.getNextInQueue(roads);
     const highestTraffic = sortedByVehicles[0];
 
-    let selectedRoad: typeof roads[0];
+    let selectedRoad: (typeof roads)[0];
     let reason: string;
 
     // If the road with highest traffic has significantly more vehicles than next in queue
@@ -96,11 +107,13 @@ export class TrafficControlService {
   /**
    * Get the next road in the cycle queue
    */
-  private getNextInQueue(roads: Array<{ id: number; direction: string; status: RoadTrafficStatus }>): typeof roads[0] {
+  private getNextInQueue(
+    roads: Array<{ id: number; direction: string; status: RoadTrafficStatus }>,
+  ): (typeof roads)[0] {
     const currentIndex = this.cycleQueue.indexOf(this.currentGreenRoadId);
     const nextIndex = (currentIndex + 1) % this.cycleQueue.length;
     const nextRoadId = this.cycleQueue[nextIndex];
-    return roads.find(r => r.id === nextRoadId) || roads[0];
+    return roads.find((r) => r.id === nextRoadId) || roads[0];
   }
 
   /**
@@ -110,10 +123,13 @@ export class TrafficControlService {
   private calculateGreenDuration(vehicleCount: number): number {
     if (vehicleCount === 0) return this.MIN_GREEN_DURATION;
     if (vehicleCount >= 10) return this.MAX_GREEN_DURATION;
-    
+
     // Linear interpolation between MIN and MAX
     const ratio = vehicleCount / 10;
-    return Math.round(this.MIN_GREEN_DURATION + (this.MAX_GREEN_DURATION - this.MIN_GREEN_DURATION) * ratio);
+    return Math.round(
+      this.MIN_GREEN_DURATION +
+        (this.MAX_GREEN_DURATION - this.MIN_GREEN_DURATION) * ratio,
+    );
   }
 
   /**
@@ -121,7 +137,7 @@ export class TrafficControlService {
    */
   private updateCycleQueue(greenRoadId: number): void {
     // Move the green road to the end of the queue
-    this.cycleQueue = this.cycleQueue.filter(id => id !== greenRoadId);
+    this.cycleQueue = this.cycleQueue.filter((id) => id !== greenRoadId);
     this.cycleQueue.push(greenRoadId);
     this.currentGreenRoadId = greenRoadId;
   }

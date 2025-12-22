@@ -1,4 +1,11 @@
-import { IsNotEmpty, IsString, IsInt, IsObject, IsArray, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsInt,
+  IsObject,
+  IsArray,
+  IsNumber,
+} from 'class-validator';
 
 /**
  * DTO for creating traffic signal log

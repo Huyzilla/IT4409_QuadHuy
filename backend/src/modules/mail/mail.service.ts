@@ -20,7 +20,9 @@ export class MailService {
     randomId?: string;
   }): string {
     if (!this.verifyEmailTemplate) {
-      this.verifyEmailTemplate = Handlebars.compile(VERIFY_EMAIL_TEMPLATE, { noEscape: true });
+      this.verifyEmailTemplate = Handlebars.compile(VERIFY_EMAIL_TEMPLATE, {
+        noEscape: true,
+      });
     }
     return this.verifyEmailTemplate({
       appName: this.getAppName(),
@@ -32,9 +34,15 @@ export class MailService {
     });
   }
 
-  async sendEmailVerificationCode(toEmail: string, code: string, verifyLink?: string): Promise<void> {
+  async sendEmailVerificationCode(
+    toEmail: string,
+    code: string,
+    verifyLink?: string,
+  ): Promise<void> {
     const host = process.env.SMTP_HOST;
-    const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : undefined;
+    const port = process.env.SMTP_PORT
+      ? Number(process.env.SMTP_PORT)
+      : undefined;
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
     const from = process.env.MAIL_FROM || 'no-reply@traffic.local';
@@ -47,7 +55,8 @@ export class MailService {
       return;
     }
 
-    const secure = (process.env.SMTP_SECURE ?? '').toLowerCase() === 'true' || port === 465;
+    const secure =
+      (process.env.SMTP_SECURE ?? '').toLowerCase() === 'true' || port === 465;
 
     // Google App Passwords are often shown with spaces. Normalize to be safe.
     const normalizedPass = String(pass).replace(/\s+/g, '');
@@ -62,7 +71,6 @@ export class MailService {
     });
 
     try {
-
       const randomId = require('crypto').randomUUID();
       const html = this.renderVerifyEmailHtml({
         code,
@@ -79,9 +87,15 @@ export class MailService {
         html,
       });
 
-      const response = (info as any)?.response ? String((info as any).response) : '';
-      const messageId = (info as any)?.messageId ? String((info as any).messageId) : '';
-      this.logger.log(`Verification email accepted by SMTP. to=${toEmail} messageId=${messageId} response=${response}`);
+      const response = (info as any)?.response
+        ? String((info as any).response)
+        : '';
+      const messageId = (info as any)?.messageId
+        ? String((info as any).messageId)
+        : '';
+      this.logger.log(
+        `Verification email accepted by SMTP. to=${toEmail} messageId=${messageId} response=${response}`,
+      );
     } catch (err: any) {
       this.logger.error(
         `Failed to send verification email to ${toEmail}. ${err?.message || err}`,

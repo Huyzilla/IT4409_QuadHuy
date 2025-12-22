@@ -14,7 +14,7 @@ import { TrafficMinuteSummaryDto } from './dto/traffic-minute-summary.dto';
 /**
  * IngestGateway handles WebSocket connections from AI cameras.
  * Receives real-time traffic data and processes it through the traffic service.
- * 
+ *
  * Endpoint: ws://localhost:3000/ingest
  * Event: 'traffic_data'
  */
@@ -46,7 +46,7 @@ export class IngestGateway {
 
   /**
    * Receive traffic data from AI camera
-   * 
+   *
    * Expected payload:
    * {
    *   "cameraId": 1,
@@ -61,7 +61,9 @@ export class IngestGateway {
     @ConnectedSocket() client: Socket,
   ) {
     try {
-      this.logger.log(`Received traffic data from camera ${data.cameraId}: ${data.vehicles} vehicles`);
+      this.logger.log(
+        `Received traffic data from camera ${data.cameraId}: ${data.vehicles} vehicles`,
+      );
 
       // Process the incoming data
       const newState = await this.trafficService.processIncomingData(data);
@@ -88,10 +90,10 @@ export class IngestGateway {
     try {
       this.logger.log(
         `[AI] Signal decision received: greenRoadId=${data?.decision?.greenRoadId}, ` +
-        `duration=${data?.decision?.duration}, reason=${data?.decision?.reason}`,
+          `duration=${data?.decision?.duration}, reason=${data?.decision?.reason}`,
       );
 
-      await this.trafficService.applySignalDecision(data)
+      await this.trafficService.applySignalDecision(data);
 
       return {
         status: 'success',

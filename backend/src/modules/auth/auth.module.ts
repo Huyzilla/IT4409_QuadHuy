@@ -5,7 +5,6 @@ import { MailModule } from '../mail/mail.module';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
-
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { RateLimitService } from './rate-limit.service';
 import { PassportModule } from '@nestjs/passport';

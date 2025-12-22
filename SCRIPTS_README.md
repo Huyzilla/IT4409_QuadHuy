@@ -49,6 +49,22 @@ stop-all-prod.bat
 
 ---
 
+## Chạy riêng Backend Docker (khôi phục `nest-backend`)
+
+Lưu ý: `nest-backend` dùng port **3000**, nên không thể chạy song song với DEV backend local.
+
+### Start (Docker)
+```powershell
+powershell -ExecutionPolicy Bypass -File run-backend-docker.ps1
+```
+
+### Stop (Docker)
+```powershell
+powershell -ExecutionPolicy Bypass -File stop-backend-docker.ps1
+```
+
+---
+
 ## Bảng So Sánh
 
 | Service | DEV Mode | PROD Mode |

@@ -38,8 +38,14 @@ export class CameraController {
    * Get all cameras
    */
   @Get()
-  @ApiOperation({ summary: 'Get all cameras', description: 'Retrieve a list of all registered cameras in the system' })
-  @ApiResponse({ status: 200, description: 'List of cameras retrieved successfully' })
+  @ApiOperation({
+    summary: 'Get all cameras',
+    description: 'Retrieve a list of all registered cameras in the system',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of cameras retrieved successfully',
+  })
   async getAllCameras() {
     return this.cameraService.getAllCameras();
   }
@@ -49,7 +55,10 @@ export class CameraController {
    * Get camera by ID
    */
   @Get(':id')
-  @ApiOperation({ summary: 'Get camera by ID', description: 'Retrieve detailed information about a specific camera' })
+  @ApiOperation({
+    summary: 'Get camera by ID',
+    description: 'Retrieve detailed information about a specific camera',
+  })
   @ApiParam({ name: 'id', type: 'number', description: 'Camera ID' })
   @ApiResponse({ status: 200, description: 'Camera found' })
   @ApiResponse({ status: 404, description: 'Camera not found' })
@@ -63,7 +72,10 @@ export class CameraController {
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Create a new camera', description: 'Register a new AI camera in the system' })
+  @ApiOperation({
+    summary: 'Create a new camera',
+    description: 'Register a new AI camera in the system',
+  })
   @ApiBody({ type: CreateCameraDto })
   @ApiResponse({ status: 201, description: 'Camera created successfully' })
   @ApiResponse({ status: 400, description: 'Invalid input data' })
@@ -76,7 +88,10 @@ export class CameraController {
    * Update camera
    */
   @Put(':id')
-  @ApiOperation({ summary: 'Update camera', description: 'Update camera information' })
+  @ApiOperation({
+    summary: 'Update camera',
+    description: 'Update camera information',
+  })
   @ApiParam({ name: 'id', type: 'number', description: 'Camera ID' })
   @ApiBody({ type: UpdateCameraDto })
   @ApiResponse({ status: 200, description: 'Camera updated successfully' })
@@ -94,7 +109,10 @@ export class CameraController {
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete camera', description: 'Remove a camera from the system' })
+  @ApiOperation({
+    summary: 'Delete camera',
+    description: 'Remove a camera from the system',
+  })
   @ApiParam({ name: 'id', type: 'number', description: 'Camera ID' })
   @ApiResponse({ status: 204, description: 'Camera deleted successfully' })
   @ApiResponse({ status: 404, description: 'Camera not found' })

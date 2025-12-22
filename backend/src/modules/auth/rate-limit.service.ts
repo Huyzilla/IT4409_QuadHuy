@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { RedisService } from '../redis/redis.service';
 
 @Injectable()
@@ -26,7 +30,9 @@ export class RateLimitService {
     const blockKey = `rl:block:${key}`;
     const blocked = await redis.get(blockKey);
     if (blocked) {
-      throw new BadRequestException(blockMsg || 'Too many requests, try again later.');
+      throw new BadRequestException(
+        blockMsg || 'Too many requests, try again later.',
+      );
     }
     const rlKey = `rl:count:${key}`;
     const count = await redis.incr(rlKey);
@@ -37,7 +43,9 @@ export class RateLimitService {
       if (blockSeconds) {
         await redis.set(blockKey, '1', 'EX', blockSeconds);
       }
-      throw new BadRequestException(blockMsg || 'Too many requests, try again later.');
+      throw new BadRequestException(
+        blockMsg || 'Too many requests, try again later.',
+      );
     }
   }
 }
