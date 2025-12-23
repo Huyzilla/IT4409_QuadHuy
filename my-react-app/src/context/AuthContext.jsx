@@ -217,6 +217,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const resendVerification = async (email) => {
+    try {
+      // Giả định endpoint backend là /auth/resend-verification
+      // Nếu backend của bạn là endpoint khác (VD: /auth/resend-code), hãy sửa lại đường dẫn này
+      await api.post("/auth/resend-verification", { email });
+      return true;
+    } catch (error) {
+      // Ném lỗi ra để component VerifyEmail tự xử lý (hiện thông báo)
+      throw error;
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -228,6 +240,7 @@ export const AuthProvider = ({ children }) => {
         login,
         googleLogin,
         verifyEmail,
+        resendVerification,
         logout,
         setTokens,
         setTokensAndFetchUser,
