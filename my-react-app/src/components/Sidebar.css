@@ -617,3 +617,111 @@
         padding: 4px 8px;
     }
 }
+
+/* Landscape Mobile Mode - Optimize for horizontal orientation */
+@media (max-height: 600px) and (orientation: landscape) {
+    .sidebar {
+        overflow-y: auto;
+    }
+
+    .sidebar-header {
+        padding: 8px 16px !important;
+        font-size: 14px;
+    }
+
+    .logo-text {
+        font-size: 14px;
+    }
+
+    .search-box {
+        margin: 8px 16px !important;
+        padding: 6px 12px;
+    }
+
+    .search-box input {
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    .filter-controls {
+        padding: 0 16px !important;
+        margin-bottom: 8px !important;
+        gap: 6px;
+    }
+
+    .filter-controls select {
+        padding: 6px 8px;
+        font-size: 11px;
+    }
+
+    .sidebar-list-header {
+        padding: 8px 16px;
+        margin-bottom: 6px !important;
+    }
+
+    .sidebar-list-header .list-title {
+        font-size: 10px !important;
+    }
+
+    .btn-add-new {
+        padding: 3px 8px !important;
+        font-size: 10px !important;
+    }
+
+    .intersection-list {
+        max-height: calc(100vh - 280px) !important;
+        padding: 0 12px;
+    }
+
+    .intersection-item {
+        padding: 8px;
+        margin-bottom: 6px;
+    }
+
+    .intersection-label {
+        font-size: 12px !important;
+    }
+
+    .intersection-details {
+        font-size: 10px !important;
+        line-height: 1.3;
+    }
+
+    .intersection-status-badge {
+        font-size: 9px;
+        padding: 2px 6px;
+    }
+
+    .status-button {
+        font-size: 10px;
+        padding: 4px 8px;
+    }
+
+    .report-btn {
+        margin: 8px 16px !important;
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+
+    .sidebar-user-info {
+        margin-top: 8px;
+        padding: 8px 12px;
+    }
+
+    .sidebar-user-card {
+        padding: 8px;
+    }
+
+    .sidebar-user-avatar {
+        width: 32px !important;
+        height: 32px !important;
+    }
+
+    .sidebar-user-name {
+        font-size: 12px !important;
+    }
+
+    .sidebar-user-role {
+        font-size: 10px !important;
+    }
+}
