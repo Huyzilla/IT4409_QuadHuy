@@ -1,6 +1,9 @@
 import { io } from "socket.io-client";
 
-const BASE_URL = "http://localhost:3000";
+const BASE_URL =
+    import.meta.env.VITE_SOCKET_BASE_URL ||
+    import.meta.env.VITE_BACKEND_URL ||
+    "http://localhost:3000";
 
 // /ingest is intentionally unauthenticated.
 export const ingestSocket = io(`${BASE_URL}/ingest`, {

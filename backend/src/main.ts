@@ -22,9 +22,24 @@ async function bootstrap() {
   });
 
   // Enable CORS for frontend connections (allow credentials)
-  const frontend = process.env.FRONTEND_URL || 'http://localhost:5173';
+  // Render + Vercel: allow a list of origins (comma-separated)
+  const frontendRaw =
+    process.env.FRONTEND_URLS ||
+    process.env.FRONTEND_URL ||
+    'http://localhost:5173';
+  const allowedOrigins = frontendRaw
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: frontend,
+    origin: (origin, cb) => {
+      // Allow same-origin / server-to-server / curl
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes('*')) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS blocked origin: ${origin}`), false);
+    },
     credentials: true,
   });
 
@@ -47,8 +62,17 @@ async function bootstrap() {
     }),
   );
 
-  // Use Socket.IO adapter for WebSocket
-  app.useWebSocketAdapter(new IoAdapter(app));
+  // Use Socket.IO adapter for WebSocket with matching CORS
+  class AppIoAdapter extends IoAdapter {
+    override createIOServer(port: number, options?: any) {
+      const cors = {
+        origin: allowedOrigins.includes('*') ? true : allowedOrigins,
+        credentials: true,
+      };
+      return super.createIOServer(port, { ...options, cors });
+    }
+  }
+  app.useWebSocketAdapter(new AppIoAdapter(app));
 
   // Setup Swagger documentation
   const config = new DocumentBuilder()
@@ -78,13 +102,13 @@ async function bootstrap() {
   });
 
   const port = process.env.PORT ?? 3000;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
   console.log(`
-  🚀 Server is running on: http://localhost:${port}
-  📚 API Documentation: http://localhost:${port}/api/docs
-  📡 WebSocket (AI Cameras): ws://localhost:${port}/ingest
-  📡 WebSocket (Dashboard): ws://localhost:${port}/traffic
+  🚀 Server is running on: http://0.0.0.0:${port}
+  📚 API Documentation: http://0.0.0.0:${port}/api/docs
+  📡 WebSocket (AI Cameras): /ingest
+  📡 WebSocket (Dashboard): /traffic
   `);
 }
 

@@ -1,6 +1,6 @@
-backend_url: "http://localhost:3000"
+backend_url: "http://backend:3000"
 namespace: "/ingest"
-model_path: "models/best.onnx"
+model_path: "/models/best.onnx"
 
 cameras:
   - id: 1
@@ -25,9 +25,9 @@ cameras:
     default_green: 42
     emergency_green: 80
     roi:
-      - [205, 123]
-      - [251, 124]
-      - [213, 287]
+      - [205, 123]  
+      - [251, 124]  
+      - [213, 287] 
       - [1, 224]
     count_line:
       p1: [148, 159]
@@ -64,4 +64,67 @@ cameras:
     count_line:
       p1: [148, 159]
       p2: [237, 158]
+    line_dir: null
+
+  - id: 5
+    name: "Road 1 (North)"
+    rtsp: "rtsp://localhost:8554/north1"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+    roi:
+      - [175, 94]  
+      - [262, 91]  
+      - [223, 281] 
+      - [48, 259]
+    count_line:
+      p1: [126, 145]
+      p2: [248, 144]
+    line_dir: null
+  - id: 6
+    name: "Road 2 (East)"
+    rtsp: "rtsp://localhost:8554/east1"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+    roi:
+      - [175, 94]  
+      - [262, 91]  
+      - [223, 281] 
+      - [48, 259]
+    count_line:
+      p1: [126, 145]
+      p2: [248, 144]
+    line_dir: null
+
+  - id: 7
+    name: "Road 3 (South)"
+    rtsp: "rtsp://localhost:8554/south1"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+    roi:
+      - [175, 94]  
+      - [262, 91]  
+      - [223, 281] 
+      - [48, 259]
+    count_line:
+      p1: [126, 145]
+      p2: [248, 144]
+    line_dir: null
+
+  - id: 8
+    name: "Road 4 (West)"
+    rtsp: "rtsp://localhost:8554/west1"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+    roi:
+      - [175, 94]  
+      - [262, 91]  
+      - [223, 281] 
+      - [48, 259]
+    count_line:
+      p1: [126, 145]
+      p2: [248, 144]
     line_dir: null

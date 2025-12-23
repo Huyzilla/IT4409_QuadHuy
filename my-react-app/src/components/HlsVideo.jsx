@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
+const HLS_BASE_URL = import.meta.env.VITE_HLS_BASE_URL || "http://localhost:8888";
+const normalizeBase = (url) => String(url || "").replace(/\/+$/, "");
+
 export default function HlsVideo({ src, ...videoProps }) {
     const videoRef = useRef(null);
     const [hasError, setHasError] = useState(false);
@@ -8,9 +11,17 @@ export default function HlsVideo({ src, ...videoProps }) {
     const getBrowserFriendlyUrl = (originalUrl) => {
         if (!originalUrl) return "";
 
-        if (originalUrl.includes("rtsp://mediamtx:8554")) {
-            let newUrl = originalUrl.replace("rtsp://mediamtx:8554", "http://localhost:8888");
-            return `${newUrl}/index.m3u8`;
+        // If already an HLS URL, keep it.
+        if (typeof originalUrl === "string" && originalUrl.includes(".m3u8")) {
+            return originalUrl;
+        }
+
+        // Convert any rtsp://<host>/<path> into HLS: <HLS_BASE_URL>/<path>/index.m3u8
+        if (typeof originalUrl === "string" && originalUrl.startsWith("rtsp://")) {
+            const match = originalUrl.match(/^rtsp:\/\/[^/]+\/(.+)$/);
+            if (match && match[1]) {
+                return `${normalizeBase(HLS_BASE_URL)}/${match[1]}/index.m3u8`;
+            }
         }
 
         return originalUrl;

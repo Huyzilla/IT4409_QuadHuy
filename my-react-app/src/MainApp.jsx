@@ -311,7 +311,8 @@ const AIChatbox = () => {
         ]);
 
         try {
-            const response = await fetch('http://localhost:3000/api/chat', {
+            const apiBase = (import.meta.env.VITE_API_BASE_URL || `${import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"}/api`).replace(/\/+$/, "");
+            const response = await fetch(`${apiBase}/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

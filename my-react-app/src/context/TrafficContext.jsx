@@ -47,6 +47,9 @@ trafficAxios.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+const HLS_BASE_URL = import.meta.env.VITE_HLS_BASE_URL || "http://localhost:8888";
+const normalizeBase = (url) => String(url || "").replace(/\/+$/, "");
+
 const rtspToHls = (videoSource) => {
   if (!videoSource || typeof videoSource !== "string") return null;
   if (!videoSource.startsWith("rtsp://")) return null;
@@ -56,8 +59,8 @@ const rtspToHls = (videoSource) => {
   if (!match) return null;
   const streamPath = match[1];
 
-  // MediaMTX HLS default: http://<host>:8888/<path>/index.m3u8
-  return `http://localhost:8888/${streamPath}/index.m3u8`;
+  // MediaMTX HLS default: http(s)://<host>/<path>/index.m3u8
+  return `${normalizeBase(HLS_BASE_URL)}/${streamPath}/index.m3u8`;
 };
 
 export const TrafficProvider = ({ children }) => {

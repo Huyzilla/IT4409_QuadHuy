@@ -2,6 +2,9 @@ services:
   mediamtx:
     image: bluenviron/mediamtx:latest
     container_name: mediamtx
+    environment:
+      # Allow HLS playlist/segments to be fetched cross-origin (needed for Vercel app)
+      - MTX_HLSALLOWORIGIN=*
     ports:
       - "8554:8554" # RTSP
       - "8888:8888" # HLS

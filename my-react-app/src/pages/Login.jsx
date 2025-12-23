@@ -46,7 +46,8 @@ export default function Login() {
 
     // Đăng nhập Google bằng redirect
     const handleGoogleRedirect = () => {
-        window.location.href = `${import.meta.env.VITE_BACKEND_URL || "http://localhost:3000"}/api/auth/google`;
+        const backendOrigin = import.meta.env.VITE_BACKEND_URL || "http://localhost:3000";
+        window.location.href = `${backendOrigin}/api/auth/google`;
     };
 
     return (
