@@ -3,7 +3,11 @@ import axios from "axios";
 // Centralized API client for the React app.
 // Automatically attaches JWT access token (if present) to every request.
 
-export const API_BASE_URL = "http://localhost:3000/api";
+const envApiBase = import.meta.env.VITE_API_BASE_URL;
+const envBackendOrigin = import.meta.env.VITE_BACKEND_URL;
+
+export const API_BASE_URL =
+  envApiBase || `${envBackendOrigin || "http://localhost:3000"}/api`;
 
 export const api = axios.create({
   baseURL: API_BASE_URL,

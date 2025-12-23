@@ -3,7 +3,6 @@ import { useTraffic } from "../context/TrafficContext";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import IntersectionModal from "./IntersectionModal";
-import "./Sidebar.css";
 
 const UserDropdown = ({
   onLogoutRequest,
@@ -72,6 +71,7 @@ const Sidebar = ({
   onToggleDropdown,
   isDropdownOpen,
 }) => {
+  const isAdmin = currentUser?.role === "admin" || currentUser?.roleId === 0;
   const {
     intersections,
     activeIntersection,
@@ -100,12 +100,12 @@ const Sidebar = ({
   const [editingItem, setEditingItem] = useState(null);
 
   const handleCreate = () => {
-    setEditingItem(null); // Mode tạo mới
+    setEditingItem(null);
     setIsModalOpen(true);
   };
 
   const handleEdit = (e, item) => {
-    e.stopPropagation(); // Chặn sự kiện click vào item cha (để không bị active ngã tư khi ấn sửa)
+    e.stopPropagation();
     setEditingItem(item);
     setIsModalOpen(true);
   };
@@ -127,12 +127,10 @@ const Sidebar = ({
   const [width, setWidth] = useState(300);
   const isResizing = useRef(false);
 
-  // 2. Hàm xử lý khi bắt đầu nhấn chuột
   const startResizing = useCallback((e) => {
     isResizing.current = true;
     document.addEventListener("mousemove", handleMouseMove);
     document.addEventListener("mouseup", stopResizing);
-    // Ngăn chặn việc chọn text khi đang kéo
     document.body.style.userSelect = "none";
     document.body.style.cursor = "col-resize";
   }, []);
@@ -168,10 +166,13 @@ const Sidebar = ({
       style={{ "--sidebar-width": `${width}px` }}
     >
       <div className="resizer-handle" onMouseDown={startResizing} />
-      <div className="sidebar-header">
+      <div
+        className="sidebar-header"
+        style={{ display: "flex", alignItems: "center" }}
+      >
         <span
           className="icon icon-traffic"
-          style={{ color: "var(--color-accent-blue)" }}
+          style={{ color: "var(--color-accent-blue)", fontSize: "16px" }}
         ></span>
         <span className="logo-text">Traffic Monitor</span>
       </div>
@@ -201,23 +202,28 @@ const Sidebar = ({
         </select>
 
         <select
-          aria-label="Lọc theo khu vực"
+          aria-label="Lọc theo ngã tư"
           value={areaFilter}
           onChange={(e) => setAreaFilter(e.target.value)}
           className="custom-select"
         >
-          <option value="all">Tất cả khu vực</option>
-          <option value="Đống Đa">Đống Đa</option>
-          <option value="Phương Mai, Đống Đa">Phương Mai, Đống Đa</option>
-          <option value="Xuân Thủy">Xuân Thủy</option>
-          <option value="quan3">Quận 3</option>
+          <option value="all">Tất cả ngã tư</option>
+          {intersections.map((item) => (
+            <option key={item.id} value={item.label}>
+              {item.label}
+            </option>
+          ))}
         </select>
       </div>
 
-      <h3 className="list-title">DANH SÁCH NGÃ TƯ</h3>
-      <button className="btn-add-new" onClick={handleCreate}>
-        + Thêm
-      </button>
+      <div className="sidebar-list-header">
+        <h3 className="list-title">DANH SÁCH NGÃ TƯ</h3>
+        {isAdmin && (
+          <button className="btn-add-new" onClick={handleCreate}>
+            + Thêm
+          </button>
+        )}
+      </div>
       <ul className="intersection-list">
         {filteredIntersections.length > 0 ? (
           filteredIntersections.map((item) => {
@@ -251,21 +257,25 @@ const Sidebar = ({
 
                 <div className="item-actions-group">
                   {/*nút sửa ngã tư */}
-                  <button
-                    className="btn-icon-action edit"
-                    onClick={(e) => handleEdit(e, item)}
-                    title="Sửa thông tin"
-                  >
-                    ✎
-                  </button>
-                  {/* nút xóa ngã tư */}
-                  <button
-                    className="btn-icon-action delete"
-                    onClick={(e) => handleDelete(e, item.id)}
-                    title="Xóa ngã tư"
-                  >
-                    ✕
-                  </button>
+                  {isAdmin && (
+                    <>
+                      <button
+                        className="btn-icon-action edit"
+                        onClick={(e) => handleEdit(e, item)}
+                        title="Sửa thông tin"
+                      >
+                        ✎
+                      </button>
+                      {/* nút xóa ngã tư */}
+                      <button
+                        className="btn-icon-action delete"
+                        onClick={(e) => handleDelete(e, item.id)}
+                        title="Xóa ngã tư"
+                      >
+                        ✕
+                      </button>
+                    </>
+                  )}
                 </div>
               </li>
             );

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import HlsVideo from "./HlsVideo.jsx";
+import SnapshotImage from "./SnapshotImage.jsx";
 // import "./CameraGridModal.css";
 
 export default function CameraGridWithModal({ cameras = [] }) {
@@ -58,29 +58,12 @@ export default function CameraGridWithModal({ cameras = [] }) {
                                 background: 'var(--color-bg-tertiary)'
                             }}
                         >
-                            {cam.thumbnail ? (
-                                <img
-                                    src={cam.thumbnail}
+                            {cam?.id ? (
+                                <SnapshotImage
+                                    cameraId={cam.id}
                                     alt={cam.name}
                                     style={{
                                         position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover'
-                                    }}
-                                />
-                            ) : cam.streamUrl || cam.videoSource ? (
-                                <HlsVideo
-                                    src={cam.streamUrl || cam.videoSource}
-                                    muted
-                                    playsInline
-                                    loop
-                                    preload="metadata"
-                                    autoPlay
-                                    style={{
-                                        position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover'
-                                    }}
-                                    onError={(e) => {
-                                        e.target.style.display = 'none';
-                                        e.target.parentNode.innerHTML =
-                                            `<div style="display:flex;justify-content:center;align-items:center;height:100%;color:#94a3b8;font-size:12px; position:absolute; inset:0;">Mất tín hiệu</div>`;
                                     }}
                                 />
                             ) : (
@@ -90,7 +73,7 @@ export default function CameraGridWithModal({ cameras = [] }) {
                                         position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)'
                                     }}
                                 >
-                                    {cam.name}
+                                    Snapshot: {cam.name}
                                 </div>
                             )}
                         </div>

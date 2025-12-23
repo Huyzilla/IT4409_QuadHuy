@@ -25,6 +25,7 @@ import {
   UpdateIntersectionDto,
 } from './dto/intersection.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { AdminGuard } from '../auth/admin.guard';
 
 /**
  * IntersectionController handles HTTP requests for intersection management
@@ -74,6 +75,7 @@ export class IntersectionController {
    * Create a new intersection
    */
   @Post()
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Create a new intersection',
@@ -94,6 +96,7 @@ export class IntersectionController {
    * Update intersection
    */
   @Put(':id')
+  @UseGuards(AdminGuard)
   @ApiOperation({
     summary: 'Update intersection',
     description: 'Update intersection information',
@@ -117,6 +120,7 @@ export class IntersectionController {
    * Delete intersection
    */
   @Delete(':id')
+  @UseGuards(AdminGuard)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({
     summary: 'Delete intersection',

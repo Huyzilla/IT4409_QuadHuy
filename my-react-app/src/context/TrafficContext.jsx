@@ -1,7 +1,9 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useAuth } from "./AuthContext";
 import { api } from "../api";
+import axios from "axios";
 
+const API_URL = "http://localhost:3000/api";
 const MOCK_ALERTS = [
   {
     id: 1,
@@ -28,6 +30,25 @@ const MOCK_ALERTS = [
 ];
 
 const TrafficContext = createContext();
+const trafficAxios = axios.create({
+  baseURL: API_URL,
+  withCredentials: true, // : Cho phép gửi/nhận Cookie
+});
+
+trafficAxios.interceptors.request.use(
+  (config) => {
+    // Lấy token từ localStorage (do AuthContext lưu vào đây)
+    const token = localStorage.getItem("traffic-access-token");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+const HLS_BASE_URL = import.meta.env.VITE_HLS_BASE_URL || "http://localhost:8888";
+const normalizeBase = (url) => String(url || "").replace(/\/+$/, "");
 
 const rtspToHls = (videoSource) => {
   if (!videoSource || typeof videoSource !== "string") return null;
@@ -38,12 +59,13 @@ const rtspToHls = (videoSource) => {
   if (!match) return null;
   const streamPath = match[1];
 
-  // MediaMTX HLS default: http://<host>:8888/<path>/index.m3u8
-  return `http://localhost:8888/${streamPath}/index.m3u8`;
+  // MediaMTX HLS default: http(s)://<host>/<path>/index.m3u8
+  return `${normalizeBase(HLS_BASE_URL)}/${streamPath}/index.m3u8`;
 };
 
 export const TrafficProvider = ({ children }) => {
   const { accessToken, user } = useAuth();
+  const isAdmin = user?.role === "admin" || user?.roleId === 0;
   const [intersections, setIntersections] = useState([]);
   const [activeIntersection, setActiveIntersection] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +73,7 @@ export const TrafficProvider = ({ children }) => {
   const fetchIntersections = async (preferredActiveId) => {
     setLoading(true);
     try {
-    const res = await api.get(`/intersections`);
+      const res = await api.get(`/intersections`);
 
       if (res.data && res.data.length > 0) {
         console.log("✅ Raw Data from DB:", res.data);
@@ -75,10 +97,10 @@ export const TrafficProvider = ({ children }) => {
         }));
 
         setIntersections(formattedData);
-
         console.debug("TrafficContext: intersections updated", {
           count: formattedData.length,
         });
+
         const nextActive =
           (preferredActiveId
             ? formattedData.find((x) => x.id === preferredActiveId)
@@ -97,6 +119,15 @@ export const TrafficProvider = ({ children }) => {
     }
   };
 
+  // ĐỊNH NGHĨA HÀM refreshActiveDashboard-------------------
+  const refreshActiveDashboard = async () => {
+    if (activeIntersection) {
+      await fetchIntersections(activeIntersection.id);
+    } else {
+      await fetchIntersections();
+    }
+  };
+
   useEffect(() => {
     const effectiveToken =
       accessToken || localStorage.getItem("traffic-access-token");
@@ -110,19 +141,21 @@ export const TrafficProvider = ({ children }) => {
     fetchIntersections();
   }, [accessToken]);
 
-  // Also listen for an explicit login event (fired after OAuth redirect)
   useEffect(() => {
     const onAuthLogin = () => {
-      if (accessToken) fetchIntersections();
+      const effectiveToken =
+        accessToken || localStorage.getItem("traffic-access-token");
+      if (effectiveToken) fetchIntersections();
     };
     window.addEventListener("auth:login", onAuthLogin);
     return () => window.removeEventListener("auth:login", onAuthLogin);
   }, [accessToken]);
 
-  // Re-fetch intersections when the traffic socket connects/reconnects
   useEffect(() => {
     const onSocketConnect = () => {
-      if (accessToken) fetchIntersections();
+      const effectiveToken =
+        accessToken || localStorage.getItem("traffic-access-token");
+      if (effectiveToken) fetchIntersections();
     };
     window.addEventListener("socket:connect", onSocketConnect);
     return () => window.removeEventListener("socket:connect", onSocketConnect);
@@ -141,6 +174,10 @@ export const TrafficProvider = ({ children }) => {
   };
   // Hàm tạo Ngã tư --------------------------------------------------------
   const createIntersection = async (data) => {
+    if (!isAdmin) {
+      alert("Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).");
+      return;
+    }
     try {
       // Gọi API POST /intersections
       const res = await api.post(`/intersections`, {
@@ -171,6 +208,10 @@ export const TrafficProvider = ({ children }) => {
 
   // Hàm sửa Ngã tư -------------------------------------------------------------
   const updateIntersection = async (id, data) => {
+    if (!isAdmin) {
+      alert("Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).");
+      return;
+    }
     try {
       // Gọi API PUT /intersections/:id
       const res = await api.put(`/intersections/${id}`, {
@@ -213,6 +254,10 @@ export const TrafficProvider = ({ children }) => {
 
   //Hàm xóa Ngã tư ---------------------------------------------------------------
   const deleteIntersection = async (id) => {
+    if (!isAdmin) {
+      alert("Bạn không có quyền thực hiện thao tác này (chỉ quản trị viên).");
+      return;
+    }
     if (
       !window.confirm(
         "Bạn chắc chắn muốn xóa ngã tư này? Dữ liệu camera liên quan có thể bị ảnh hưởng."
@@ -237,56 +282,121 @@ export const TrafficProvider = ({ children }) => {
     }
   };
 
+  // --- quản lí camera ----------------------------------------------------
+
+  // 1. Thêm Camera vào Ngã tư
+  const addCamera = async (intersectionId, cameraData) => {
+    try {
+      const payload = {
+        name: cameraData.name,
+        videoSource: cameraData.videoSource,
+        latitude: parseFloat(cameraData.latitude),
+        longitude: parseFloat(cameraData.longitude),
+        intersectionId: parseInt(intersectionId), // Quan trọng: Gửi kèm ID ngã tư
+      };
+
+      // Gọi API POST /cameras
+      const res = await trafficAxios.post("/cameras", payload);
+
+      // Cập nhật State Frontend ngay lập tức (để UI tự hiện camera mới)
+      setIntersections((prev) =>
+        prev.map((i) => {
+          if (i.id === intersectionId) {
+            return {
+              ...i,
+              // Thêm camera mới vào mảng cameras của ngã tư đó
+              cameras: [res.data, ...(i.cameras || [])],
+            };
+          }
+          return i;
+        })
+      );
+
+      // Nếu đang xem ngã tư này thì refresh lại activeIntersection
+      if (activeIntersection && activeIntersection.id === intersectionId) {
+        refreshActiveDashboard();
+      }
+
+      alert("Thêm camera thành công!");
+      return true;
+    } catch (error) {
+      console.error("Lỗi thêm camera:", error);
+      alert("Lỗi: " + (error.response?.data?.message || error.message));
+      return false;
+    }
+  };
+
+  // 2. Sửa Camera
+  const updateCamera = async (cameraId, cameraData) => {
+    try {
+      const payload = {
+        name: cameraData.name,
+        videoSource: cameraData.videoSource,
+        latitude: parseFloat(cameraData.latitude),
+        longitude: parseFloat(cameraData.longitude),
+        // intersectionId: ... (Nếu muốn đổi ngã tư thì gửi thêm)
+      };
+
+      const res = await trafficAxios.put(`/cameras/${cameraId}`, payload);
+
+      // Cập nhật State local
+      setIntersections((prev) =>
+        prev.map((i) => ({
+          ...i,
+          cameras: (i.cameras || []).map((c) =>
+            c.id === cameraId ? { ...c, ...res.data } : c
+          ),
+        }))
+      );
+
+      if (activeIntersection) refreshActiveDashboard();
+      alert("Cập nhật thành công!");
+      return true;
+    } catch (error) {
+      console.error("Lỗi sửa camera:", error);
+      alert("Lỗi: " + error.message);
+      return false;
+    }
+  };
+
+  // 3. Xóa Camera
+  const deleteCamera = async (cameraId, intersectionId) => {
+    if (!window.confirm("Bạn có chắc muốn xóa camera này không?")) return;
+
+    try {
+      await trafficAxios.delete(`/cameras/${cameraId}`);
+
+      // Xóa khỏi State local
+      setIntersections((prev) =>
+        prev.map((i) => {
+          if (i.id === intersectionId) {
+            return {
+              ...i,
+              cameras: i.cameras.filter((c) => c.id !== cameraId),
+            };
+          }
+          return i;
+        })
+      );
+
+      if (activeIntersection) refreshActiveDashboard();
+    } catch (error) {
+      console.error("Lỗi xóa camera:", error);
+      alert("Xóa thất bại!");
+    }
+  };
+
   const [alerts, setAlerts] = useState([]);
   const unreadAlertCount = alerts.filter((a) => !a.isRead).length;
 
-  useEffect(() => {
-    if (intersections.length === 0) return;
-
-    const interval = setInterval(() => {
-      const randomIdx = Math.floor(Math.random() * intersections.length);
-      const intersection = intersections[randomIdx];
-
-      const eventType = Math.random();
-
-      if (eventType > 0.8) {
-        addAlert({
-          type: "heavy",
-          message: `[Nguy cấp] ${intersection.label} đang ùn tắc nghiêm trọng, cần điều tiết!`,
-          intersectionId: intersection.id,
-          timestamp: Date.now(),
-        });
-      } else if (eventType > 0.6) {
-        addAlert({
-          type: "medium",
-          message: `[Cảnh báo] Mật độ phương tiện tại ${intersection.label} đang tăng nhanh (Xu hướng tăng).`,
-          intersectionId: intersection.id,
-          timestamp: Date.now(),
-        });
-      } else if (eventType > 0.5) {
-        const camNames = ["A1", "B2", "C3", "D1"];
-        const randomCam = camNames[Math.floor(Math.random() * camNames.length)];
-        addAlert({
-          type: "system",
-          message: `[Hệ thống] Camera ${randomCam} tại ${intersection.label} mất tín hiệu video.`,
-          intersectionId: intersection.id,
-          timestamp: Date.now(),
-        });
-      }
-    }, 20000);
-
-    return () => clearInterval(interval);
-  }, [intersections]);
-
   const addAlert = (newAlert) => {
     setAlerts((prev) => {
-      const isDuplicate = prev
-        .slice(0, 10)
-        .some(
-          (a) =>
-            a.intersectionId === newAlert.intersectionId &&
-            new Date().getTime() - a.timestamp < 60000
-        );
+      const isDuplicate = prev.some(
+        (a) =>
+          a.type === newAlert.type &&
+          a.cameraId === newAlert.cameraId &&
+          Date.now() - a.timestamp < 60_000
+      );
       if (isDuplicate) return prev;
 
       return [
@@ -297,7 +407,7 @@ export const TrafficProvider = ({ children }) => {
           ...newAlert,
         },
         ...prev,
-      ].slice(0, 20);
+      ].slice(0, 50);
     });
   };
 
@@ -334,7 +444,11 @@ export const TrafficProvider = ({ children }) => {
     createIntersection,
     updateIntersection,
     deleteIntersection,
+    addCamera,
+    updateCamera,
+    deleteCamera,
     user,
+    isAdmin,
   };
 
   return (

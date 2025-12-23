@@ -12,11 +12,19 @@ export const useAuth = () => {
 
 const normalizeBackendUser = (backendUser, providerFallback) => {
   if (!backendUser) return null;
+
+  const roleIdRaw =
+    backendUser.roleId ?? backendUser.role_id ?? backendUser.roleID ?? null;
+  const roleId = Number.isFinite(Number(roleIdRaw)) ? Number(roleIdRaw) : null;
+  const role =
+    backendUser.role ||
+    (roleId === 0 ? "admin" : roleId === 1 ? "user" : "user");
   return {
     id: backendUser.id,
     username: backendUser.username,
     fullName: backendUser.fullName,
-    role: backendUser.role || "user",
+    role,
+    roleId: roleId ?? undefined,
     avatarUrl: backendUser.avatar || backendUser.avatarUrl || null,
     email: backendUser.email,
     provider: backendUser.provider || providerFallback || "local",
@@ -59,32 +67,41 @@ export const AuthProvider = ({ children }) => {
     setOnUnauthorized(() => clearAuth(true));
 
     const savedToken = localStorage.getItem("traffic-access-token");
-    if (savedToken) {
-      setAccessToken(savedToken);
-      connectTrafficSocket();
-    }
-
     const savedUser = localStorage.getItem("traffic-user");
-    if (savedUser) {
+
+    // Nếu có cả token và user, khôi phục ngay và set loading = false
+    if (savedToken && savedUser) {
       try {
+        setAccessToken(savedToken);
         setUser(JSON.parse(savedUser));
+        connectTrafficSocket();
+        setLoading(false);
+        return;
       } catch {
         localStorage.removeItem("traffic-user");
       }
     }
 
-    (async () => {
-      try {
-        if (savedToken && !savedUser) {
+    // Nếu chỉ có token, fetch user từ API
+    if (savedToken && !savedUser) {
+      setAccessToken(savedToken);
+      connectTrafficSocket();
+
+      (async () => {
+        try {
           const res = await api.get("/auth/me");
           persistAuth(savedToken, res.data, res.data?.provider);
+        } catch {
+          // Global 401 handler will take care.
+        } finally {
+          setLoading(false);
         }
-      } catch {
-        // Global 401 handler will take care.
-      } finally {
-        setLoading(false);
-      }
-    })();
+      })();
+      return;
+    }
+
+    // Không có token hoặc user, set loading = false ngay
+    setLoading(false);
   }, []);
 
   const register = async (fullName, username, email, password) => {

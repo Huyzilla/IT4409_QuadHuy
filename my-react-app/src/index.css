@@ -117,6 +117,28 @@
   color: var(--color-text-secondary);
 }
 
+.theme-light .ai-window {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.theme-light .ai-header {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.theme-light .msg.bot {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+}
+
+.theme-light .ai-input-area input {
+  background: var(--color-bg-primary);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -772,7 +794,9 @@ h3 {
 }
 
 .sidebar {
-  width: var(--sidebar-width, 250px);
+  position: relative;
+  z-index: 1000 !important;
+  width: var(--sidebar-width);
   background: linear-gradient(
     180deg,
     rgba(30, 41, 59, 0.95) 0%,
@@ -781,37 +805,99 @@ h3 {
   backdrop-filter: blur(20px);
   padding: 30px 24px;
   border-right: 1px solid rgba(5, 150, 105, 0.2);
-  flex-shrink: 0;
   display: flex;
   flex-direction: column;
-  position: relative;
   overflow: hidden;
 }
 
-.sidebar::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 2px;
-  height: 100%;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    var(--color-accent-blue) 30%,
-    var(--color-accent-purple) 70%,
-    transparent 100%
-  );
-  animation: pulse 3s ease-in-out infinite;
+.sidebar-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 25px 0 15px 0;
+  padding: 0 5px;
 }
 
-.sidebar-header {
-  position: relative;
+.sidebar-list-header .list-title {
+  margin-bottom: 0;
+  padding-left: 5px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: var(--color-text-secondary);
+}
+
+.btn-add-new {
+  background-color: var(--color-accent-blue);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.btn-add-new:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.resizer-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 10;
+}
+
+.item-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-left: 8px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s;
+}
+
+.intersection-item:hover .item-actions-group {
+  opacity: 1;
+  visibility: visible;
+}
+
+.btn-icon-action {
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
-  margin-bottom: 30px;
-  border-bottom: 1px solid var(--color-border);
-  padding-bottom: 20px;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg-tertiary);
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-icon-action.edit:hover {
+  border-color: var(--color-accent-blue);
+  color: var(--color-accent-blue);
+}
+
+.btn-icon-action.delete {
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
+  color: var(--color-traffic-heavy);
+}
+
+.btn-icon-action.delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: var(--color-traffic-heavy);
 }
 
 .icon-settings {
@@ -896,6 +982,7 @@ h3 {
 
 .search-box {
   margin-bottom: 30px;
+  margin-top: 50px;
   position: relative;
 }
 
@@ -1242,6 +1329,48 @@ h3 {
   transform-origin: top right;
   animation: fadeIn 0.2s ease-out,
     slideInDownAlert 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.alert-panel-list::-webkit-scrollbar,
+.intersection-list::-webkit-scrollbar,
+.main-content::-webkit-scrollbar,
+.live-modal-content::-webkit-scrollbar,
+.ch-grid::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.alert-panel-list::-webkit-scrollbar-track,
+.intersection-list::-webkit-scrollbar-track,
+.main-content::-webkit-scrollbar-track,
+.live-modal-content::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+}
+
+.alert-panel-list::-webkit-scrollbar-thumb,
+.intersection-list::-webkit-scrollbar-thumb,
+.main-content::-webkit-scrollbar-thumb,
+.live-modal-content::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    var(--color-accent-blue) 0%,
+    var(--color-accent-purple) 100%
+  );
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.alert-panel-list::-webkit-scrollbar-thumb:hover,
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent-cyan);
+  box-shadow: 0 0 8px var(--color-accent-cyan);
+}
+
+.alert-panel-list,
+.main-content {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-accent-blue) transparent;
 }
 
 @keyframes slideInDownAlert {
@@ -2045,6 +2174,28 @@ h3 {
   }
 }
 
+.action-btn {
+  padding: 10px 18px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-tertiary);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-weight: 600;
+}
+
+.action-btn:hover {
+  background-color: var(--color-border);
+  transform: translateY(-1px);
+}
+
+.action-btn.primary {
+  background-color: var(--color-accent-blue);
+  border-color: var(--color-accent-blue);
+  color: #fff;
+}
+
 @media (max-width: 768px) {
   .user-dropdown-menu {
     top: calc(100% + 10px);
@@ -2056,5 +2207,341 @@ h3 {
   }
   .sidebar-user-info {
     padding-top: 15px;
+  }
+}
+
+.settings-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.75); /* Nền tối mờ */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999; /* Đảm bảo nổi lên trên cùng */
+  backdrop-filter: blur(4px); /* Làm mờ hậu cảnh */
+}
+
+/* 2. Khung nội dung chính (Cái bảng) */
+.settings-modal-content {
+  background-color: var(--color-bg-secondary); /* Màu xám xanh đậm */
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5),
+    0 10px 10px -5px rgba(0, 0, 0, 0.4);
+  color: var(--color-text-primary);
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+/* Hiệu ứng trượt xuống nhẹ */
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 3. Header của Modal */
+.settings-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 15px;
+}
+
+.settings-modal-header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: var(--color-text-primary);
+}
+
+/* Nút tắt (x) nhỏ */
+.btn-close-modal-mini {
+  background: transparent;
+  border: none;
+  color: var(--color-text-secondary);
+  font-size: 24px;
+  cursor: pointer;
+  line-height: 1;
+}
+.btn-close-modal-mini:hover {
+  color: white;
+}
+
+/* 4. Ô nhập liệu (Input) - Sửa lỗi "xấu" của bạn */
+.settings-form .form-group {
+  margin-bottom: 16px;
+}
+
+.settings-form label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary); /* Màu chữ nhạt hơn */
+}
+
+.settings-form input,
+.settings-form select {
+  width: 100%;
+  padding: 10px 12px;
+  background-color: var(--color-bg-primary); /* Nền input tối thẫm */
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: white; /* Chữ khi gõ màu trắng */
+  font-size: 0.95rem;
+  transition: all 0.2s;
+}
+
+.settings-form input:focus {
+  outline: none;
+  border-color: var(--color-accent-blue); /* Viền xanh khi focus */
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
+}
+
+/* 5. Footer chứa nút bấm */
+.settings-modal-footer {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+}
+/* 6. Style lại các nút bấm trong Modal cho đồng bộ */
+.settings-modal-footer .action-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+
+  /* Nút Hủy: Nền tối, viền nhạt */
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.settings-modal-footer .action-btn:hover {
+  background-color: var(--color-bg-tertiary);
+  color: white;
+}
+
+/* Nút Lưu/Thêm (Primary): Nền xanh, chữ trắng */
+.settings-modal-footer .action-btn.primary {
+  background-color: var(--color-accent-blue);
+  border: 1px solid var(--color-accent-blue);
+  color: white;
+}
+
+.settings-modal-footer .action-btn.primary:hover {
+  background-color: var(--color-accent-blue-dark);
+}
+
+/* --- ACCOUNT SETTINGS PAGE --- */
+
+/* Wrapper chính giới hạn chiều rộng và căn giữa */
+.account-container {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 0 20px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* Card chứa form */
+.settings-card {
+  background-color: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 32px;
+  box-shadow: var(--shadow-md);
+}
+
+.settings-header {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.settings-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 8px;
+}
+
+.settings-subtitle {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+/* --- Avatar Upload Style --- */
+.avatar-upload-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.avatar-wrapper {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid var(--color-border);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.3s;
+  background-color: var(--color-bg-primary);
+}
+
+.avatar-wrapper:hover {
+  border-color: var(--color-accent-blue);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Lớp phủ icon camera khi hover */
+.avatar-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.avatar-wrapper:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.icon-camera {
+  font-size: 24px;
+  color: white;
+}
+
+/* --- Form Elements --- */
+.form-section-divider {
+  margin: 32px 0;
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.section-label {
+  display: block;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: 16px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+
+/* Input Styles (Đã có trong file cũ nhưng tinh chỉnh thêm) */
+.settings-form input {
+  width: 100%;
+  padding: 12px 16px;
+  background-color: var(--color-bg-primary);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text-primary);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.settings-form input:focus {
+  outline: none;
+  border-color: var(--color-accent-blue);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2); /* Dựa trên màu accent-blue */
+}
+
+.settings-form input:disabled {
+  background-color: var(--color-bg-tertiary);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* Button */
+.btn-save {
+  width: 100%;
+  padding: 14px;
+  background-color: var(--color-accent-blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  margin-top: 10px;
+}
+
+.btn-save:hover {
+  background-color: var(--color-accent-blue-dark);
+}
+
+.btn-save:disabled {
+  background-color: var(--color-border);
+  cursor: wait;
+}
+
+/* Alert Messages */
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.alert-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #34d399; /* traffic-low/success color */
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.alert-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: #f87171; /* traffic-heavy/error color */
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
