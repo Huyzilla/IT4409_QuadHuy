@@ -16,6 +16,9 @@ FROM node:22-alpine AS runner
 
 WORKDIR /usr/src/app
 
+# Needed for generating JPEG snapshots from RTSP/HLS sources.
+RUN apk add --no-cache ffmpeg
+
 ARG DATABASE_URL=postgresql://admin:admin123@postgres:5432/traffic_ai?schema=public
 ENV DATABASE_URL=$DATABASE_URL
 

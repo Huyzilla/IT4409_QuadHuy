@@ -6,6 +6,7 @@ import Sidebar from "./components/Sidebar";
 import Dashboard from "./components/Dashboard";
 import AccountSettings from "./pages/AccountSettings.jsx";
 import CameraGridWithModal from "./components/CameraGridWithModal";
+import HlsVideo from "./components/HlsVideo.jsx";
 import AIBotIcon from "./assets/chatbot1.png";
 
 const LogoutConfirmationModal = ({ onConfirm, onCancel }) => (
@@ -234,7 +235,7 @@ const SingleCameraModal = ({ liveCamera, closeModal }) => {
                     </button>
                 </div>
 
-                <video
+                <HlsVideo
                     src={liveCamera.videoSource}
                     poster={liveCamera.thumbnail || ""}
                     controls
@@ -243,16 +244,6 @@ const SingleCameraModal = ({ liveCamera, closeModal }) => {
                     muted={false}
                     className="live-modal-video"
                     style={{ maxHeight: "80vh", maxWidth: "100%", objectFit: "contain" }}
-                    onError={(e) => {
-                        e.target.parentNode.innerHTML = `
-                            <div style="padding:40px; text-align:center; color:#fca5a5; background:rgba(0,0,0,0.5); height:100%; display:flex; align-items:center; justify-content:center; flex-direction:column; min-height: 400px; width: 600px;">
-                                <div style="font-size:18px; margin-bottom:8px;">Không thể phát video</div>
-                                <div style="font-size:12px; opacity:0.8;">URL: ${
-                            liveCamera.videoSource || "Không có"
-                        }</div>
-                            </div>
-                         `;
-                    }}
                 />
             </div>
         </div>

@@ -3,6 +3,7 @@ import {useTraffic} from "../context/TrafficContext";
 import AlertPanel from "./AlertPanel.jsx";
 import {ingestSocket, getTrafficSocket} from "../socket.js";
 import { api } from "../api";
+import SnapshotImage from "./SnapshotImage.jsx";
 
 const STATUS_MAP = {
     low: {label: "Ít đông", colorClass: "low-traffic", gradientClass: "low-gradient"},
@@ -207,31 +208,29 @@ const DashboardSegmentCard = ({camera, realTimeData, onLiveView, onSettings}) =>
                     position: "relative",
                 }}
             >
-                {camera.videoSource ? (
-                    <video
-                        src={camera.videoSource}
-                        muted
-                        playsInline
-                        autoPlay
-                        loop
-                        style={{width: "100%", height: "100%", objectFit: "cover"}}
-                        onError={(e) => {
-                            e.target.style.display = "none";
-                            e.target.parentNode.innerHTML =
-                                '<div style="display:flex;justify-content:center;align-items:center;height:100%;color:gray;font-size:12px">Mất tín hiệu</div>';
-                        }}
+                {camera?.id ? (
+                    <SnapshotImage
+                        cameraId={camera.id}
+                        alt={camera.name}
+                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
                     />
                 ) : (
                     <div
                         style={{
                             color: "#94a3b8",
                             display: "flex",
+                            flexDirection: "column",
                             alignItems: "center",
                             justifyContent: "center",
                             height: "100%",
+                            gap: 6,
+                            padding: 10,
+                            textAlign: "center",
                         }}
                     >
-                        Không có hình
+                        <div style={{ fontSize: 12, opacity: 0.9 }}>Snapshot</div>
+                        <div style={{ fontSize: 12, opacity: 0.75 }}>{camera?.name || ''}</div>
+                        <div style={{ fontSize: 11, opacity: 0.6 }}>(Mở “Xem chi tiết” để xem live)</div>
                     </div>
                 )}
             </div>

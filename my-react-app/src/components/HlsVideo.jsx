@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
 
 export default function HlsVideo({ src, ...videoProps }) {
     const videoRef = useRef(null);
+    const [hasError, setHasError] = useState(false);
 
     const getBrowserFriendlyUrl = (originalUrl) => {
         if (!originalUrl) return "";
@@ -19,31 +20,115 @@ export default function HlsVideo({ src, ...videoProps }) {
         const video = videoRef.current;
         if (!video) return;
 
+        setHasError(false);
+
         const hlsUrl = getBrowserFriendlyUrl(src);
-        console.log("Playing URL:", hlsUrl);
 
-        if (Hls.isSupported()) {
+        const isHls = typeof hlsUrl === "string" && hlsUrl.includes(".m3u8");
 
+        // Non-HLS sources: let the browser handle it.
+        if (!isHls) {
+            try {
+                video.src = hlsUrl;
+                const p = video.play();
+                if (p && typeof p.catch === "function") p.catch(() => {});
+            } catch {
+                setHasError(true);
+            }
+            return;
         }
 
+        // HLS playback.
         if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(hlsUrl);
+            const hls = new Hls({
+                lowLatencyMode: true,
+                backBufferLength: 0,
+                liveSyncDurationCount: 2,
+                liveMaxLatencyDurationCount: 4,
+            });
+
+            let destroyed = false;
+            const safeSetError = (v) => {
+                if (!destroyed) setHasError(v);
+            };
+
             hls.attachMedia(video);
+            hls.loadSource(hlsUrl);
+
             hls.on(Hls.Events.MANIFEST_PARSED, () => {
-                video.play().catch((e) => console.log("Auto-play prevented:", e));
+                const p = video.play();
+                if (p && typeof p.catch === "function") p.catch(() => {});
+            });
+
+            hls.on(Hls.Events.ERROR, (_event, data) => {
+                if (!data) return;
+                if (!data.fatal) return;
+
+                // Try recover first (live streams may briefly 404 segments).
+                try {
+                    if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+                        hls.startLoad();
+                        safeSetError(false);
+                        return;
+                    }
+                    if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                        hls.recoverMediaError();
+                        safeSetError(false);
+                        return;
+                    }
+                } catch {
+                    // fall through
+                }
+
+                safeSetError(true);
+                try {
+                    hls.destroy();
+                } catch {}
             });
 
             return () => {
-                hls.destroy();
+                destroyed = true;
+                try {
+                    hls.destroy();
+                } catch {}
             };
-        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            video.src = hlsUrl;
-            video.addEventListener("loadedmetadata", () => {
-                video.play().catch(() => {});
-            });
         }
+
+        // Safari (native HLS)
+        if (video.canPlayType("application/vnd.apple.mpegurl")) {
+            video.src = hlsUrl;
+            const onLoaded = () => {
+                const p = video.play();
+                if (p && typeof p.catch === "function") p.catch(() => {});
+            };
+            video.addEventListener("loadedmetadata", onLoaded);
+            return () => {
+                video.removeEventListener("loadedmetadata", onLoaded);
+            };
+        }
+
+        setHasError(true);
     }, [src]);
 
-    return <video ref={videoRef} controls muted {...videoProps} />;
+    return (
+        <div style={{ width: "100%", height: "100%", position: "relative" }}>
+            <video ref={videoRef} {...videoProps} />
+            {hasError && (
+                <div
+                    style={{
+                        position: "absolute",
+                        inset: 0,
+                        display: "flex",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        color: "gray",
+                        fontSize: 12,
+                        background: "#000",
+                    }}
+                >
+                    Mất tín hiệu
+                </div>
+            )}
+        </div>
+    );
 }
