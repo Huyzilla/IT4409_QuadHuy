@@ -548,7 +548,8 @@
         box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
         display: flex;
         flex-direction: column;
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .sidebar.sidebar-open {
@@ -579,18 +580,37 @@
     }
 
     .intersection-list {
-        flex: 1;
-        min-height: 0;
         overflow-y: auto;
         margin: 0 16px;
+        max-height: 400px;
+        flex-shrink: 0;
+        overscroll-behavior: contain;
+    }
+
+    .sidebar-header {
+        flex-shrink: 0;
+    }
+
+    .search-box {
+        flex-shrink: 0;
+    }
+
+    .filter-controls {
+        flex-shrink: 0;
+    }
+
+    .sidebar-list-header {
+        flex-shrink: 0;
     }
 
     .sidebar-user-info {
         flex-shrink: 0;
+        margin-top: auto;
     }
 
     .report-btn {
         flex-shrink: 0;
+        margin: 15px 16px;
     }
 }
 
@@ -637,7 +657,8 @@
     .sidebar {
         display: flex;
         flex-direction: column;
-        overflow: hidden;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
 
     .sidebar-header {
@@ -685,10 +706,11 @@
     }
 
     .intersection-list {
-        flex: 1 !important;
-        min-height: 0 !important;
         overflow-y: auto !important;
+        max-height: 250px !important;
         padding: 0 12px;
+        flex-shrink: 0 !important;
+        overscroll-behavior: contain !important;
     }
 
     .intersection-item {
