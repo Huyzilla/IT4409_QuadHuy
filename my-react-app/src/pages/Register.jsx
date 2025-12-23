@@ -35,7 +35,36 @@ export default function Register() {
       alert("Đăng ký thành công! Vui lòng kiểm tra Email để lấy mã xác thực.");
       navigate("/verify-email");
     } catch (err) {
-      setError(err.message || "Đăng ký thất bại");
+      console.error("Register Error:", err);
+
+      // 1. KHAI BÁO BIẾN LỖI MẶC ĐỊNH Ở NGOÀI CÙNG
+      let errorMessage = "Đăng ký thất bại. Vui lòng thử lại.";
+      if (err.response) {
+        const { status, data } = err.response;
+        switch (status) {
+          case 409: // Conflict
+            // Đây là mã lỗi chuẩn khi Username hoặc Email đã có trong DB
+            errorMessage = "Tên đăng nhập hoặc Email này đã được sử dụng.";
+            break;
+          case 400:
+            if (data.message?.includes("Quá nhiều lần")) {
+              errorMessage = `${data.message} ⏳ (Chờ 10 phút để thử lại)`;
+            } else {
+              errorMessage = data.message || "Dữ liệu nhập không hợp lệ.";
+            }
+            break;
+          case 500:
+            errorMessage = "Lỗi hệ thống máy chủ. Vui lòng thử lại sau.";
+            break;
+          default:
+            errorMessage = data.message || "Đã có lỗi xảy ra.";
+        }
+      } else if (err.request) {
+        errorMessage = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng.";
+      } else {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -9,9 +9,14 @@ export default function VerifyEmail() {
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("input"); // 'input', 'verifying', 'success'
 
-  const { verifyEmail } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // State cho bộ đếm ngược gửi lại mã
+  const [countdown, setCountdown] = useState(0);
+  const [resendSuccess, setResendSuccess] = useState("");
+  // Lấy thêm hàm resendVerification
+  const { verifyEmail, resendVerification } = useAuth();
 
   useEffect(() => {
     // 1. Kiểm tra nếu là Link bấm từ Email (có ?token=...&email=...)
@@ -23,9 +28,22 @@ export default function VerifyEmail() {
     } else {
       // 2. Nếu không có token, thử lấy email từ trang Register chuyển sang (nếu có)
       const emailFromState = localStorage.getItem("pendingEmail");
-      if (emailFromState) setEmail(emailFromState);
+      if (emailFromState) {
+        setEmail(emailFromState);
+        setCountdown(30);
+      }
     }
   }, []);
+  // Effect để chạy đồng hồ đếm ngược
+  useEffect(() => {
+    let timer;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const handleAutoVerify = async (email, token) => {
     setStatus("verifying");
@@ -52,6 +70,38 @@ export default function VerifyEmail() {
       navigate("/");
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    if (countdown > 0) return; // Chặn nếu đang đếm ngược
+
+    setError("");
+    setResendSuccess("");
+    setLoading(true);
+
+    try {
+      await resendVerification(email);
+      setResendSuccess("Đã gửi lại mã xác thực vào email!");
+      setCountdown(30);
+    } catch (err) {
+      console.error("Resend Error:", err);
+
+      if (err.response) {
+        const { status, data } = err.response;
+        // XỬ LÝ RATE LIMIT (400 hoặc 429)
+        if (status === 400 || status === 429) {
+          setError(
+            "Bạn đã gửi yêu cầu quá nhiều lần. Vui lòng thử lại sau ít phút."
+          );
+        } else {
+          setError(data.message || "Không thể gửi lại mã.");
+        }
+      } else {
+        setError("Lỗi kết nối mạng.");
+      }
     } finally {
       setLoading(false);
     }
@@ -99,6 +149,22 @@ export default function VerifyEmail() {
         </div>
 
         {error && <div className="login-error">⚠️ {error}</div>}
+        {resendSuccess && (
+          <div
+            className="login-success"
+            style={{
+              backgroundColor: "rgba(16, 185, 129, 0.1)",
+              border: "1px solid rgba(16, 185, 129, 0.2)",
+              color: "#10b981",
+              padding: "10px",
+              borderRadius: "6px",
+              marginBottom: "15px",
+              textAlign: "center",
+            }}
+          >
+            {resendSuccess}
+          </div>
+        )}
 
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="form-group">
@@ -123,6 +189,31 @@ export default function VerifyEmail() {
             {loading ? "Đang xử lý..." : "Xác nhận"}
           </button>
         </form>
+
+        {/*NÚT GỬI LẠI MÃ */}
+        <div className="login-footer" style={{ marginTop: "20px" }}>
+          <p>
+            Không nhận được mã?{" "}
+            <button
+              type="button"
+              onClick={handleResend}
+              disabled={countdown > 0 || loading}
+              style={{
+                background: "none",
+                border: "none",
+                color:
+                  countdown > 0
+                    ? "#94a3b8"
+                    : "var(--color-accent-blue, #0ea5e9)",
+                cursor: countdown > 0 ? "not-allowed" : "pointer",
+                fontWeight: "bold",
+                textDecoration: "underline",
+              }}
+            >
+              {countdown > 0 ? `Gửi lại sau ${countdown}s` : "Gửi lại mã"}
+            </button>
+          </p>
+        </div>
 
         <div className="login-footer">
           <button onClick={() => navigate("/login")}>Quay lại Đăng nhập</button>
