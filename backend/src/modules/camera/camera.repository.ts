@@ -32,8 +32,10 @@ export class CameraRepository {
    * Create a new camera
    */
   async create(data: CreateCameraDto): Promise<Camera> {
+    // Remove id if present to let database auto-increment
+    const { id, ...createData } = data as any;
     return this.prisma.camera.create({
-      data,
+      data: createData,
     });
   }
 
