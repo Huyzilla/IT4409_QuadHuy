@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS "cameras" (
     "threshold" DOUBLE PRECISION NOT NULL DEFAULT 0.7,
     "max_vehicles" INTEGER NOT NULL DEFAULT 5,
     "ai_enabled" BOOLEAN NOT NULL DEFAULT true,
-    "intersectionId" INTEGER,
+  "intersection_id" INTEGER,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
 
@@ -78,8 +78,8 @@ CREATE TABLE IF NOT EXISTS "users" (
     "password" TEXT NOT NULL,
     "avatar" TEXT,
     "role_id" INTEGER NOT NULL DEFAULT 1,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+  "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  "updated_at" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
 );
@@ -117,11 +117,11 @@ DO $$ BEGIN
   IF NOT EXISTS (
     SELECT 1
     FROM information_schema.table_constraints
-    WHERE constraint_name = 'cameras_intersectionId_fkey'
+    WHERE constraint_name = 'cameras_intersection_id_fkey'
       AND table_name = 'cameras'
   ) THEN
-    ALTER TABLE "cameras" ADD CONSTRAINT "cameras_intersectionId_fkey"
-      FOREIGN KEY ("intersectionId") REFERENCES "intersections"("id")
+    ALTER TABLE "cameras" ADD CONSTRAINT "cameras_intersection_id_fkey"
+      FOREIGN KEY ("intersection_id") REFERENCES "intersections"("id")
       ON DELETE SET NULL ON UPDATE CASCADE;
   END IF;
 END $$;

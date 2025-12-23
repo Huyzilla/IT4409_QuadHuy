@@ -5,7 +5,7 @@ BEGIN;
 
 -- 1) Admin user (admin / 123456)
 -- Password is bcrypt hash of '123456'.
-INSERT INTO "users" ("id", "username", "full_name", "email", "password", "avatar", "role_id", "createdAt", "updatedAt")
+INSERT INTO "users" ("id", "username", "full_name", "email", "password", "avatar", "role_id", "created_at", "updated_at")
 VALUES (
   '00000000-0000-0000-0000-000000000001',
   'admin',
@@ -22,10 +22,10 @@ SET "email" = EXCLUDED."email",
     "full_name" = EXCLUDED."full_name",
     "password" = EXCLUDED."password",
     "role_id" = 0,
-    "updatedAt" = NOW();
+  "updated_at" = NOW();
 
 -- Ensure email uniqueness path also converges
-INSERT INTO "users" ("id", "username", "full_name", "email", "password", "avatar", "role_id", "createdAt", "updatedAt")
+INSERT INTO "users" ("id", "username", "full_name", "email", "password", "avatar", "role_id", "created_at", "updated_at")
 VALUES (
   '00000000-0000-0000-0000-000000000001',
   'admin',
@@ -42,7 +42,7 @@ SET "username" = EXCLUDED."username",
     "full_name" = EXCLUDED."full_name",
     "password" = EXCLUDED."password",
     "role_id" = 0,
-    "updatedAt" = NOW();
+    "updated_at" = NOW();
 
 -- 2) Intersections
 INSERT INTO "intersections" ("id", "name", "latitude", "longitude", "description", "created_at", "updated_at")
@@ -64,7 +64,7 @@ SET "name" = EXCLUDED."name",
     "updated_at" = NOW();
 
 -- 3) Cameras (8)
-INSERT INTO "cameras" ("id", "name", "video_source", "latitude", "longitude", "threshold", "max_vehicles", "ai_enabled", "intersectionId", "created_at", "updated_at")
+INSERT INTO "cameras" ("id", "name", "video_source", "latitude", "longitude", "threshold", "max_vehicles", "ai_enabled", "intersection_id", "created_at", "updated_at")
 VALUES
   (1, 'North',  'rtsp://mediamtx:8554/north',  21.0,   105.8,   0.7, 5, TRUE, 1, NOW(), NOW()),
   (2, 'East',   'rtsp://mediamtx:8554/east',   21.0,   105.8,   0.7, 5, TRUE, 1, NOW(), NOW()),
@@ -82,7 +82,7 @@ SET "name" = EXCLUDED."name",
     "threshold" = EXCLUDED."threshold",
     "max_vehicles" = EXCLUDED."max_vehicles",
     "ai_enabled" = EXCLUDED."ai_enabled",
-    "intersectionId" = EXCLUDED."intersectionId",
+    "intersection_id" = EXCLUDED."intersection_id",
     "updated_at" = NOW();
 
 -- Optional: align sequences with explicit IDs
