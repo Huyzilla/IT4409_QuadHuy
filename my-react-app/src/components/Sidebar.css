@@ -546,6 +546,9 @@
         transition: transform 0.3s ease;
         z-index: 1000;
         box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
     .sidebar.sidebar-open {
@@ -576,7 +579,18 @@
     }
 
     .intersection-list {
-        max-height: calc(100vh - 450px);
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        margin: 0 16px;
+    }
+
+    .sidebar-user-info {
+        flex-shrink: 0;
+    }
+
+    .report-btn {
+        flex-shrink: 0;
     }
 }
 
@@ -621,7 +635,9 @@
 /* Landscape Mobile Mode - Optimize for horizontal orientation */
 @media (max-height: 600px) and (orientation: landscape) {
     .sidebar {
-        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
 
     .sidebar-header {
@@ -669,7 +685,9 @@
     }
 
     .intersection-list {
-        max-height: calc(100vh - 280px) !important;
+        flex: 1 !important;
+        min-height: 0 !important;
+        overflow-y: auto !important;
         padding: 0 12px;
     }
 
