@@ -177,22 +177,58 @@ export default function HistoryAnalysis() {
     };
 
     useEffect(() => {
+        const cameraDataBuffer = new Map(); // Lưu tạm dữ liệu từ các camera
+        
         const handleNewData = (newData) => {
             if (!isRealTime) return;
 
-            const currentCamId = activeIntersection?.cameras?.[0]?.id;
-            if (currentCamId && Number(newData.cameraId) === Number(currentCamId)) {
+            const activeCamIds = (activeIntersection?.cameras || []).map(c => c.id);
+            if (!activeCamIds.includes(Number(newData.cameraId))) return;
+
+            const newTime = new Date(newData.minuteStart * 1000).toLocaleTimeString("vi-VN", {
+                hour: "2-digit", minute: "2-digit"
+            });
+
+            const key = `${newTime}_${newData.cameraId}`;
+            cameraDataBuffer.set(key, {
+                time: newTime,
+                cameraId: newData.cameraId,
+                density: newData.density,
+                vehicles: Math.round(newData.vehicles_avg),
+                timestamp: Date.now()
+            });
+
+            const now = Date.now();
+            for (const [k, v] of cameraDataBuffer.entries()) {
+                if (now - v.timestamp > 5000) {
+                    cameraDataBuffer.delete(k);
+                }
+            }
+
+            const dataForTime = Array.from(cameraDataBuffer.values()).filter(d => d.time === newTime);
+            
+            if (dataForTime.length > 0) {
                 setStats(prev => {
-                    const newTime = new Date(newData.minuteStart * 1000).toLocaleTimeString("vi-VN", {
-                        hour: "2-digit", minute: "2-digit"
-                    });
+                    if (prev.length > 0 && prev[prev.length - 1].time === newTime) {
+                        const avgDensity = dataForTime.reduce((sum, d) => sum + d.density, 0) / dataForTime.length;
+                        const avgVehicles = Math.round(dataForTime.reduce((sum, d) => sum + d.vehicles, 0) / dataForTime.length);
+                        
+                        const updated = [...prev];
+                        updated[updated.length - 1] = {
+                            time: newTime,
+                            density: avgDensity,
+                            vehicles: avgVehicles
+                        };
+                        return updated;
+                    }
 
-                    if (prev.length > 0 && prev[prev.length - 1].time === newTime) return prev;
-
+                    const avgDensity = dataForTime.reduce((sum, d) => sum + d.density, 0) / dataForTime.length;
+                    const avgVehicles = Math.round(dataForTime.reduce((sum, d) => sum + d.vehicles, 0) / dataForTime.length);
+                    
                     const newPoint = {
                         time: newTime,
-                        density: newData.density,
-                        vehicles: Math.round(newData.vehicles_avg)
+                        density: avgDensity,
+                        vehicles: avgVehicles
                     };
 
                     const updated = [...prev, newPoint];
@@ -202,7 +238,10 @@ export default function HistoryAnalysis() {
         };
 
         ingestSocket.on("new_minute_stats", handleNewData);
-        return () => ingestSocket.off("new_minute_stats");
+        return () => {
+            ingestSocket.off("new_minute_stats", handleNewData);
+            cameraDataBuffer.clear();
+        };
     }, [isRealTime, activeIntersection]);
 
     const handleCompare = (intersectionId) => {

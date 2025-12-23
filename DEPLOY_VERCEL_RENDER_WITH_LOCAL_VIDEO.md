@@ -80,3 +80,40 @@ Then run AI:
 
 ## If you want a stable video URL (recommended)
 Ngrok free URL changes often. For stable production-like access, use **Cloudflare Tunnel** or a VPS reverse proxy.
+
+## Option B) Expose HLS via Cloudflare Tunnel (stable HTTPS)
+This is the recommended replacement for free ngrok URLs.
+
+What you can and cannot expose:
+- ✅ HLS over HTTP/HTTPS (MediaMTX port 8888) works well via Cloudflare Tunnel.
+- ❌ RTSP (port 8554) is raw TCP; Cloudflare Tunnel won’t expose it publicly unless you use paid products (e.g. Spectrum). That’s OK because **AI reads RTSP locally**.
+
+### B1) Create a tunnel token
+In Cloudflare Zero Trust Dashboard:
+- **Networks → Tunnels → Create a tunnel**
+- Copy the **token** for the tunnel.
+
+Put it in a local env file:
+- Copy `.env.tunnel.example` → `.env.tunnel`
+- Set `CF_TUNNEL_TOKEN=...`
+
+### B2) Run the tunnel container (same docker network as MediaMTX)
+From repo root:
+- Ensure the shared network exists once: `docker network create traffic-net`
+- Start MediaMTX stack if not running: `docker compose -f docker-compose.cam.yml up -d`
+- Start Cloudflare tunnel: `docker compose --env-file .env.tunnel -f docker-compose.tunnel.yml up -d`
+
+### B3) Create a Public Hostname that points to MediaMTX HLS
+In Cloudflare Zero Trust Dashboard:
+- Open your tunnel → **Public Hostname** → **Add a public hostname**
+- Hostname: `hls.yourdomain.com`
+- Service:
+  - Type: `HTTP`
+  - URL: `http://mediamtx:8888`
+
+Then set FE env:
+- `VITE_HLS_BASE_URL=https://hls.yourdomain.com`
+
+Notes:
+- `docker-compose.cam.yml` already sets `MTX_HLSALLOWORIGIN=*` so browsers can fetch HLS cross-origin.
+- If playback stutters, add a Cloudflare Cache Rule to bypass caching for `*.m3u8` and `*.ts`.

@@ -124,5 +124,12 @@ export class UpdateCameraDto {
   @IsBoolean()
   aiEnabled?: boolean;
 
-  intersectionId: number;
+  @ApiProperty({
+    description: 'ID Ngã tư',
+    example: 1,
+    required: false,
+  })
+  @IsOptional()
+  @IsNumber()
+  intersectionId?: number;
 }

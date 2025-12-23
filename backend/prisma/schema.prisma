@@ -1,65 +1,65 @@
 generator client {
   provider = "prisma-client-js"
 }
-
+ 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
-
+ 
 model Camera {
   id             Int           @id @default(autoincrement())
   name           String        @db.VarChar(255)
   videoSource    String        @map("video_source") @db.VarChar(500)
   latitude       Float
   longitude      Float
-
-  // Per-camera settings used by frontend for congestion alerts
   threshold      Float         @default(0.7)
   maxVehicles    Int           @default(5) @map("max_vehicles")
   aiEnabled      Boolean       @default(true) @map("ai_enabled")
-
-  intersectionId Int? // Có thể null (nếu camera chưa gán vào đâu)
+ 
+  intersectionId Int?          @map("intersection_id")
   intersection   Intersection? @relation(fields: [intersectionId], references: [id])
+ 
   createdAt      DateTime      @default(now()) @map("created_at")
   updatedAt      DateTime      @updatedAt @map("updated_at")
-
+ 
   frameStats      TrafficFrameStat[]
   minuteSummaries TrafficMinuteSummary[]
-
+ 
   @@map("cameras")
 }
-
+ 
 model TrafficFrameStat {
   id          Int      @id @default(autoincrement())
   cameraId    Int      @map("camera_id")
   vehicles    Int
   isEmergency Boolean  @default(false) @map("is_emergency")
   capturedAt  DateTime @map("captured_at")
-
-  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
-
+ 
+  camera      Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+ 
   @@index([cameraId])
   @@index([capturedAt])
   @@map("traffic_frame_stats")
 }
-
+ 
 model TrafficSignalLog {
-  id            Int      @id @default(autoincrement())
-  timestamp     BigInt
-  readableTime  String   @map("readable_time") @db.VarChar(100)
-  event         String   @db.VarChar(100)
-  greenRoadId   Int      @map("green_road_id")
-  duration      Int
-  reason        String   @db.VarChar(255)
-  trafficStatus Json     @map("traffic_status") @db.JsonB
-  cycleQueue    Json     @map("cycle_queue") @db.JsonB
-  createdAt     DateTime @default(now()) @map("created_at")
-
+  id           Int      @id @default(autoincrement())
+  timestamp    BigInt
+  readableTime String   @map("readable_time") @db.VarChar(100)
+  event        String   @db.VarChar(100)
+  greenRoadId  Int      @map("green_road_id")
+  duration     Int
+  reason       String   @db.VarChar(255)
+  trafficStatus Json    @map("traffic_status") @db.JsonB
+  cycleQueue    Json    @map("cycle_queue") @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at")
+ 
   @@index([timestamp])
   @@map("traffic_signal_logs")
 }
-
+ 
 model Intersection {
   id          Int      @id @default(autoincrement())
   name        String   @db.VarChar(255)
@@ -69,10 +69,10 @@ model Intersection {
   cameras     Camera[]
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-
+ 
   @@map("intersections")
 }
-
+ 
 model TrafficMinuteSummary {
   id          Int      @id @default(autoincrement())
   cameraId    Int      @map("camera_id")
@@ -83,26 +83,25 @@ model TrafficMinuteSummary {
   samples     Int
   flowCount   Int      @default(0) @map("flow_count")
   createdAt   DateTime @default(now()) @map("created_at")
-
-  camera Camera @relation(fields: [cameraId], references: [id], onDelete: Cascade)
-
-  @@unique([cameraId, minuteStart]) // tránh insert trùng 1 phút/cam
+ 
+  camera      Camera   @relation(fields: [cameraId], references: [id], onDelete: Cascade)
+ 
+  @@unique([cameraId, minuteStart])
   @@index([minuteStart])
   @@map("traffic_minute_summaries")
 }
-
+ 
 model User {
   id        String   @id @default(uuid())
   username  String   @unique
-  fullName  String   @map("full_name") // Map sang tên cột trong DB (tùy chọn)
+  fullName  String   @map("full_name")
   email     String   @unique
   password  String
-  avatar    String? // Dấu ? nghĩa là có thể null
-
-  roleId    Int      @default(1) @map("role_id") // 0=admin, 1=user
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("users") // Tên bảng trong Database
+  avatar    String?
+  roleId    Int      @default(1) @map("role_id")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt      @map("updated_at")
+ 
+  @@map("users")
 }

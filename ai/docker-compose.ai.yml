@@ -6,8 +6,10 @@ services:
     restart: unless-stopped
     environment:
       AI_CONFIG: /app/config.yaml
-      BACKEND_URL: "http://backend:3000" 
-      NAMESPACE: "/ingest"
+      # Override these at runtime when targeting Render, e.g.
+      # $env:BACKEND_URL="https://<service>.onrender.com"; docker compose -f ai/docker-compose.ai.yml up -d --build
+      BACKEND_URL: "${BACKEND_URL:-http://backend:3000}"
+      NAMESPACE: "${NAMESPACE:-/ingest}"
     volumes:
       - ./config.yaml:/app/config.yaml:ro
       - ./models:/models:ro

@@ -128,3 +128,19 @@ cameras:
       p1: [126, 145]
       p2: [248, 144]
     line_dir: null
+  
+  - id: 7
+    name: "Road them (South)"
+    rtsp: "rtsp://mediamtx:8554/south1"
+    max_vehicles: 5
+    default_green: 42
+    emergency_green: 80
+    roi:
+      - [175, 94]  
+      - [262, 91]  
+      - [223, 281] 
+      - [48, 259]
+    count_line:
+      p1: [126, 145]
+      p2: [248, 144]
+    line_dir: null

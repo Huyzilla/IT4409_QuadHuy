@@ -1,9 +1,8 @@
 import React, { createContext, useState, useEffect, useContext } from "react";
 import { useAuth } from "./AuthContext";
-import { api } from "../api";
+import { api, API_BASE_URL } from "../api";
 import axios from "axios";
 
-const API_URL = "http://localhost:3000/api";
 const MOCK_ALERTS = [
   {
     id: 1,
@@ -31,7 +30,7 @@ const MOCK_ALERTS = [
 
 const TrafficContext = createContext();
 const trafficAxios = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true, // : Cho phép gửi/nhận Cookie
 });
 
