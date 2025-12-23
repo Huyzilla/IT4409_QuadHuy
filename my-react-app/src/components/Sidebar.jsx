@@ -84,6 +84,7 @@ const Sidebar = ({
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [areaFilter, setAreaFilter] = useState("all");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const filteredIntersections = intersections.filter((item) => {
     const matchesStatus =
@@ -160,12 +161,30 @@ const Sidebar = ({
   }, [handleMouseMove, stopResizing]);
 
   return (
-    <aside
-      className="sidebar"
-      role="navigation"
-      style={{ "--sidebar-width": `${width}px` }}
-    >
-      <div className="resizer-handle" onMouseDown={startResizing} />
+    <>
+      {/* Hamburger button for mobile */}
+      <button
+        className="sidebar-toggle-btn"
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        aria-label="Toggle sidebar"
+      >
+        <span className="icon">{isSidebarOpen ? '✕' : '☰'}</span>
+      </button>
+
+      {/* Overlay for mobile */}
+      {isSidebarOpen && (
+        <div
+          className="sidebar-overlay"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`sidebar ${isSidebarOpen ? 'sidebar-open' : ''}`}
+        role="navigation"
+        style={{ "--sidebar-width": `${width}px` }}
+      >
+        <div className="resizer-handle" onMouseDown={startResizing} />
       <div
         className="sidebar-header"
         style={{ display: "flex", alignItems: "center" }}
@@ -354,6 +373,7 @@ const Sidebar = ({
         initialData={editingItem}
       />
     </aside>
+    </>
   );
 };
 
