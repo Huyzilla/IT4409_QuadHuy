@@ -17,7 +17,8 @@ const normalizeBackendUser = (backendUser, providerFallback) => {
     backendUser.roleId ?? backendUser.role_id ?? backendUser.roleID ?? null;
   const roleId = Number.isFinite(Number(roleIdRaw)) ? Number(roleIdRaw) : null;
   const role =
-    backendUser.role || (roleId === 0 ? "admin" : roleId === 1 ? "user" : "user");
+    backendUser.role ||
+    (roleId === 0 ? "admin" : roleId === 1 ? "user" : "user");
   return {
     id: backendUser.id,
     username: backendUser.username,
@@ -85,7 +86,7 @@ export const AuthProvider = ({ children }) => {
     if (savedToken && !savedUser) {
       setAccessToken(savedToken);
       connectTrafficSocket();
-      
+
       (async () => {
         try {
           const res = await api.get("/auth/me");

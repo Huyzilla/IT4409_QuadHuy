@@ -7,6 +7,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 // Import cookie-parser in a way that is callable regardless of TS interop settings.
 // If you haven't installed types yet, run: `npm install cookie-parser @types/cookie-parser`
 import cookieParser = require('cookie-parser');
+import { json, urlencoded } from 'express';
 
 /**
  * Bootstrap the NestJS application with:
@@ -32,6 +33,10 @@ async function bootstrap() {
 
   // Set global API prefix
   app.setGlobalPrefix('api');
+  app.use(json({ limit: '50mb' }));
+
+  // ➕ 3. Tăng giới hạn cho URL encoded (nếu cần)
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
 
   // Enable global validation pipe
   app.useGlobalPipes(

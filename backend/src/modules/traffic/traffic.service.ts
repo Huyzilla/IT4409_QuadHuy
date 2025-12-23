@@ -48,13 +48,13 @@ export class TrafficService {
   private startCountdownTimer(): void {
     setInterval(() => {
       Object.values(this.intersectionStates).forEach((state) => {
-        (['north', 'east', 'south', 'west'] as Array<keyof TrafficState>).forEach(
-          (direction) => {
-            if (state[direction].remaining > 0) {
-              state[direction].remaining--;
-            }
-          },
-        );
+        (
+          ['north', 'east', 'south', 'west'] as Array<keyof TrafficState>
+        ).forEach((direction) => {
+          if (state[direction].remaining > 0) {
+            state[direction].remaining--;
+          }
+        });
       });
     }, 1000);
   }
@@ -143,9 +143,8 @@ export class TrafficService {
     const duration = decision.duration;
     const reason = decision.reason ?? 'AI_DECISION';
 
-    const { intersectionId, localRoadId } = this.resolveIntersectionAndDirection(
-      greenRoadId,
-    );
+    const { intersectionId, localRoadId } =
+      this.resolveIntersectionAndDirection(greenRoadId);
 
     this.logger.log(
       `[AI] Apply signal decision: greenRoadId=${greenRoadId} (intersection=${intersectionId}), duration=${duration}, reason=${reason}`,
@@ -186,7 +185,9 @@ export class TrafficService {
   // Save frame stat to DB ONLY when emergency.
   // Ghi khi: lần đầu emergency (false->true) hoặc đã quá cooldown
   // Không emergency: reset trạng thái để lần sau phát hiện lại ghi được ngay
-  private async saveFrameStatIfEmergency(dto: IngestTrafficDataDto): Promise<void> {
+  private async saveFrameStatIfEmergency(
+    dto: IngestTrafficDataDto,
+  ): Promise<void> {
     const cameraId = dto.cameraId;
     const isEmergency = Boolean(dto.isEmergency);
 
@@ -301,7 +302,7 @@ export class TrafficService {
     return this.trafficRepository.getTrafficLogs(limit, offset);
   }
 
-  // Get traffic snapshot (current state from Redis or memory)  
+  // Get traffic snapshot (current state from Redis or memory)
   async getSnapshot(): Promise<Record<number, TrafficState>> {
     const cached = await this.redisService.getTrafficState('traffic:state:all');
     return cached || this.getAllCurrentStates();

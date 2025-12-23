@@ -3,9 +3,9 @@ services:
     image: bluenviron/mediamtx:latest
     container_name: mediamtx
     ports:
-      - "8554:8554"   # RTSP 
-      - "8888:8888"   # HLS
-      - "8889:8889"   # WebRTC
+      - "8554:8554" # RTSP
+      - "8888:8888" # HLS
+      - "8889:8889" # WebRTC
     restart: unless-stopped
     networks: [traffic-net]
 
@@ -123,4 +123,4 @@ services:
 
 networks:
   traffic-net:
-    external: true  
+    external: true

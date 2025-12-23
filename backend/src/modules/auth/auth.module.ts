@@ -22,7 +22,13 @@ import { AdminGuard } from './admin.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtAuthGuard, AdminGuard, RateLimitService, GoogleStrategy],
+  providers: [
+    AuthService,
+    JwtAuthGuard,
+    AdminGuard,
+    RateLimitService,
+    GoogleStrategy,
+  ],
   exports: [AuthService, JwtAuthGuard, AdminGuard, JwtModule, RateLimitService],
 })
 export class AuthModule {}

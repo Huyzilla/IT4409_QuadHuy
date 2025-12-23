@@ -45,6 +45,11 @@ export class CreateCameraDto {
   @IsNotEmpty()
   @IsNumber()
   longitude: number;
+
+  @ApiProperty({ description: 'ID Ngã tư', example: 1 })
+  @IsNotEmpty()
+  @IsNumber()
+  intersectionId: number;
 }
 
 /**
@@ -99,7 +104,8 @@ export class UpdateCameraDto {
   threshold?: number;
 
   @ApiProperty({
-    description: 'Max vehicles capacity used to normalize density (vehicles / maxVehicles)',
+    description:
+      'Max vehicles capacity used to normalize density (vehicles / maxVehicles)',
     example: 5,
     required: false,
   })
@@ -117,4 +123,6 @@ export class UpdateCameraDto {
   @IsOptional()
   @IsBoolean()
   aiEnabled?: boolean;
+
+  intersectionId: number;
 }
