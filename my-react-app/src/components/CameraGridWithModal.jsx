@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import SnapshotImage from "./SnapshotImage.jsx";
+import HlsVideo from "./HlsVideo.jsx";
 // import "./CameraGridModal.css";
 
 export default function CameraGridWithModal({ cameras = [] }) {
@@ -58,14 +58,17 @@ export default function CameraGridWithModal({ cameras = [] }) {
                                 background: 'var(--color-bg-tertiary)'
                             }}
                         >
-                            {cam?.id ? (
-                                <SnapshotImage
-                                    cameraId={cam.id}
-                                    alt={cam.name}
-                                    style={{
-                                        position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover'
-                                    }}
-                                />
+                            {cam?.videoSource ? (
+                                <div style={{ position: 'absolute', inset: 0 }}>
+                                    <HlsVideo
+                                        src={cam.streamUrl || cam.videoSource}
+                                        controls
+                                        autoPlay
+                                        playsInline
+                                        muted
+                                        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                    />
+                                </div>
                             ) : (
                                 <div
                                     className="ch-placeholder"
@@ -73,7 +76,7 @@ export default function CameraGridWithModal({ cameras = [] }) {
                                         position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)'
                                     }}
                                 >
-                                    Snapshot: {cam.name}
+                                    Video: {cam.name}
                                 </div>
                             )}
                         </div>
