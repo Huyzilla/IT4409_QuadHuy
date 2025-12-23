@@ -3,7 +3,6 @@ import { useTraffic } from "../context/TrafficContext";
 import AlertPanel from "./AlertPanel.jsx";
 import { ingestSocket, getTrafficSocket } from "../socket.js";
 import { api } from "../api";
-import SnapshotImage from "./SnapshotImage.jsx";
 import HlsVideo from "./HlsVideo.jsx";
 import CameraModal from "./CameraModal.jsx";
 
@@ -249,10 +248,13 @@ const DashboardSegmentCard = ({
           position: "relative",
         }}
       >
-        {camera?.id ? (
-          <SnapshotImage
-            cameraId={camera.id}
-            alt={camera.name}
+        {camera?.videoSource ? (
+          <HlsVideo
+            src={camera.videoSource}
+            muted
+            autoPlay
+            playsInline
+            controls
             style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
         ) : (
@@ -272,9 +274,6 @@ const DashboardSegmentCard = ({
             <div style={{ fontSize: 12, opacity: 0.9 }}>Snapshot</div>
             <div style={{ fontSize: 12, opacity: 0.75 }}>
               {camera?.name || ""}
-            </div>
-            <div style={{ fontSize: 11, opacity: 0.6 }}>
-              (Mở “Xem chi tiết” để xem live)
             </div>
           </div>
         )}
