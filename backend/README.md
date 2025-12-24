@@ -1,113 +1,118 @@
-# AI-Based Adaptive Traffic Control System - Backend
+# Backend (NestJS) — Trung tâm điều phối & Dashboard Realtime
 
-## 📋 Overview
+Backend chịu trách nhiệm:
 
-Backend system for an AI-based adaptive traffic control system. Receives real-time traffic data from AI cameras via WebSocket, processes it using an intelligent traffic control algorithm, stores logs in PostgreSQL, caches state in Redis, and broadcasts updates to a dashboard.
+- Nhận dữ liệu realtime từ AI qua Socket.IO (`/ingest`)
+- Nhận **đề xuất điều khiển đèn** do AI tính toán (`signal_decision`)
+- Lưu log vào PostgreSQL (Prisma)
+- Cache/truyền sự kiện qua Redis
+- Phát realtime trạng thái giao thông cho Frontend Dashboard qua Socket.IO (`/traffic`)
 
-## 🏗️ Architecture
+Lưu ý quan trọng: trong repo này, **AI là bên tính toán thời gian/pha đèn**. Backend chủ yếu nhận, lưu và broadcast.
+
+## 1) Công nghệ
 
 - **Framework**: NestJS (TypeScript)
-- **Database**: PostgreSQL 16 (Prisma ORM)
+- **Database**: PostgreSQL 16 (Prisma)
 - **Cache/PubSub**: Redis 7
-- **Communication**: 
-  - WebSocket (Socket.IO) for AI cameras → Backend
-  - WebSocket (Socket.IO) for Backend → Frontend Dashboard
-  - REST API for historical data queries
-- **Infrastructure**: Docker & Docker Compose
+- **Realtime**: Socket.IO
+- **Docker**: `docker-compose.backend.yml`
 
-## 📁 Project Structure
+## 2) Cấu trúc thư mục
 
 ```
 backend/
-├── src/
-│   ├── main.ts                      # Application entry point
-│   ├── app.module.ts                # Root module
-│   │
-│   └── modules/
-│       ├── camera/                  # Camera management
-│       ├── traffic/                 # Traffic control & monitoring
-│       │   ├── ingest.gateway.ts    # WebSocket: AI → Backend
-│       │   ├── traffic.gateway.ts   # WebSocket: Backend → Frontend
-│       │   ├── traffic.control.service.ts  # Traffic light algorithm
-│       ├── intersection/            # Intersection management
-│       ├── database/                # Prisma integration
-│       └── redis/                   # Redis integration
-│
-├── prisma/
-│   ├── schema.prisma               # Database schema
-│   └── migrations/                 # Database migrations
-│
-├── Dockerfile                      # Production Docker image
-└── docker-compose.yml              # Multi-service orchestration
+  src/
+    modules/
+      traffic/
+        ingest.gateway.ts     # WS: AI -> Backend (/ingest)
+        traffic.gateway.ts    # WS: Backend -> FE (/traffic)
+        traffic.service.ts    # applySignalDecision + cache/log
+  prisma/
+    schema.prisma
+    migrations/
+  docker-compose.backend.yml
+  Dockerfile
 ```
 
-## 🚀 Getting Started
+## 3) Chạy bằng Docker (khuyến nghị)
 
-### Option 1: Run with Docker (Recommended for Production)
+### 3.1. Chuẩn bị
+
+Tạo Docker network dùng chung (chỉ cần chạy 1 lần, ở root project):
 
 ```powershell
-# Start all services
-docker-compose up -d --build
-
-# Run database migrations
-docker exec -it nest-backend npx prisma migrate deploy
+docker network create traffic-net
 ```
 
-Services will be available at:
+Tạo `.env` từ mẫu:
+
+- `backend/.env.example` → `backend/.env`
+
+### 3.2. Start services
+
+```powershell
+cd backend
+docker compose -f docker-compose.backend.yml up -d --build
+```
+
+Mặc định services:
+
 - REST API: `http://localhost:3000`
-- WebSocket (AI Cameras): `ws://localhost:3000/ingest`
-- WebSocket (Dashboard): `ws://localhost:3000/traffic`
+- Socket.IO ingest (AI): `http://localhost:3000/ingest`
+- Socket.IO traffic (Dashboard): `http://localhost:3000/traffic`
 - PostgreSQL: `localhost:5433`
 - Redis: `localhost:6379`
 
-### Option 2: Run Locally (Development with Hot Reload)
+Ghi chú: trong `docker-compose.backend.yml` container backend chạy `npx prisma db push` trước khi start.
 
-1. **Start infrastructure only**:
+## 4) Chạy local (dev)
+
+1) Dựng hạ tầng DB/Redis bằng Docker:
+
 ```powershell
-docker-compose up -d postgres redis
+cd backend
+docker compose -f docker-compose.backend.yml up -d postgres redis
 ```
 
-2. **Install dependencies**:
+2) Cài dependencies và migrate:
+
 ```powershell
 npm install
-```
-
-3. **Set up environment** (create `.env`):
-```env
-DATABASE_URL="postgresql://admin:admin123@localhost:5433/traffic_ai?schema=public"
-REDIS_HOST=localhost
-REDIS_PORT=6379
-NODE_ENV=development
-```
-
-4. **Run migrations**:
-```powershell
-npx prisma migrate dev --name init
 npx prisma generate
+npx prisma migrate dev --name init_db
 ```
 
-5. **Start dev server** (with hot reload):
+3) Chạy server:
+
 ```powershell
 npm run start:dev
 ```
 
-## 📡 API Endpoints
+## 5) Mapping cameraId → ngã tư/hướng
 
-### REST API
+Backend map `cameraId` thành:
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/cameras` | Get all cameras |
-| POST | `/cameras` | Create a new camera |
-| GET | `/traffic/logs?limit=20` | Get traffic signal logs |
-| GET | `/traffic/snapshot` | Get current traffic state |
-| GET | `/traffic/stats?cameraId=1&from=...&to=...` | Get statistics |
+- `cameraId` 1..4 → **intersection 1** với thứ tự: 1=north, 2=east, 3=south, 4=west
+- `cameraId` 5..8 → **intersection 2** với thứ tự: 5=north, 6=east, 7=south, 8=west
 
-### WebSocket Events
+## 6) API (REST)
 
-#### AI Camera → Backend (`ws://localhost:3000/ingest`)
+Tuỳ theo module đang bật trong repo, các endpoint thường dùng:
 
-**Event**: `traffic_data`
+| Method | Endpoint | Mô tả |
+|---|---|---|
+| GET | `/cameras` | Lấy danh sách camera |
+| POST | `/cameras` | Tạo camera |
+| GET | `/traffic/logs?limit=20` | Lấy log chuyển pha đèn |
+| GET | `/traffic/snapshot` | Lấy trạng thái hiện tại |
+| GET | `/traffic/stats?cameraId=1&from=...&to=...` | Thống kê |
+
+## 7) WebSocket events
+
+### 7.1. AI → Backend (`/ingest`)
+
+**Event: `traffic_data`**
 
 ```json
 {
@@ -118,97 +123,78 @@ npm run start:dev
 }
 ```
 
-#### Backend → Dashboard (`ws://localhost:3000/traffic`)
-
-**Event**: `traffic_update` (auto-broadcast every 1 second)
+**Event: `signal_decision`** (AI tính thời lượng đèn và gửi sang)
 
 ```json
 {
-  "north": { "vehicles": 3, "light": "RED", "remaining": 10 },
-  "east":  { "vehicles": 7, "light": "GREEN", "remaining": 10 },
-  "south": { "vehicles": 2, "light": "RED", "remaining": 10 },
-  "west":  { "vehicles": 6, "light": "RED", "remaining": 10 }
+  "intersectionId": 1,
+  "decision": {
+    "greenRoadId": 2,
+    "duration": 30,
+    "reason": "NORMAL_ADAPTIVE"
+  },
+  "trafficStatus": {
+    "1": { "vehicles": 2, "isEmergency": false, "light": "RED", "time_left": 0 },
+    "2": { "vehicles": 6, "isEmergency": false, "light": "GREEN", "time_left": 30 }
+  }
 }
 ```
 
-## 🧠 Traffic Control Algorithm
+**Event: `traffic_minute_summary`** (tổng hợp theo phút)
 
-### Rules
-
-1. **Emergency Priority**: Immediate green light for emergency vehicles
-2. **Adaptive Selection**: Choose road with highest vehicle count
-3. **Fair Cycling**: Maintain cycle queue to ensure all roads get green
-4. **Adaptive Duration**: 8-15 seconds based on vehicle density
-5. **Full Logging**: All decisions logged with state and reasoning
-
-### Flow
-
-```
-1. Receive traffic data from camera
-2. Update current state (vehicles, emergency)
-3. Run control algorithm
-4. If light change needed:
-   - Update road states
-   - Save to database
-   - Publish to Redis
-   - Broadcast to dashboard
+```json
+{
+  "cameraId": 1,
+  "minuteStart": 1763108760,
+  "minuteEnd": 1763108820,
+  "vehicles_avg": 2.33,
+  "vehicles_max": 6,
+  "samples": 20,
+  "flow_count": 12
+}
 ```
 
-## 🔧 Development
+### 7.2. Backend → Dashboard (`/traffic`)
 
-### Scripts
+**Event: `traffic_update`** (broadcast mỗi 1s)
+
+```json
+{
+  "intersectionStates": {
+    "1": {
+      "north": { "vehicles": 3, "light": "GREEN", "remaining": 10, "isEmergency": false },
+      "east": { "vehicles": 7, "light": "RED", "remaining": 0, "isEmergency": false },
+      "south": { "vehicles": 2, "light": "RED", "remaining": 0, "isEmergency": false },
+      "west": { "vehicles": 6, "light": "RED", "remaining": 0, "isEmergency": false }
+    }
+  }
+}
+```
+
+**Event: `new_minute_stats`** (khi nhận `traffic_minute_summary` từ AI)
+
+```json
+{
+  "cameraId": 1,
+  "minuteStart": 1763108760,
+  "vehicles_avg": 2.33,
+  "density": 0.0233
+}
+```
+
+Ghi chú: kết nối `/traffic` có middleware auth (token Bearer hoặc `handshake.auth.token`).
+
+## 8) Redis
+
+- Channel: `traffic:light-change` (publish khi apply quyết định từ AI)
+- Cache: `traffic:state` (state hiện tại)
+
+## 9) Lệnh hữu ích
 
 ```powershell
-npm run start:dev      # Development with hot reload
-npm run build          # Production build
-npm run start:prod     # Start production build
-npm run lint           # Lint code
-npm test               # Run tests
+cd backend
+npm run start:dev
+npm run build
+npm run start:prod
+npm run lint
 ```
-
-### Database
-
-```powershell
-npx prisma migrate dev --name <name>  # Create migration
-npx prisma migrate deploy              # Apply migrations
-npx prisma studio                      # Open GUI
-npx prisma generate                    # Regenerate client
-```
-
-### Docker
-
-```powershell
-docker-compose up -d --build           # Build and start
-docker-compose logs -f backend         # View logs
-docker-compose down                    # Stop all
-docker exec -it nest-backend sh        # Access shell
-```
-
-## 🗄️ Database Schema
-
-- **cameras** - Camera information
-- **traffic_frame_stats** - Raw traffic data from cameras
-- **traffic_signal_logs** - Traffic light change logs
-- **intersections** - Intersection metadata
-
-## 📊 Redis Usage
-
-- **Cache**: `traffic:state` (current state, TTL 60s)
-- **Pub/Sub**: 
-  - `traffic:update` - General updates
-  - `traffic:light-change` - Light changes
-
-## 🐛 Troubleshooting
-
-### Port Conflict
-Change postgres port in `docker-compose.yml` to `5433:5432`
-
-### Prisma Issues
-```powershell
-npx prisma generate
-npx prisma migrate reset  # Development only!
-```
-
-## 📝 License
-
-UNLICENSED - Private Project
