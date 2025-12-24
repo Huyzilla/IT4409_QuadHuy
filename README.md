@@ -2,6 +2,8 @@
 
 Hệ thống điều khiển đèn giao thông thích nghi theo thời gian thực.
 
+Web demo (Vercel): https://traffic-monitor-all.vercel.app/
+
 - **Frontend**: Vite + React dashboard ([my-react-app/](my-react-app/))
 - **Backend**: NestJS + Prisma + PostgreSQL + Redis ([backend/](backend/))
 - **AI service**: Python (YOLO/ONNX) xử lý video/camera ([ai/](ai/))
@@ -93,10 +95,10 @@ docker compose -f docker-compose.tunnel.yml --env-file .env.tunnel up -d
 ```powershell
 cd backend
 
-# khởi động postgres/redis/backend (theo compose của backend)
+# khởi động postgres/redis/backend 
 docker compose -f docker-compose.backend.yml up -d --build
 
-# tạo/migrate DB (development)
+# tạo/migrate DB 
 docker compose -f docker-compose.backend.yml run --rm backend npx prisma migrate dev --name init_db
 ```
 
@@ -108,8 +110,6 @@ docker compose -f docker-compose.ai.yml up -d --build
 ```
 
 ### 3.4. Chạy Frontend
-
-Frontend thường chạy local (dev server) để tiện HMR:
 
 ```powershell
 cd my-react-app
@@ -147,9 +147,7 @@ npm run dev
 ## 5) Deploy (tóm tắt)
 
 - **Vercel**: deploy thư mục frontend (`my-react-app/`).
-- **Render**: deploy backend (`backend/`) và (nếu cần) AI service (`ai/`).
-
-Nếu bạn cần hướng dẫn chi tiết theo đúng hạ tầng hiện tại (Render/Vercel + chạy video local), hãy cho mình biết bạn đang deploy module nào (backend/ai/frontend) và dùng Docker hay build native.
+- **Render**: deploy backend (`backend/`).
 
 ## 6) Notes
 

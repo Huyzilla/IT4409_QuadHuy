@@ -8,8 +8,6 @@ Backend chịu trách nhiệm:
 - Cache/truyền sự kiện qua Redis
 - Phát realtime trạng thái giao thông cho Frontend Dashboard qua Socket.IO (`/traffic`)
 
-Lưu ý quan trọng: trong repo này, **AI là bên tính toán thời gian/pha đèn**. Backend chủ yếu nhận, lưu và broadcast.
-
 ## 1) Công nghệ
 
 - **Framework**: NestJS (TypeScript)
