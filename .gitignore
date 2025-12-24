@@ -1,2 +1,72 @@
-/backend_simple
+#############################################
+# Global ignores (repo root)
+#############################################
+
+# Local-only folders
+/backend_simple/
+
+# Environment / secrets (keep *.example tracked)
+**/.env
+**/.env.*
+!.env.example
+!.env.*.example
+
 /.env.tunnel
+
+# AI service local config (use ai/config_example.yaml instead)
+/ai/config.yaml
+
+# Node / JS
+**/node_modules/
+**/dist/
+**/dist-ssr/
+**/build/
+**/.next/
+**/.turbo/
+**/.vite/
+**/.cache/
+
+# Logs
+**/logs/
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Tests / coverage
+**/coverage/
+**/.nyc_output/
+
+# Python
+**/__pycache__/
+*.py[cod]
+*$py.class
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+**/.ipynb_checkpoints/
+.venv/
+venv/
+env/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Temporary
+.temp/
+.tmp/
+*.pid
+*.pid.lock
+*.seed
